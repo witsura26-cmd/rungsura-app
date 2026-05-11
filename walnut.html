@@ -626,7 +626,7 @@ function taskList(ts){
   return ts.map(t=>{const s=sc[t.status]||sc.todo;const ov=t.due<TODAY&&t.status!=="done";
     return `<div class="flex items-center gap-3 p-3 rounded-xl border border-transparent hover:bg-amber-50 transition-colors mb-1">
       <button onclick="toggleDone(${t.id},'${t.status}')" class="w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-colors ${t.status==="done"?"bg-green-400 border-green-400":"border-gray-300 hover:border-amber-400"}">
-        ${t.status==="done"?"<svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>":""}
+        ${t.status==="done"?'<svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>':''}
       </button>
       <div class="flex-1 min-w-0">
         <div class="text-sm font-medium ${t.status==="done"?"line-through text-gray-300":"text-gray-800"} truncate">${t.title}</div>
@@ -741,10 +741,7 @@ async function submitHw(){
   let writtenScore=0, feedback="";
   if(CFG.claude){
     try{
-      const wtext=l.written.map((q,i)=>`ข้อ${i+1}: ${q.q}
-คำตอบ: ${hwWrittenAnswers[i]||"(ไม่ได้ตอบ)"}`).join("
-
-");
+      const wtext=l.written.map((q,i)=>`ข้อ${i+1}: ${q.q}\nคำตอบ: ${hwWrittenAnswers[i]||"(ไม่ได้ตอบ)"}`).join("\n\n");
       const res=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},
         body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:500,
           system:`คุณคือ${l.teacher} ครูของวอลนัท (8 ขวบ ป.4) กำลังตรวจการบ้านเขียนตอบ 5 ข้อ ให้คะแนน 0-1 ต่อข้อ ตอบเป็น JSON: {"scores":[0,1,0,1,1],"feedback":"ความเห็น 2-3 ประโยค ภาษาไทย อบอุ่น"}`,
