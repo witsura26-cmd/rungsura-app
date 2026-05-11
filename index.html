@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RungSura Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { font-family: 'Sarabun', sans-serif; }
+    .dept-card { transition: all 0.2s ease; }
+    .dept-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(251,191,36,0.18); }
+    .tab-active { border-bottom: 3px solid #FBBF24; color: #92400E; font-weight: 600; }
+    .task-item:hover { background: #FFFBEB; }
+    .sidebar-item.active { background: #FFFBEB; border-right: 3px solid #FBBF24; color: #92400E; font-weight: 600; }
+    .chat-panel { transition: transform 0.3s cubic-bezier(.4,0,.2,1); }
+    .status-badge { font-size: 11px; padding: 2px 8px; border-radius: 999px; font-weight: 500; }
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-thumb { background: #FBBF24; border-radius: 3px; }
+    ::-webkit-scrollbar-track { background: #f9fafb; }
+    .progress-bar { transition: width 0.4s ease; }
+    .timeline-line { position: absolute; left: 19px; top: 40px; bottom: 0; width: 2px; background: #FDE68A; }
+    .spinner { border: 3px solid #FDE68A; border-top-color: #FBBF24; border-radius: 50%; width: 32px; height: 32px; animation: spin 0.7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .toast { animation: slideUp 0.3s ease; }
+    @keyframes slideUp { from { transform: translateY(20px); opacity:0; } to { transform: translateY(0); opacity:1; } }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+<div class="flex h-screen overflow-hidden">
+
+  <!-- SIDEBAR -->
+  <aside class="w-56 bg-white border-r border-gray-100 flex flex-col flex-shrink-0 shadow-sm">
+    <div class="p-5 border-b border-gray-100">
+      <div class="flex items-center gap-2">
+        <div class="w-9 h-9 bg-amber-400 rounded-xl flex items-center justify-center text-white font-bold shadow-sm">RS</div>
+        <div>
+          <div class="font-bold text-gray-900 text-sm">RungSura</div>
+          <div class="text-xs text-gray-400">Co.,Ltd.</div>
+        </div>
+      </div>
+    </div>
+    <nav class="flex-1 p-3 space-y-0.5 overflow-y-auto">
+      <button onclick="navigate('dashboard')" data-route="dashboard"
+        class="sidebar-item active w-full text-left px-3 py-2.5 rounded-lg text-sm flex items-center gap-2 hover:bg-amber-50 transition-colors">
+        🏠 Dashboard
+      </button>
+      <div class="pt-3 pb-1 px-3 text-xs text-gray-400 font-semibold uppercase tracking-wider">แผนก</div>
+      <button onclick="navigate('dept/1')" data-route="dept/1"
+        class="sidebar-item w-full text-left px-3 py-2.5 rounded-lg text-sm flex items-center gap-2 hover:bg-amber-50 transition-colors">
+        ☕ Noix &amp; Coff
+      </button>
+      <button onclick="navigate('dept/2')" data-route="dept/2"
+        class="sidebar-item w-full text-left px-3 py-2.5 rounded-lg text-sm flex items-center gap-2 hover:bg-amber-50 transition-colors">
+        🎬 Cheywit Media
+      </button>
+      <button onclick="navigate('dept/3')" data-route="dept/3"
+        class="sidebar-item w-full text-left px-3 py-2.5 rounded-lg text-sm flex items-center gap-2 hover:bg-amber-50 transition-colors">
+        🎵 Walnut Learning
+      </button>
+      <button onclick="navigate('dept/4')" data-route="dept/4"
+        class="sidebar-item w-full text-left px-3 py-2.5 rounded-lg text-sm flex items-center gap-2 hover:bg-amber-50 transition-colors">
+        🚀 New Business
+      </button>
+    </nav>
+    <div class="p-4 border-t border-gray-100">
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 bg-amber-400 rounded-full flex items-center justify-center text-white text-xs font-bold">W</div>
+        <div>
+          <div class="text-xs font-semibold text-gray-700">Wit</div>
+          <div id="sb-status" class="text-xs text-gray-400">กำลังเชื่อม...</div>
+        </div>
+        <button onclick="openSettings()" class="ml-auto text-gray-300 hover:text-amber-500 text-lg" title="ตั้งค่า">⚙️</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="flex-1 overflow-y-auto">
+    <div id="main-content" class="p-6 max-w-5xl mx-auto"></div>
+  </main>
+</div>
+
+<!-- CHAT BUTTON -->
+<button onclick="toggleChat()" id="chat-btn"
+  class="fixed bottom-6 right-6 w-14 h-14 bg-amber-400 hover:bg-amber-500 text-white rounded-full shadow-xl flex items-center justify-center text-2xl transition-all z-40 hover:scale-105">
+  💬
+</button>
+
+<!-- CHAT PANEL -->
+<div id="chat-panel" class="fixed right-0 top-0 h-full w-96 bg-white shadow-2xl border-l border-gray-100 z-50 flex flex-col chat-panel translate-x-full">
+  <div class="p-4 border-b border-gray-100 bg-amber-50 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 bg-amber-400 rounded-xl flex items-center justify-center text-white text-sm font-bold">AI</div>
+      <div>
+        <div class="font-semibold text-gray-900 text-sm">Claude Assistant</div>
+        <div class="text-xs text-gray-500">RungSura AI</div>
+      </div>
+    </div>
+    <button onclick="toggleChat()" class="text-gray-400 hover:text-gray-700 text-2xl leading-none">&times;</button>
+  </div>
+  <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-3">
+    <div class="flex gap-2">
+      <div class="w-7 h-7 bg-amber-400 rounded-full flex items-center justify-center text-white text-xs flex-shrink-0 mt-0.5">AI</div>
+      <div class="bg-amber-50 rounded-2xl rounded-tl-none px-4 py-3 text-sm max-w-xs leading-relaxed">
+        สวัสดีครับ! ผม Claude ผู้ช่วย AI ของ RungSura<br>ถามเรื่องงาน แผนก tasks หรือแผนธุรกิจได้เลยครับ 😊
+      </div>
+    </div>
+  </div>
+  <div class="p-4 border-t border-gray-100 bg-gray-50">
+    <div class="flex gap-2">
+      <input id="chat-input" type="text" placeholder="พิมพ์คำถาม..."
+        class="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 bg-white"
+        onkeydown="if(event.key==='Enter')sendChat()">
+      <button onclick="sendChat()" class="bg-amber-400 hover:bg-amber-500 text-white w-11 h-11 rounded-xl flex items-center justify-center transition-colors text-lg">➤</button>
+    </div>
+  </div>
+</div>
+
+<!-- OVERLAY -->
+<div id="overlay" class="fixed inset-0 bg-black/20 z-40 hidden" onclick="toggleChat()"></div>
+
+<!-- TOAST -->
+<div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 hidden">
+  <div class="bg-gray-900 text-white px-5 py-3 rounded-2xl text-sm shadow-xl toast"></div>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div id="settings-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/30">
+  <div class="bg-white rounded-2xl shadow-2xl w-[480px] p-6">
+    <h2 class="font-bold text-gray-900 mb-4">⚙️ ตั้งค่า API Keys</h2>
+    <div class="space-y-4">
+      <div>
+        <label class="text-xs font-semibold text-gray-500 block mb-1">Claude API Key</label>
+        <input id="setting-claude" type="password" placeholder="sk-ant-..."
+          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-400">
+      </div>
+      <div>
+        <label class="text-xs font-semibold text-gray-500 block mb-1">Supabase URL</label>
+        <input id="setting-sb-url" type="text" placeholder="https://xxx.supabase.co"
+          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-400">
+      </div>
+      <div>
+        <label class="text-xs font-semibold text-gray-500 block mb-1">Supabase Anon Key</label>
+        <input id="setting-sb-key" type="password" placeholder="eyJ..."
+          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-400">
+      </div>
+      <p class="text-xs text-gray-400">Keys ถูกเก็บใน localStorage เฉพาะเครื่องนี้เท่านั้น</p>
+    </div>
+    <div class="flex gap-2 mt-5">
+      <button onclick="saveSettings()" class="flex-1 bg-amber-400 hover:bg-amber-500 text-white py-2.5 rounded-xl font-semibold transition-colors">บันทึกและ Reload</button>
+      <button onclick="closeSettings()" class="px-5 py-2.5 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">ยกเลิก</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD TASK MODAL -->
+<div id="task-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/30">
+  <div class="bg-white rounded-2xl shadow-2xl w-[440px] p-6">
+    <h2 class="font-bold text-gray-900 mb-4">➕ เพิ่ม Task ใหม่</h2>
+    <div class="space-y-3">
+      <div>
+        <label class="text-xs font-semibold text-gray-500 block mb-1">ชื่องาน *</label>
+        <input id="new-title" type="text" placeholder="เช่น ออกแบบ Logo"
+          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-400">
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-xs font-semibold text-gray-500 block mb-1">ผู้รับผิดชอบ</label>
+          <input id="new-assignee" type="text" placeholder="เช่น Wit"
+            class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-400">
+        </div>
+        <div>
+          <label class="text-xs font-semibold text-gray-500 block mb-1">Priority</label>
+          <select id="new-priority" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-400">
+            <option value="high">🔥 High</option>
+            <option value="medium" selected>Medium</option>
+            <option value="low">Low</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label class="text-xs font-semibold text-gray-500 block mb-1">วันครบกำหนด</label>
+        <input id="new-due" type="date"
+          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-400">
+      </div>
+    </div>
+    <div class="flex gap-2 mt-5">
+      <button onclick="confirmAddTask()" class="flex-1 bg-amber-400 hover:bg-amber-500 text-white py-2.5 rounded-xl font-semibold transition-colors">บันทึก</button>
+      <button onclick="closeTaskModal()" class="px-5 py-2.5 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">ยกเลิก</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── CONFIG ────────────────────────────────────────────────
+const CFG = {
+  get claude() { return localStorage.getItem('rs_claude') || ''; },
+  get sbUrl()  { return localStorage.getItem('rs_sb_url') || ''; },
+  get sbKey()  { return localStorage.getItem('rs_sb_key') || ''; },
+};
+
+// ─── SUPABASE ──────────────────────────────────────────────
+let sb = null;
+
+function initSupabase() {
+  if (!CFG.sbUrl || !CFG.sbKey) {
+    setStatus('ยังไม่ได้ตั้งค่า', false);
+    return false;
+  }
+  try {
+    sb = supabase.createClient(CFG.sbUrl, CFG.sbKey);
+    setStatus('เชื่อมต่อแล้ว ✅', true);
+    return true;
+  } catch(e) {
+    setStatus('เชื่อมไม่ได้ ❌', false);
+    return false;
+  }
+}
+
+function setStatus(text, ok) {
+  const el = document.getElementById('sb-status');
+  el.textContent = text;
+  el.className = `text-xs ${ok ? 'text-green-500' : 'text-red-400'}`;
+}
+
+// ─── STATIC DATA (flow, employees, timeline) ───────────────
+const DEPTS = [
+  { id:1, name:'Noix & Coff',    icon:'☕', desc:'ร้านกาแฟ สุขุมวิท ซอย 62',   iconBg:'bg-amber-400', border:'border-amber-200' },
+  { id:2, name:'Cheywit Media',  icon:'🎬', desc:'Social Media Content',          iconBg:'bg-blue-400',  border:'border-blue-200'  },
+  { id:3, name:'Walnut Learning',icon:'🎵', desc:'การศึกษา + อาชีพนักร้อง',      iconBg:'bg-pink-400',  border:'border-pink-200'  },
+  { id:4, name:'New Business',   icon:'🚀', desc:'ธุรกิจใหม่ในอนาคต',            iconBg:'bg-gray-400',  border:'border-gray-200'  },
+];
+
+const EMPLOYEES = {
+  1: [
+    { name:'นภา',          role:'Barista หัวหน้า',      avatar:'👩‍🍳', status:'active' },
+    { name:'ต้น',          role:'Barista',              avatar:'👨‍🍳', status:'active' },
+    { name:'มินท์',        role:'แคชเชียร์',            avatar:'💁‍♀️', status:'active' },
+  ],
+  2: [
+    { name:'Lena (Claude)', role:'Secretary & Chief of Staff', avatar:'🤖', status:'active' },
+    { name:'Vera (Claude)', role:'Research Specialist',        avatar:'🔍', status:'active' },
+    { name:'Sage (Claude)', role:'Analysis Specialist',        avatar:'📊', status:'active' },
+  ],
+  3: [
+    { name:'Walnut', role:'นักร้อง / ลูกสาว', avatar:'🎤', status:'active' },
+    { name:'Wit',    role:'CEO / พ่อ',        avatar:'👨‍💼', status:'active' },
+  ],
+  4: [{ name:'Wit', role:'CEO / ผู้รับผิดชอบ', avatar:'👨‍💼', status:'active' }],
+};
+
+const FLOWS = {
+  1: [
+    { icon:'📝', name:'รับ Order',     desc:'รับออเดอร์จากลูกค้า' },
+    { icon:'☕', name:'ทำเครื่องดื่ม', desc:'Barista ทำตามออเดอร์' },
+    { icon:'✅', name:'QC',            desc:'ตรวจสอบคุณภาพ' },
+    { icon:'🛎️', name:'เสิร์ฟ',       desc:'ส่งให้ลูกค้า' },
+    { icon:'⭐', name:'Feedback',      desc:'รับรีวิวจากลูกค้า' },
+  ],
+  2: [
+    { icon:'📋', name:'Lena รับ Brief', desc:'รับงานจาก CEO' },
+    { icon:'🔍', name:'Vera Research',  desc:'หาข้อมูล/research' },
+    { icon:'📊', name:'Sage Analyze',   desc:'วิเคราะห์และสรุป' },
+    { icon:'🎨', name:'สร้าง Content',  desc:'ทำงานใน Canva' },
+    { icon:'👁️', name:'Lena Review',   desc:'ตรวจก่อนส่ง CEO' },
+    { icon:'✅', name:'CEO Approve',    desc:'Wit อนุมัติ' },
+    { icon:'📱', name:'Publish',        desc:'โพสต์ Social Media' },
+  ],
+  3: [
+    { icon:'🎵', name:'เลือกเพลง', desc:'เลือกเพลงที่จะฝึก' },
+    { icon:'🎤', name:'ฝึกซ้อม',   desc:'ซ้อมทุกวัน' },
+    { icon:'📹', name:'บันทึก',    desc:'อัดวิดีโอ/เสียง' },
+    { icon:'👂', name:'รีวิว',     desc:'ฟังและวิเคราะห์' },
+    { icon:'📱', name:'โพสต์',     desc:'TikTok/YouTube' },
+  ],
+  4: [
+    { icon:'🔍', name:'Research', desc:'หา opportunity' },
+    { icon:'✅', name:'Validate', desc:'ทดสอบ idea' },
+    { icon:'📋', name:'Plan',     desc:'วางแผนธุรกิจ' },
+    { icon:'🚀', name:'Launch',   desc:'เริ่มต้นธุรกิจ' },
+  ],
+};
+
+// ─── STATE ─────────────────────────────────────────────────
+const TODAY = new Date().toISOString().slice(0,10);
+let route = 'dashboard';
+let deptTab = 'tasks';
+let chatOpen = false;
+let chatHistory = [];
+let addingToDept = null;
+
+// cache ข้อมูลจาก Supabase
+let cache = { tasks: [], projects: [], timeline: [] };
+
+// ─── TOAST ─────────────────────────────────────────────────
+function showToast(msg, ms=2500) {
+  const t = document.getElementById('toast');
+  t.querySelector('div').textContent = msg;
+  t.classList.remove('hidden');
+  setTimeout(() => t.classList.add('hidden'), ms);
+}
+
+// ─── SUPABASE DATA LAYER ────────────────────────────────────
+async function loadAll() {
+  if (!sb) return;
+  const [t, p, tl] = await Promise.all([
+    sb.from('tasks').select('*').order('due'),
+    sb.from('projects').select('*').order('id'),
+    sb.from('timeline_events').select('*').order('date'),
+  ]);
+  if (!t.error) cache.tasks    = t.data;
+  if (!p.error) cache.projects = p.data;
+  if (!tl.error) cache.timeline = tl.data;
+}
+
+async function dbToggleDone(id, currentStatus) {
+  const newStatus = currentStatus === 'done' ? 'todo' : 'done';
+  const { error } = await sb.from('tasks').update({ status: newStatus }).eq('id', id);
+  if (error) { showToast('❌ บันทึกไม่ได้'); return; }
+  const t = cache.tasks.find(x=>x.id===id);
+  if (t) t.status = newStatus;
+  showToast(newStatus === 'done' ? '✅ เสร็จแล้ว!' : '↩️ ยกเลิกแล้ว');
+  filterTasks(t.dept, 'ทั้งหมด');
+  updateDashboardCounts();
+}
+
+async function dbAddTask(deptId, title, assignee, priority, due) {
+  const { data, error } = await sb.from('tasks')
+    .insert({ dept: deptId, title, assignee, priority, due, status: 'todo' })
+    .select().single();
+  if (error) { showToast('❌ เพิ่มไม่ได้: ' + error.message); return; }
+  cache.tasks.push(data);
+  showToast('✅ เพิ่ม Task แล้ว');
+  filterTasks(deptId, 'ทั้งหมด');
+  updateDashboardCounts();
+}
+
+function updateDashboardCounts() {
+  if (route !== 'dashboard') return;
+  render();
+}
+
+// ─── ROUTER ────────────────────────────────────────────────
+function navigate(r) {
+  route = r;
+  deptTab = 'tasks';
+  document.querySelectorAll('.sidebar-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.route === r);
+  });
+  render();
+}
+
+function render() {
+  const el = document.getElementById('main-content');
+  if (route === 'dashboard') el.innerHTML = renderDashboard();
+  else if (route.startsWith('dept/')) el.innerHTML = renderDept(+route.split('/')[1]);
+}
+
+// ─── LOADING ───────────────────────────────────────────────
+function showLoading() {
+  document.getElementById('main-content').innerHTML = `
+    <div class="flex items-center justify-center h-64">
+      <div class="text-center">
+        <div class="spinner mx-auto mb-3"></div>
+        <div class="text-sm text-gray-400">กำลังโหลดข้อมูล...</div>
+      </div>
+    </div>`;
+}
+
+// ─── DASHBOARD ─────────────────────────────────────────────
+function renderDashboard() {
+  const tasks = cache.tasks;
+  const todayT  = tasks.filter(t => t.due === TODAY && t.status !== 'done');
+  const overdueT = tasks.filter(t => t.due < TODAY  && t.status !== 'done');
+  const allPend  = [...overdueT, ...todayT].sort((a,b) => a.due < b.due ? -1 : 1);
+
+  const dateStr = new Date().toLocaleDateString('th-TH', {weekday:'long',year:'numeric',month:'long',day:'numeric'});
+
+  const cards = DEPTS.map(d => {
+    const dToday = tasks.filter(t => t.dept===d.id && t.due===TODAY && t.status!=='done');
+    const dOver  = tasks.filter(t => t.dept===d.id && t.due<TODAY   && t.status!=='done');
+    const preview = [...dOver, ...dToday].slice(0,3);
+    return `
+      <div class="dept-card bg-white border ${d.border} rounded-2xl p-5 cursor-pointer select-none" onclick="navigate('dept/${d.id}')">
+        <div class="flex items-start justify-between mb-3">
+          <div class="flex items-center gap-3">
+            <div class="${d.iconBg} w-11 h-11 rounded-xl flex items-center justify-center text-2xl shadow-sm">${d.icon}</div>
+            <div>
+              <div class="font-bold text-gray-900 text-sm">${d.name}</div>
+              <div class="text-xs text-gray-400 mt-0.5">${d.desc}</div>
+            </div>
+          </div>
+          <svg class="w-4 h-4 text-gray-300 mt-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+          </svg>
+        </div>
+        <div class="flex flex-wrap gap-1.5 mb-3">
+          <span class="status-badge bg-amber-100 text-amber-700">📅 วันนี้ ${dToday.length}</span>
+          ${dOver.length
+            ? `<span class="status-badge bg-pink-100 text-pink-600">⚠️ ค้าง ${dOver.length}</span>`
+            : '<span class="status-badge bg-green-100 text-green-600">✨ ไม่ค้าง</span>'}
+        </div>
+        <div class="space-y-1.5">
+          ${preview.length
+            ? preview.map(t=>`
+              <div class="flex items-center gap-2 text-xs ${t.due < TODAY ? 'text-pink-500':'text-gray-500'}">
+                <span>${t.due < TODAY ? '🔴':'🟡'}</span>
+                <span class="truncate">${t.title}</span>
+              </div>`).join('')
+            : '<div class="text-xs text-gray-300 italic">ไม่มีงานค้าง</div>'}
+        </div>
+      </div>`;
+  }).join('');
+
+  const taskRows = allPend.map(t => {
+    const d = DEPTS.find(x=>x.id===t.dept);
+    const over = t.due < TODAY;
+    return `
+      <div class="task-item flex items-center gap-3 p-3 rounded-xl border border-gray-50 cursor-pointer transition-colors" onclick="navigate('dept/${t.dept}')">
+        <div class="${d.iconBg} w-8 h-8 rounded-lg flex items-center justify-center text-base flex-shrink-0">${d.icon}</div>
+        <div class="flex-1 min-w-0">
+          <div class="text-sm font-medium text-gray-800 truncate">${t.title}</div>
+          <div class="text-xs text-gray-400">${d.name} · ${t.assignee}</div>
+        </div>
+        <div class="flex items-center gap-2 flex-shrink-0">
+          ${over
+            ? `<span class="status-badge bg-pink-100 text-pink-600">ค้าง ${t.due}</span>`
+            : `<span class="status-badge bg-amber-100 text-amber-700">วันนี้</span>`}
+          ${t.priority==='high' ? '<span>🔥</span>' : ''}
+        </div>
+      </div>`;
+  }).join('');
+
+  return `
+    <div class="mb-6 flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900">RungSura Dashboard</h1>
+        <p class="text-gray-400 text-sm mt-1">${dateStr}</p>
+      </div>
+      <div class="flex gap-3">
+        <div class="bg-amber-50 border border-amber-200 rounded-2xl px-5 py-2.5 text-center">
+          <div class="text-2xl font-bold text-amber-500">${todayT.length}</div>
+          <div class="text-xs text-amber-700 font-medium">งานวันนี้</div>
+        </div>
+        <div class="bg-pink-50 border border-pink-200 rounded-2xl px-5 py-2.5 text-center">
+          <div class="text-2xl font-bold text-pink-500">${overdueT.length}</div>
+          <div class="text-xs text-pink-700 font-medium">ค้างอยู่</div>
+        </div>
+      </div>
+    </div>
+    <div class="grid grid-cols-2 gap-4 mb-6">${cards}</div>
+    <div class="bg-white rounded-2xl border border-gray-100 p-5">
+      <h2 class="font-bold text-gray-900 mb-4 flex items-center gap-2">
+        📋 งานวันนี้ + ค้างทั้งหมด
+        <span class="ml-auto status-badge bg-gray-100 text-gray-500">${allPend.length} รายการ</span>
+      </h2>
+      ${taskRows || '<div class="text-center text-gray-300 py-8 text-sm">✨ ไม่มีงานค้างทุกแผนก</div>'}
+    </div>`;
+}
+
+// ─── DEPARTMENT ────────────────────────────────────────────
+function renderDept(id) {
+  const d = DEPTS.find(x=>x.id===id);
+  const tabs = [
+    {id:'tasks',    label:'Tasks',    icon:'✅'},
+    {id:'flow',     label:'Flow',     icon:'🔄'},
+    {id:'team',     label:'ทีม',      icon:'👥'},
+    {id:'projects', label:'Projects', icon:'📁'},
+    {id:'timeline', label:'Timeline', icon:'📅'},
+  ];
+  return `
+    <div class="mb-5">
+      <button onclick="navigate('dashboard')" class="text-sm text-gray-400 hover:text-amber-500 mb-3 flex items-center gap-1 transition-colors">← กลับ Dashboard</button>
+      <div class="flex items-center gap-4">
+        <div class="${d.iconBg} w-14 h-14 rounded-2xl flex items-center justify-center text-3xl shadow">${d.icon}</div>
+        <div>
+          <h1 class="text-2xl font-bold text-gray-900">${d.name}</h1>
+          <p class="text-gray-400 text-sm">${d.desc}</p>
+        </div>
+      </div>
+    </div>
+    <div class="flex bg-white rounded-t-2xl border-b border-gray-100 px-2">
+      ${tabs.map(t=>`
+        <button onclick="switchTab('${t.id}',${id})" data-tab="${t.id}"
+          class="dept-tab px-4 py-3 text-sm transition-colors ${deptTab===t.id?'tab-active':'text-gray-400 hover:text-gray-700'}">
+          ${t.icon} ${t.label}
+        </button>`).join('')}
+    </div>
+    <div id="tab-content">${renderTab(id, deptTab)}</div>`;
+}
+
+function switchTab(tab, id) {
+  deptTab = tab;
+  document.querySelectorAll('.dept-tab').forEach(el => {
+    el.className = `dept-tab px-4 py-3 text-sm transition-colors ${el.dataset.tab===tab?'tab-active':'text-gray-400 hover:text-gray-700'}`;
+  });
+  document.getElementById('tab-content').innerHTML = renderTab(id, tab);
+}
+
+function renderTab(id, tab) {
+  if (tab==='tasks')    return tabTasks(id);
+  if (tab==='flow')     return tabFlow(id);
+  if (tab==='team')     return tabTeam(id);
+  if (tab==='projects') return tabProjects(id);
+  if (tab==='timeline') return tabTimeline(id);
+  return '';
+}
+
+// ─── TAB: TASKS ────────────────────────────────────────────
+function tabTasks(id) {
+  return `
+    <div class="bg-white rounded-b-2xl border border-t-0 border-gray-100 p-5">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex gap-1.5" id="tf">
+          ${['ทั้งหมด','วันนี้','ค้าง','กำลังทำ','เสร็จแล้ว'].map((f,i)=>`
+            <button onclick="filterTasks(${id},'${f}')" data-f="${f}"
+              class="tf-btn px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${i===0?'bg-amber-400 text-white':'bg-gray-100 text-gray-500 hover:bg-amber-50'}">
+              ${f}
+            </button>`).join('')}
+        </div>
+        <button onclick="openTaskModal(${id})" class="bg-amber-400 hover:bg-amber-500 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-colors">+ เพิ่ม</button>
+      </div>
+      <div id="task-list">${taskList(cache.tasks.filter(t=>t.dept===id))}</div>
+    </div>`;
+}
+
+function taskList(tasks) {
+  if (!tasks.length) return '<div class="text-center text-gray-300 py-10 text-sm">ไม่มี Task</div>';
+  const sc = {
+    todo:          { bg:'bg-gray-100',  tx:'text-gray-600',  lb:'รอทำ'    },
+    'in-progress': { bg:'bg-blue-100',  tx:'text-blue-600',  lb:'กำลังทำ' },
+    done:          { bg:'bg-green-100', tx:'text-green-600', lb:'เสร็จ'   },
+    overdue:       { bg:'bg-pink-100',  tx:'text-pink-600',  lb:'ค้าง'    },
+  };
+  return tasks.map(t => {
+    const s = sc[t.status] || sc.todo;
+    const over = t.due < TODAY && t.status !== 'done';
+    return `
+      <div class="task-item flex items-center gap-3 p-3 rounded-xl border border-transparent transition-colors mb-1">
+        <button onclick="dbToggleDone(${t.id},'${t.status}')"
+          class="w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-colors
+            ${t.status==='done'?'bg-green-400 border-green-400':'border-gray-300 hover:border-amber-400'}">
+          ${t.status==='done'?'<svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>':''}
+        </button>
+        <div class="flex-1 min-w-0">
+          <div class="text-sm font-medium ${t.status==='done'?'line-through text-gray-300':'text-gray-800'} truncate">${t.title}</div>
+          <div class="text-xs text-gray-400 mt-0.5">${t.assignee} · ${over?`<span class="text-pink-400">⚠️ ${t.due}</span>`:t.due}</div>
+        </div>
+        <div class="flex items-center gap-1.5 flex-shrink-0">
+          ${t.priority==='high'?'<span class="text-sm">🔥</span>':''}
+          <span class="status-badge ${s.bg} ${s.tx}">${s.lb}</span>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function filterTasks(id, f) {
+  document.querySelectorAll('.tf-btn').forEach(el => {
+    el.className = `tf-btn px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${el.dataset.f===f?'bg-amber-400 text-white':'bg-gray-100 text-gray-500 hover:bg-amber-50'}`;
+  });
+  let ts = cache.tasks.filter(t=>t.dept===id);
+  if (f==='วันนี้')      ts = ts.filter(t=>t.due===TODAY);
+  else if (f==='ค้าง')  ts = ts.filter(t=>t.due<TODAY && t.status!=='done');
+  else if (f==='กำลังทำ') ts = ts.filter(t=>t.status==='in-progress');
+  else if (f==='เสร็จแล้ว') ts = ts.filter(t=>t.status==='done');
+  document.getElementById('task-list').innerHTML = taskList(ts);
+}
+
+// ─── TASK MODAL ────────────────────────────────────────────
+function openTaskModal(deptId) {
+  addingToDept = deptId;
+  document.getElementById('new-title').value = '';
+  document.getElementById('new-assignee').value = '';
+  document.getElementById('new-due').value = TODAY;
+  document.getElementById('new-priority').value = 'medium';
+  document.getElementById('task-modal').classList.remove('hidden');
+  setTimeout(() => document.getElementById('new-title').focus(), 100);
+}
+function closeTaskModal() {
+  document.getElementById('task-modal').classList.add('hidden');
+}
+async function confirmAddTask() {
+  const title    = document.getElementById('new-title').value.trim();
+  const assignee = document.getElementById('new-assignee').value.trim() || 'Wit';
+  const priority = document.getElementById('new-priority').value;
+  const due      = document.getElementById('new-due').value || TODAY;
+  if (!title) { showToast('⚠️ กรุณาใส่ชื่องาน'); return; }
+  closeTaskModal();
+  await dbAddTask(addingToDept, title, assignee, priority, due);
+}
+
+// ─── TAB: FLOW ─────────────────────────────────────────────
+function tabFlow(id) {
+  const flow = FLOWS[id] || [];
+  const rows = [];
+  for (let i=0; i<flow.length; i+=4) rows.push(flow.slice(i,i+4));
+  return `
+    <div class="bg-white rounded-b-2xl border border-t-0 border-gray-100 p-6">
+      <h3 class="font-bold text-gray-900 mb-6">Work Flow</h3>
+      ${rows.map(row=>`
+        <div class="flex flex-wrap items-start gap-0 mb-6">
+          ${row.map((s,i)=>`
+            <div class="flex items-center">
+              <div class="text-center w-24">
+                <div class="w-14 h-14 bg-amber-50 border-2 border-amber-200 rounded-2xl flex items-center justify-center text-2xl mx-auto mb-2">${s.icon}</div>
+                <div class="text-xs font-bold text-gray-700">${s.name}</div>
+                <div class="text-xs text-gray-400 mt-0.5 leading-tight">${s.desc}</div>
+              </div>
+              ${i<row.length-1?'<div class="text-amber-300 text-xl mx-1 pb-6">→</div>':''}
+            </div>`).join('')}
+        </div>`).join('')}
+    </div>`;
+}
+
+// ─── TAB: TEAM ─────────────────────────────────────────────
+function tabTeam(id) {
+  const emps = EMPLOYEES[id] || [];
+  return `
+    <div class="bg-white rounded-b-2xl border border-t-0 border-gray-100 p-5">
+      <div class="grid grid-cols-3 gap-4">
+        ${emps.map(e=>`
+          <div class="border border-gray-100 rounded-2xl p-5 text-center hover:border-amber-200 transition-colors">
+            <div class="w-16 h-16 bg-amber-50 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-3">${e.avatar}</div>
+            <div class="font-bold text-gray-900 text-sm">${e.name}</div>
+            <div class="text-xs text-gray-500 mt-1">${e.role}</div>
+            <div class="mt-3">
+              <span class="status-badge ${e.status==='active'?'bg-green-100 text-green-600':'bg-gray-100 text-gray-400'}">
+                ${e.status==='active'?'● Active':'○ Inactive'}
+              </span>
+            </div>
+          </div>`).join('')}
+      </div>
+    </div>`;
+}
+
+// ─── TAB: PROJECTS ─────────────────────────────────────────
+function tabProjects(id) {
+  const ps = cache.projects.filter(p=>p.dept===id);
+  const sc = {
+    todo:          { bg:'bg-gray-100',  tx:'text-gray-600',  lb:'รอเริ่ม'  },
+    'in-progress': { bg:'bg-blue-100',  tx:'text-blue-600',  lb:'กำลังทำ'  },
+    done:          { bg:'bg-green-100', tx:'text-green-600', lb:'เสร็จแล้ว' },
+  };
+  return `
+    <div class="bg-white rounded-b-2xl border border-t-0 border-gray-100 p-5 space-y-3">
+      ${ps.map(p=>{
+        const s = sc[p.status] || sc.todo;
+        return `
+          <div class="border border-gray-100 rounded-2xl p-5 hover:border-amber-200 transition-colors">
+            <div class="flex items-start justify-between mb-2">
+              <div>
+                <div class="font-bold text-gray-900 text-sm">${p.name}</div>
+                <div class="text-xs text-gray-400 mt-0.5">${p.description || ''}</div>
+              </div>
+              <span class="status-badge ${s.bg} ${s.tx} ml-3 flex-shrink-0">${s.lb}</span>
+            </div>
+            <div class="my-3">
+              <div class="flex justify-between text-xs text-gray-400 mb-1.5">
+                <span>Progress</span><span class="font-semibold text-gray-600">${p.progress}%</span>
+              </div>
+              <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
+                <div class="h-full bg-amber-400 rounded-full progress-bar" style="width:${p.progress}%"></div>
+              </div>
+            </div>
+            <div class="flex gap-4 text-xs text-gray-400">
+              <span>📅 ${p.start_date || '-'}</span><span>🏁 ${p.end_date || '-'}</span>
+            </div>
+          </div>`;
+      }).join('') || '<div class="text-center text-gray-300 py-8 text-sm">ยังไม่มี Project</div>'}
+    </div>`;
+}
+
+// ─── TAB: TIMELINE ─────────────────────────────────────────
+function tabTimeline(id) {
+  const evs = cache.timeline.filter(e=>e.dept===id);
+  return `
+    <div class="bg-white rounded-b-2xl border border-t-0 border-gray-100 p-6">
+      <h3 class="font-bold text-gray-900 mb-6">Timeline</h3>
+      <div class="relative">
+        <div class="timeline-line"></div>
+        <div class="space-y-6">
+          ${evs.map(e=>`
+            <div class="flex gap-4 relative">
+              <div class="w-10 h-10 rounded-full flex items-center justify-center text-base flex-shrink-0 z-10
+                ${e.done?'bg-amber-400 shadow-md shadow-amber-100':'bg-white border-2 border-amber-200'}">
+                ${e.done?'✅':'⏳'}
+              </div>
+              <div class="flex-1 pt-1.5">
+                <div class="text-sm font-medium ${e.done?'text-gray-900':'text-gray-400'}">${e.event}</div>
+                <div class="text-xs text-gray-400 mt-1 flex items-center gap-2">
+                  <span>${e.date}</span>
+                  <span class="status-badge ${e.done?'bg-green-100 text-green-600':'bg-gray-100 text-gray-400'}">
+                    ${e.done?'เสร็จแล้ว':'กำลังจะมา'}
+                  </span>
+                </div>
+              </div>
+            </div>`).join('') || '<div class="text-center text-gray-300 py-8 text-sm">ยังไม่มี Timeline</div>'}
+        </div>
+      </div>
+    </div>`;
+}
+
+// ─── CHAT ──────────────────────────────────────────────────
+function toggleChat() {
+  chatOpen = !chatOpen;
+  document.getElementById('chat-panel').classList.toggle('translate-x-full', !chatOpen);
+  document.getElementById('overlay').classList.toggle('hidden', !chatOpen);
+  document.getElementById('chat-btn').innerHTML = chatOpen ? '✕' : '💬';
+}
+
+function addMsg(role, text) {
+  const isUser = role === 'user';
+  const html = `
+    <div class="flex gap-2 ${isUser?'flex-row-reverse':''}">
+      <div class="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs flex-shrink-0 mt-0.5 ${isUser?'bg-blue-400':'bg-amber-400'}">${isUser?'W':'AI'}</div>
+      <div class="${isUser?'bg-blue-50 rounded-2xl rounded-tr-none ml-8':'bg-amber-50 rounded-2xl rounded-tl-none mr-8'} px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap">${text}</div>
+    </div>`;
+  const msgs = document.getElementById('chat-messages');
+  msgs.insertAdjacentHTML('beforeend', html);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+async function sendChat() {
+  const inp = document.getElementById('chat-input');
+  const msg = inp.value.trim(); if (!msg) return;
+  inp.value = '';
+  addMsg('user', msg);
+  chatHistory.push({ role:'user', content: msg });
+
+  if (!CFG.claude) {
+    addMsg('assistant', '⚠️ กรุณาใส่ Claude API Key ก่อน กด ⚙️ ที่มุมล่างซ้ายครับ');
+    return;
+  }
+
+  const lid = 'ld' + Date.now();
+  document.getElementById('chat-messages').insertAdjacentHTML('beforeend',
+    `<div id="${lid}" class="flex gap-2"><div class="w-7 h-7 bg-amber-400 rounded-full flex items-center justify-center text-white text-xs">AI</div><div class="bg-amber-50 rounded-2xl rounded-tl-none px-4 py-3 text-sm text-gray-400 animate-pulse">กำลังคิด...</div></div>`);
+  document.getElementById('chat-messages').scrollTop = 9999;
+
+  const pending = cache.tasks
+    .filter(t => (t.due===TODAY || t.due<TODAY) && t.status!=='done')
+    .map(t => `- [${DEPTS.find(d=>d.id===t.dept)?.name}] ${t.title} (${t.assignee})`)
+    .join('\n');
+
+  const system = `คุณคือผู้ช่วย AI ของ RungSura Co.,Ltd. ชื่อ "Lena" ผู้ช่วยส่วนตัวของ Wit
+
+=== เกี่ยวกับ Wit (CEO) ===
+- ชื่อจริง: วรวิทย์ สุรจารีนวัชกุล (Wit)
+- บทบาท: CEO ของ RungSura + Stay-at-home dad
+- พื้นฐาน: วิศวกรรมเครื่องกล
+- ลักษณะ: perfectionist ใส่ใจรายละเอียด มีเวลาจำกัดเพราะดูแลลูก
+- อีเมล: witsura26@gmail.com
+
+=== ครอบครัว ===
+- ลูกสาว: วอลนัท (Walnut) — กำลังพัฒนาอาชีพนักร้อง เรียนร้องเพลงและเปียโน
+- Wit เป็นทั้ง CEO และพ่อที่ดูแลลูกอยู่บ้าน
+
+=== RungSura Co.,Ltd. ===
+บริษัท AI-powered ที่ใช้ Claude เป็น AI assistant ทั้งองค์กร มี 4 แผนก:
+
+1. Noix & Coff (☕)
+   - ร้านกาแฟที่สุขุมวิท ซอย 62
+   - ชื่อ 95% final แล้ว
+   - อยู่ระหว่างเตรียมเปิด Grand Opening มิถุนายน 2026
+
+2. Cheywit Media (🎬)
+   - ทีม content สำหรับ Facebook, TikTok, Reels, YouTube Shorts
+   - AI Team: Lena (Secretary), Vera (Research), Sage (Analysis)
+   - Workflow: Lena รับ Brief → Vera Research → Sage วิเคราะห์ → ทำใน Canva → Lena Review → CEO Approve → Publish
+   - รูปภาพทำใน Canva เสมอ
+
+3. Walnut Learning (🎵)
+   - พัฒนาการศึกษาและอาชีพนักร้องของ Walnut
+   - เรียนร้องเพลง + เปียโน
+   - เป้าหมาย: ออก EP แรกปลายปี 2026
+
+4. New Business (🚀)
+   - placeholder สำหรับธุรกิจใหม่ในอนาคต
+
+=== Tools ที่ใช้ ===
+Google Calendar, Notion, Google Drive, Gmail, Canva, Gamma, Supabase
+
+=== งานที่ค้าง/วันนี้ (${TODAY}) ===
+${pending || 'ไม่มีงานค้าง'}
+
+ตอบเป็นภาษาไทย กระชับ ตรงประเด็น เป็นมืออาชีพ รู้จัก Wit และครอบครัวดี ช่วยได้ทุกเรื่องที่เกี่ยวกับ RungSura`;
+
+  try {
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1024,
+        system,
+        messages: chatHistory,
+      }),
+    });
+    const data = await res.json();
+    const reply = data.content?.[0]?.text || data.error?.message || 'เกิดข้อผิดพลาด';
+    document.getElementById(lid)?.remove();
+    chatHistory.push({ role:'assistant', content: reply });
+    addMsg('assistant', reply);
+  } catch(e) {
+    document.getElementById(lid)?.remove();
+    addMsg('assistant', `❌ ${e.message}`);
+  }
+}
+
+// ─── SETTINGS ──────────────────────────────────────────────
+function openSettings() {
+  document.getElementById('setting-claude').value  = CFG.claude;
+  document.getElementById('setting-sb-url').value  = CFG.sbUrl;
+  document.getElementById('setting-sb-key').value  = CFG.sbKey;
+  document.getElementById('settings-modal').classList.remove('hidden');
+}
+function closeSettings() { document.getElementById('settings-modal').classList.add('hidden'); }
+function saveSettings() {
+  localStorage.setItem('rs_claude', document.getElementById('setting-claude').value.trim());
+  localStorage.setItem('rs_sb_url', document.getElementById('setting-sb-url').value.trim());
+  localStorage.setItem('rs_sb_key', document.getElementById('setting-sb-key').value.trim());
+  closeSettings();
+  location.reload();
+}
+
+// ─── INIT ──────────────────────────────────────────────────
+async function init() {
+  showLoading();
+  const ok = initSupabase();
+  if (ok) {
+    await loadAll();
+  } else {
+    setStatus('ยังไม่ได้ตั้งค่า ⚙️', false);
+  }
+  render();
+}
+
+init();
+</script>
+</body>
+</html>
