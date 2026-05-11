@@ -180,6 +180,51 @@
   </div>
 </div>
 
+<!-- HOMEWORK MODAL -->
+<div id="hw-modal" class="fixed inset-0 z-50 hidden bg-gray-50 overflow-y-auto">
+  <div class="max-w-2xl mx-auto px-4 py-6 pb-24">
+    <!-- HW Header -->
+    <div id="hw-header" class="rounded-2xl p-5 mb-5 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div id="hw-icon" class="text-3xl"></div>
+        <div>
+          <div id="hw-subject" class="font-bold text-gray-900"></div>
+          <div id="hw-teacher" class="text-sm text-gray-500"></div>
+        </div>
+      </div>
+      <button onclick="closeHomework()" class="w-9 h-9 rounded-full bg-white shadow flex items-center justify-center text-gray-500 hover:text-gray-800 text-xl">✕</button>
+    </div>
+    <!-- Reading Content -->
+    <div class="bg-white rounded-2xl border border-gray-100 p-5 mb-5">
+      <h3 class="font-bold text-gray-900 mb-1 flex items-center gap-2">📖 บทเรียน</h3>
+      <div id="hw-title" class="text-sm font-semibold text-amber-700 mb-3"></div>
+      <div id="hw-goal" class="text-xs text-gray-500 bg-amber-50 rounded-xl p-3 mb-4"></div>
+      <div id="hw-content" class="text-sm text-gray-700 leading-relaxed whitespace-pre-line"></div>
+    </div>
+    <!-- MCQ Section -->
+    <div class="bg-white rounded-2xl border border-gray-100 p-5 mb-5">
+      <h3 class="font-bold text-gray-900 mb-4">✏️ ส่วนที่ 1: เลือกตอบ (15 ข้อ)</h3>
+      <div id="hw-mcq" class="space-y-5"></div>
+    </div>
+    <!-- Written Section -->
+    <div class="bg-white rounded-2xl border border-gray-100 p-5 mb-5">
+      <h3 class="font-bold text-gray-900 mb-4">🖊️ ส่วนที่ 2: เขียนตอบ (5 ข้อ)</h3>
+      <div id="hw-written" class="space-y-4"></div>
+    </div>
+    <!-- Result Section (hidden until graded) -->
+    <div id="hw-result" class="hidden bg-white rounded-2xl border border-gray-100 p-5 mb-5"></div>
+  </div>
+  <!-- Submit Bar -->
+  <div id="hw-submit-bar" class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-4 shadow-lg">
+    <div class="max-w-2xl mx-auto">
+      <button onclick="submitHomework()" id="hw-submit-btn"
+        class="w-full bg-amber-400 hover:bg-amber-500 text-white py-3 rounded-2xl font-bold text-base transition-colors">
+        ส่งการบ้าน →
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- ADD TASK MODAL -->
 <div id="task-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/30">
   <div class="bg-white rounded-2xl shadow-2xl w-[440px] p-6">
@@ -568,9 +613,9 @@ function renderDept(id) {
   const d = DEPTS.find(x=>x.id===id);
   const tabs = id === 3 ? [
     {id:'lessons',  label:'บทเรียน',  icon:'📖'},
+    {id:'report',   label:'รายงาน',   icon:'🌸'},
     {id:'kru',      label:'ทีมครู',   icon:'👩‍🏫'},
     {id:'tasks',    label:'Tasks',    icon:'✅'},
-    {id:'projects', label:'Projects', icon:'📁'},
     {id:'timeline', label:'Timeline', icon:'📅'},
   ] : [
     {id:'tasks',    label:'Tasks',    icon:'✅'},
@@ -610,6 +655,7 @@ function switchTab(tab, id) {
 
 function renderTab(id, tab) {
   if (tab==='lessons')  return tabWalnutLessons();
+  if (tab==='report')   return tabTangmoReport();
   if (tab==='tasks')    return tabTasks(id);
   if (tab==='kru')      return tabWalnutTeam();
   if (tab==='flow')     return tabFlow(id);
@@ -619,8 +665,355 @@ function renderTab(id, tab) {
   return '';
 }
 
-// ─── WALNUT LESSON CONTENT ─────────────────────────────────
+// ─── WALNUT LESSON CONTENT (v2) ───────────────────────────
 const WALNUT_LESSONS = [
+  // ── ภาษาไทย ─────────────────────────────────────────────
+  {
+    id:'thai-w1', subject:'ภาษาไทย', teacher:'ครูนิ่ม', teacherId:'kru-nim', icon:'✍️',
+    bg:'bg-yellow-50', border:'border-yellow-200', badge:'bg-yellow-100 text-yellow-700',
+    week:1, month:'พฤษภาคม 2026',
+    title:'มาตราตัวสะกด แม่กง กน กม + การอ่านจับใจความ',
+    goal:'วอลนัทแยกมาตราตัวสะกดแม่กง กน กม ได้ถูกต้อง และอ่านจับใจความจากเรื่องสั้นได้',
+    monthly_plan:[
+      {week:1, topic:'มาตราตัวสะกด แม่กง กน กม + อ่านจับใจความ'},
+      {week:2, topic:'มาตราตัวสะกด แม่กก กด กบ + คำที่มักเขียนผิด'},
+      {week:3, topic:'ชนิดของคำ นาม กริยา วิเศษณ์ + เขียนประโยค'},
+      {week:4, topic:'ทบทวนทุกเรื่อง + สอบปลายเดือน'},
+    ],
+    reading:`วันแรกของวอลนัทใน ป.4
+
+วอลนัทตื่นเช้ามาด้วยความตื่นเต้น เพราะวันนี้คือวันแรกที่เธอขึ้นชั้น ป.4 ที่โรงเรียนไทยคริสเตียน พระโขนง เธอแต่งตัวเรียบร้อย หิ้วกระเป๋านักเรียนใบโปรด แล้วก็รีบลงมากินข้าวเช้ากับพ่อ
+
+"วันนี้ตื่นเต้นมั้ยลูก?" พ่อถามพลางยิ้มให้
+"ตื่นเต้นมากเลยค่ะพ่อ" วอลนัทตอบ "หนูอยากรู้ว่า ป.4 จะมีวิชาอะไรบ้าง"
+พ่อพยักหน้า "ไม่ว่าจะยากแค่ไหน พ่อเชื่อว่าลูกทำได้แน่นอน"
+
+เมื่อถึงโรงเรียน วอลนัทพบว่าห้องเรียนใหม่ของเธอมีหน้าต่างใหญ่ที่มองเห็นต้นไม้เขียวขจี เพื่อนๆ นั่งอยู่กันพร้อมแล้ว ครูประจำชั้นชื่อครูสมหวัง ยืนยิ้มรับที่หน้าห้อง
+
+"สวัสดีนักเรียนทุกคน" ครูกล่าวด้วยน้ำเสียงอบอุ่น "ปีนี้เราจะเรียนรู้สิ่งใหม่ๆ ด้วยกัน ภาษาไทยของเราเป็นภาษาที่สวยงามมาก ถ้าเราเข้าใจกฎของภาษา เราก็จะสื่อสารได้อย่างถูกต้อง"
+
+วอลนัทฟังด้วยความสนใจ เธอรู้ว่าตัวเองยังต้องฝึกอีกมาก โดยเฉพาะเรื่องการสะกดคำ
+
+ระหว่างพักกลางวัน วอลนัทเล่าให้เพื่อนฟังว่าชอบร้องเพลงและเล่นเปียโน เพื่อนๆ ต่างทึ่งและขอให้ร้องให้ฟัง
+"เดี๋ยวร้องให้ฟังนะ แต่ต้องซ้อมก่อน" วอลนัทยิ้มตอบ
+
+เมื่อกลับบ้าน เธอเล่าให้พ่อฟังอย่างสนุกสนาน
+"พ่อคะ หนูจะพยายามเรียนให้เก่งขึ้นค่ะ" เธอบอกก่อนนอน
+พ่อโอบกอดเธออย่างแน่น "พ่อภูมิใจในตัวลูกเสมอนะ"
+
+วอลนัทรู้สึกอบอุ่นในใจ แล้วก็หลับตาลงด้วยรอยยิ้ม
+
+---
+📚 ความรู้เรื่องมาตราตัวสะกด
+
+มาตราตัวสะกดคือกลุ่มของพยัญชนะที่ใช้เป็นตัวสะกดในแม่เดียวกัน มี 8 แม่ด้วยกัน วันนี้เราเรียน 3 แม่แรก
+
+แม่กง — ใช้ตัว ง เป็นตัวสะกด ออกเสียง "ง"
+ตัวอย่าง: วาง กาง สิ่ง ของ ลม (ลง) วิ่ง
+
+แม่กน — ใช้ตัว น ณ เป็นตัวสะกด ออกเสียง "น"
+ตัวอย่าง: กิน คน นอน วิ่ง (วิน?) — ตัวอย่างที่ถูก: กิน คน วัน
+
+แม่กม — ใช้ตัว ม เป็นตัวสะกด ออกเสียง "ม"
+ตัวอย่าง: ยิ้ม ลิ้ม ชม นาม ลม
+
+เคล็ดลับจำ: ลองหาคำในเนื้อเพลงที่ร้องอยู่ แล้วแยกว่าใช้แม่อะไร`,
+    mcq:[
+      {q:'วอลนัทกำลังขึ้นชั้นอะไร?',choices:['ก. ป.2','ข. ป.3','ค. ป.4','ง. ป.5'],answer:2},
+      {q:'ครูประจำชั้นของวอลนัทชื่อว่าอะไร?',choices:['ก. ครูสมใจ','ข. ครูสมหวัง','ค. ครูสมศรี','ง. ครูสมชาย'],answer:1},
+      {q:'วอลนัทชอบทำกิจกรรมอะไร?',choices:['ก. วาดรูปและทำอาหาร','ข. ว่ายน้ำและวิ่ง','ค. ร้องเพลงและเล่นเปียโน','ง. อ่านหนังสือและนอน'],answer:2},
+      {q:'วอลนัทพูดกับพ่อว่าอะไรก่อนนอน?',choices:['ก. อยากกินไอศกรีม','ข. จะพยายามเรียนให้เก่งขึ้น','ค. อยากได้ของขวัญ','ง. โรงเรียนไม่ดี'],answer:1},
+      {q:'พ่อตอบวอลนัทว่าอย่างไร?',choices:['ก. เรียนให้เก่งกว่านี้','ข. ต้องได้เกรด A','ค. ภูมิใจในตัวลูกเสมอ','ง. ไม่พูดอะไร'],answer:2},
+      {q:'คำว่า "ยิ้ม" ใช้มาตราตัวสะกดแม่ใด?',choices:['ก. แม่กน','ข. แม่กง','ค. แม่กม','ง. แม่กก'],answer:2},
+      {q:'คำว่า "วิ่ง" ใช้มาตราตัวสะกดแม่ใด?',choices:['ก. แม่กน','ข. แม่กง','ค. แม่กม','ง. แม่กด'],answer:1},
+      {q:'คำว่า "กิน" ใช้มาตราตัวสะกดแม่ใด?',choices:['ก. แม่กน','ข. แม่กง','ค. แม่กม','ง. แม่กก'],answer:0},
+      {q:'คำใดต่อไปนี้ใช้แม่กม?',choices:['ก. นอน','ข. วาง','ค. ลิ้ม','ง. กาง'],answer:2},
+      {q:'คำใดต่อไปนี้ใช้แม่กน?',choices:['ก. กาง','ข. วิ่ง','ค. ชม','ง. คน'],answer:3},
+      {q:'คำว่า "ทึ่ง" หมายความว่าอะไร?',choices:['ก. โกรธ','ข. เศร้า','ค. รู้สึกประหลาดใจและชื่นชม','ง. กลัว'],answer:2},
+      {q:'คำว่า "อบอุ่น" หมายความว่าอะไร?',choices:['ก. ร้อนมาก','ข. รู้สึกดีและปลอดภัย','ค. เย็นมาก','ง. ป่วย'],answer:1},
+      {q:'ประโยค "วอลนัทฟังด้วยความสนใจ" ใครเป็นผู้กระทำ?',choices:['ก. ครูสมหวัง','ข. เพื่อน','ค. วอลนัท','ง. พ่อ'],answer:2},
+      {q:'คำว่า "เรียบร้อย" เป็นชนิดของคำอะไร?',choices:['ก. นาม','ข. กริยา','ค. วิเศษณ์','ง. สันธาน'],answer:2},
+      {q:'ประโยค "เธอแต่งตัวเรียบร้อย" มีคำกริยาคือคำใด?',choices:['ก. เธอ','ข. แต่งตัว','ค. เรียบร้อย','ง. ทั้งหมด'],answer:1},
+    ],
+    written:[
+      {q:'สรุปเรื่อง "วันแรกของวอลนัทใน ป.4" เป็น 2-3 ประโยค'},
+      {q:'เขียนประโยค 1 ประโยค โดยใช้คำที่มีมาตราแม่กน (เช่น กิน วัน คน)'},
+      {q:'หาคำที่มีแม่กม 3 คำจากบทเรียน แล้วเขียนประโยคใหม่ด้วยคำนั้น 1 ประโยค'},
+      {q:'พ่อของวอลนัทเป็นคนอย่างไร? อธิบายจากพฤติกรรมในเรื่อง (2-3 ประโยค)'},
+      {q:'ถ้าคุณเป็นวอลนัท คุณจะตั้งใจเรียนวิชาอะไรมากที่สุด เพราะอะไร? เขียนอย่างน้อย 2 ประโยค'},
+    ]
+  },
+  // ── คณิตศาสตร์ ──────────────────────────────────────────
+  {
+    id:'math-w1', subject:'คณิตศาสตร์', teacher:'ครูโอ๋', teacherId:'kru-o', icon:'🎮',
+    bg:'bg-orange-50', border:'border-orange-200', badge:'bg-orange-100 text-orange-700',
+    week:1, month:'พฤษภาคม 2026',
+    title:'สูตรคูณในโจทย์ปัญหาชีวิตจริง',
+    goal:'วอลนัทนำสูตรคูณแม่ 6-11 ไปใช้แก้โจทย์ปัญหาได้อย่างถูกต้อง',
+    monthly_plan:[
+      {week:1, topic:'สูตรคูณในโจทย์ปัญหา (แม่ 6-11)'},
+      {week:2, topic:'การบวกลบเลข 5 หลัก + ประมาณค่า'},
+      {week:3, topic:'การคูณ 2 หลัก × 1 หลัก'},
+      {week:4, topic:'ทบทวน + สอบปลายเดือน'},
+    ],
+    reading:`🎮 บทที่ 1: สูตรคูณในโลกแห่งดนตรีและกาแฟ
+
+คณิตศาสตร์อยู่รอบตัวเราตลอดเวลา แม้แต่ในชีวิตของนักดนตรีอย่างวอลนัท!
+
+ลองนึกดูว่า ถ้าวอลนัทต้องซ้อมเพลง 6 เพลง แต่ละเพลงต้องซ้อม 7 รอบ จะซ้อมทั้งหมดกี่รอบ?
+→ 6 × 7 = 42 รอบ ง่ายมากเลย!
+
+วิธีแก้โจทย์ปัญหาการคูณ (4 ขั้นตอน):
+ขั้นที่ 1: อ่านโจทย์ให้เข้าใจ — "มีอะไร กี่อย่าง อย่างละเท่าไหร่"
+ขั้นที่ 2: ระบุสิ่งที่ต้องนับ — เช่น รอบ แก้ว บาท เพลง
+ขั้นที่ 3: คูณตัวเลข — ใช้สูตรที่ท่องจำไว้
+ขั้นที่ 4: ตรวจสอบ — สมเหตุสมผลไหม?
+
+ตัวอย่างที่ 1: ร้าน Noix & Coff ของพ่อขายกาแฟวันละ 8 แก้ว ใน 9 วันขายกี่แก้ว?
+→ 8 × 9 = 72 แก้ว ✅
+
+ตัวอย่างที่ 2: Last Minute Band มีสมาชิก 4 คน แต่ละคนต้องจำเนื้อร้อง 11 ท่อน ทั้งวงต้องจำกี่ท่อน?
+→ 4 × 11 = 44 ท่อน ✅
+
+ตัวอย่างที่ 3: โน้ตดนตรี 1 ห้องมี 4 จังหวะ ถ้ามี 8 ห้อง มีกี่จังหวะ?
+→ 4 × 8 = 32 จังหวะ ✅
+
+💡 เคล็ดลับ ครูโอ๋: "ถ้าจำสูตรไม่ได้ ให้บวกซ้ำๆ แล้วนับ แต่ถ้าท่องได้ ตอบได้เลยทันที!"
+
+สูตรคูณที่ต้องฝึกเพิ่ม: แม่ 6, 7, 8, 9 — มักจะสับสนกันบ่อย ลองซ้อมทุกวัน!`,
+    mcq:[
+      {q:'6 × 7 = ?',choices:['ก. 36','ข. 42','ค. 48','ง. 54'],answer:1},
+      {q:'8 × 9 = ?',choices:['ก. 63','ข. 72','ค. 81','ง. 64'],answer:1},
+      {q:'9 × 9 = ?',choices:['ก. 72','ข. 81','ค. 90','ง. 99'],answer:1},
+      {q:'7 × 8 = ?',choices:['ก. 54','ข. 56','ค. 63','ง. 48'],answer:1},
+      {q:'11 × 6 = ?',choices:['ก. 55','ข. 66','ค. 77','ง. 88'],answer:1},
+      {q:'วอลนัทซ้อมเพลง 7 เพลง เพลงละ 8 รอบ ซ้อมทั้งหมดกี่รอบ?',choices:['ก. 48','ข. 54','ค. 56','ง. 63'],answer:2},
+      {q:'ร้านกาแฟขายกาแฟ 9 แก้วต่อชั่วโมง ใน 8 ชั่วโมงขายกี่แก้ว?',choices:['ก. 63','ข. 72','ค. 81','ง. 56'],answer:1},
+      {q:'วงดนตรีมีสมาชิก 6 คน แต่ละคนต้องซ้อม 9 เพลง ทั้งวงซ้อมกี่เพลง?',choices:['ก. 45','ข. 54','ค. 63','ง. 56'],answer:1},
+      {q:'โน้ต 1 ห้องมี 4 จังหวะ ถ้ามี 11 ห้อง มีกี่จังหวะ?',choices:['ก. 40','ข. 44','ค. 48','ง. 54'],answer:1},
+      {q:'วอลนัทฝึกเปียโน 7 วัน วันละ 6 นาที ฝึกทั้งหมดกี่นาที?',choices:['ก. 36','ข. 42','ค. 48','ง. 54'],answer:1},
+      {q:'ถ้า 6 × ___ = 54 ช่องว่างคือเลขอะไร?',choices:['ก. 7','ข. 8','ค. 9','ง. 6'],answer:2},
+      {q:'ถ้า ___ × 8 = 64 ช่องว่างคือเลขอะไร?',choices:['ก. 6','ข. 7','ค. 8','ง. 9'],answer:2},
+      {q:'ข้อใดคำนวณผิด?',choices:['ก. 7×7=49','ข. 8×6=48','ค. 9×8=63','ง. 6×9=54'],answer:2},
+      {q:'ข้อใดมีค่ามากที่สุด?',choices:['ก. 8×7=56','ข. 9×6=54','ค. 7×9=63','ง. 6×11=66'],answer:3},
+      {q:'ซื้อโน้ตดนตรีราคาแผ่นละ 9 บาท ซื้อ 8 แผ่น ต้องจ่ายกี่บาท?',choices:['ก. 63','ข. 72','ค. 81','ง. 56'],answer:1},
+    ],
+    written:[
+      {q:'ร้านกาแฟขายกาแฟวันละ 11 แก้ว ใน 6 วัน ขายทั้งหมดกี่แก้ว? แสดงวิธีทำด้วยตัวเลขและคำอธิบาย'},
+      {q:'วอลนัทมีเพื่อนในวง 8 คน แต่ละคนต้องจำเนื้อเพลง 7 ท่อน ทั้งวงต้องจำกี่ท่อน? แสดงวิธีทำ'},
+      {q:'ถ้าคอนเสิร์ตมี 9 รอบ แต่ละรอบมีผู้ชม 8 คน มีผู้ชมทั้งหมดกี่คน? แสดงวิธีทำ'},
+      {q:'อธิบาย 4 ขั้นตอนการแก้โจทย์ปัญหาการคูณ ด้วยคำพูดของตัวเอง'},
+      {q:'แต่งโจทย์ปัญหาการคูณ 1 ข้อ เกี่ยวกับดนตรีหรือโรงเรียน พร้อมเฉลยวิธีทำ'},
+    ]
+  },
+  // ── วิทยาศาสตร์ ──────────────────────────────────────────
+  {
+    id:'sci-w1', subject:'วิทยาศาสตร์', teacher:'ครูไก่', teacherId:'kru-kai', icon:'🔭',
+    bg:'bg-cyan-50', border:'border-cyan-200', badge:'bg-cyan-100 text-cyan-700',
+    week:1, month:'พฤษภาคม 2026',
+    title:'ระบบกล้ามเนื้อและกระดูก — ร่างกายที่น่าทึ่ง',
+    goal:'วอลนัทอธิบายหน้าที่ของกระดูกและกล้ามเนื้อ และความแตกต่างของกล้ามเนื้อ 3 ประเภทได้',
+    monthly_plan:[
+      {week:1, topic:'ระบบกล้ามเนื้อและกระดูก'},
+      {week:2, topic:'ระบบย่อยอาหาร'},
+      {week:3, topic:'พืชและการสังเคราะห์แสง'},
+      {week:4, topic:'ทบทวน + สอบปลายเดือน'},
+    ],
+    reading:`🔭 บทที่ 1: ร่างกายที่น่าทึ่ง — กล้ามเนื้อและกระดูก
+
+รู้ไหมว่าเวลาวอลนัทร้องเพลง ร่างกายทำงานอย่างน่าทึ่งมาก! กล้ามเนื้อหลายมัดทำงานพร้อมกัน ตั้งแต่กล้ามเนื้อกะบังลม กล้ามเนื้อหน้าอก ไปจนถึงกล้ามเนื้อในลำคอ
+
+📌 ข้อเท็จจริงที่น่าตื่นเต้น
+• ร่างกายมนุษย์มีกระดูก 206 ชิ้น
+• ร่างกายมีกล้ามเนื้อประมาณ 600 มัด
+• กระดูกและกล้ามเนื้อทำงานร่วมกัน เรียกว่า "ระบบกล้ามเนื้อและกระดูก"
+
+🦴 กระดูก — หน้าที่สำคัญ 4 อย่าง
+1. ค้ำจุนร่างกาย ทำให้เราตั้งตรงได้
+2. ปกป้องอวัยวะสำคัญ เช่น สมอง ปอด หัวใจ
+3. เป็นที่ยึดของกล้ามเนื้อ
+4. ผลิตเม็ดเลือดในไขกระดูก
+
+💪 กล้ามเนื้อ — ทำงานอย่างไร?
+กล้ามเนื้อเป็นเนื้อเยื่อที่หดตัวและยืดตัวได้ เมื่อหดตัว จะดึงกระดูกให้เคลื่อนที่
+
+กล้ามเนื้อมี 3 ประเภท:
+1. กล้ามเนื้อโครงร่าง (Skeletal) — ควบคุมได้ตามใจ เช่น แขน ขา
+2. กล้ามเนื้อหัวใจ (Cardiac) — ทำงานอัตโนมัติตลอดเวลา
+3. กล้ามเนื้อเรียบ (Smooth) — ในอวัยวะภายใน เช่น กระเพาะ
+
+🧪 ทดลองที่บ้าน
+กำมือแน่นๆ แล้ววางมืออีกข้างบนแขนด้านใน คุณจะรู้สึกว่ากล้ามเนื้อแข็งขึ้น นั่นคือกล้ามเนื้อโครงร่างกำลังหดตัว!
+
+ลองคลายมือแล้วกำใหม่ 10 ครั้ง สังเกตว่าแขนเมื่อยไหม? นั่นคือกล้ามเนื้อทำงาน!`,
+    mcq:[
+      {q:'ร่างกายมนุษย์มีกระดูกกี่ชิ้น?',choices:['ก. 100','ข. 206','ค. 300','ง. 500'],answer:1},
+      {q:'ร่างกายมีกล้ามเนื้อประมาณกี่มัด?',choices:['ก. 200','ข. 400','ค. 600','ง. 1000'],answer:2},
+      {q:'กระดูกไม่ได้ทำหน้าที่ในข้อใด?',choices:['ก. ค้ำจุนร่างกาย','ข. ย่อยอาหาร','ค. ปกป้องอวัยวะ','ง. สร้างเม็ดเลือด'],answer:1},
+      {q:'กล้ามเนื้อเคลื่อนไหวได้โดยวิธีใด?',choices:['ก. ยืดตัวอย่างเดียว','ข. หดตัวอย่างเดียว','ค. หดตัวและยืดตัว','ง. พองตัว'],answer:2},
+      {q:'กล้ามเนื้อโครงร่างต่างจากกล้ามเนื้อหัวใจอย่างไร?',choices:['ก. ขนาดใหญ่กว่า','ข. ควบคุมได้ตามใจ','ค. สีต่างกัน','ง. ตำแหน่งต่างกัน'],answer:1},
+      {q:'เวลาร้องเพลง กล้ามเนื้อส่วนใดทำงาน?',choices:['ก. กล้ามเนื้อขาเท่านั้น','ข. กล้ามเนื้อกะบังลมและหน้าอก','ค. กล้ามเนื้อหัวใจเท่านั้น','ง. กล้ามเนื้อแขน'],answer:1},
+      {q:'ระบบกล้ามเนื้อและกระดูกทำงานอย่างไร?',choices:['ก. ทำงานแยกกัน','ข. ทำงานร่วมกัน','ค. กระดูกสำคัญกว่า','ง. กล้ามเนื้อสำคัญกว่า'],answer:1},
+      {q:'กล้ามเนื้อหัวใจมีลักษณะพิเศษอย่างไร?',choices:['ก. ควบคุมได้ตามใจ','ข. ทำงานเฉพาะตอนออกกำลัง','ค. ทำงานตลอดเวลาอัตโนมัติ','ง. หยุดได้เอง'],answer:2},
+      {q:'กล้ามเนื้อเรียบอยู่ในอวัยวะใด?',choices:['ก. แขนและขา','ข. หน้าอก','ค. กระเพาะอาหาร','ง. สมอง'],answer:2},
+      {q:'เมื่อกำมือแน่นๆ จะรู้สึกอะไรที่แขน?',choices:['ก. อ่อนลง','ข. แข็งขึ้น','ค. ร้อนขึ้น','ง. เย็นลง'],answer:1},
+      {q:'กระดูกสันหลังทำหน้าที่สำคัญอะไร?',choices:['ก. ย่อยอาหาร','ข. ค้ำจุนร่างกายให้ตั้งตรง','ค. สร้างเสียง','ง. มองเห็น'],answer:1},
+      {q:'ไขกระดูกทำหน้าที่อะไร?',choices:['ก. ทำให้กระดูกแข็ง','ข. สร้างเม็ดเลือด','ค. เก็บไขมัน','ง. ทำให้กระดูกงอ'],answer:1},
+      {q:'นักกีฬาออกกำลังกายสม่ำเสมอเพราะเหตุใด?',choices:['ก. กล้ามเนื้อแข็งแรงขึ้น','ข. กระดูกงอได้','ค. ลดจำนวนกระดูก','ง. ลดจำนวนกล้ามเนื้อ'],answer:0},
+      {q:'ถ้ากระดูกขาหัก จะเกิดผลอย่างไร?',choices:['ก. เดินได้ปกติ','ข. เคลื่อนไหวลำบาก','ค. กล้ามเนื้อแข็งขึ้น','ง. ร่างกายเบาขึ้น'],answer:1},
+      {q:'ข้อใดเป็นตัวอย่างของกล้ามเนื้อโครงร่าง?',choices:['ก. กล้ามเนื้อหัวใจ','ข. กล้ามเนื้อกระเพาะ','ค. กล้ามเนื้อแขน','ง. กล้ามเนื้อลำไส้'],answer:2},
+    ],
+    written:[
+      {q:'อธิบายหน้าที่ของกระดูก 3 ข้อ ด้วยคำพูดของตัวเอง'},
+      {q:'กล้ามเนื้อ 3 ประเภทแตกต่างกันอย่างไร? อธิบายสั้นๆ พร้อมตัวอย่าง'},
+      {q:'ทดลองที่บ้าน: กำมือ 10 ครั้ง แล้วคลาย สังเกตและบันทึกผลว่ารู้สึกอย่างไร'},
+      {q:'ทำไมเราต้องกินอาหารที่มีแคลเซียมเพื่อบำรุงกระดูก? คิดจากความเข้าใจตัวเอง'},
+      {q:'ถ้าไม่มีกล้ามเนื้อเลย เราจะทำอะไรไม่ได้บ้าง? ยกตัวอย่าง 3 กิจกรรม'},
+    ]
+  },
+  // ── ร้องเพลง ─────────────────────────────────────────────
+  {
+    id:'sing-w1', subject:'ร้องเพลง', teacher:'ครูมิ้นท์', teacherId:'kru-mint', icon:'🎤',
+    bg:'bg-rose-50', border:'border-rose-200', badge:'bg-rose-100 text-rose-700',
+    week:1, month:'พฤษภาคม 2026',
+    title:'Chest Voice — พลังเสียงจากภายใน',
+    goal:'วอลนัทใช้ chest voice ร้องเสียงต่ำได้นิ่งและมั่นคงขึ้น รู้สึกถึงการสั่นสะเทือนที่หน้าอก',
+    monthly_plan:[
+      {week:1, topic:'Chest Voice — พัฒนาเสียงต่ำให้นิ่งและมีพลัง'},
+      {week:2, topic:'Breath Control — ควบคุมลมหายใจ + Sustained Notes'},
+      {week:3, topic:'Song Analysis — วิเคราะห์เพลง + เริ่ม Bad Romance'},
+      {week:4, topic:'Performance Practice + Self-Evaluation'},
+    ],
+    reading:`🎤 บทที่ 1: Chest Voice — พลังเสียงจากภายใน
+
+Chest Voice หรือ "เสียงช่วงอก" คือเสียงร้องที่เกิดจากสายเสียงสั่นสะเทือนอย่างเต็มที่ ทำให้มีเสียงหนา ทรงพลัง และก้องกังวาน
+
+🧪 ทดสอบ Chest Voice ของตัวเอง
+วางมือบนหน้าอก แล้วร้องเสียงต่ำๆ ช้าๆ ถ้าคุณรู้สึกสั่นที่มือ = Chest Voice ✅
+
+📋 Warm-Up Routine ประจำสัปดาห์
+ทำทุกวันก่อนร้องเพลง ใช้เวลา 10 นาที:
+1. Lip Trill (2 นาที) — เป่าลมออกให้ริมฝีปากสั่น ขึ้นลง 5 ครั้ง
+2. Humming (3 นาที) — ฮัมเพลง "รักคือ" ปากปิด รู้สึกถึงการสั่นที่โหนกแก้ม
+3. "Ma-Me-Mi-Mo-Mu" (3 นาที) — ร้องจากเสียงต่ำขึ้นสูง แล้วลงต่ำ
+4. Scale (2 นาที) — ร้อง Do Re Mi Fa Sol ขึ้นลง
+
+🎵 เพลงฝึกสัปดาห์นี้: "รักคือ" — Monotone
+เพลงนี้เหมาะมากสำหรับฝึก chest voice เพราะ:
+- ท่อน verse มีเสียงต่ำในระดับ chest voice
+- Melody สม่ำเสมอ ไม่กระโดดมาก
+- เนื้อเพลงภาษาไทย ฝึกการออกเสียงภาษาไทยด้วย
+
+วิธีฝึก:
+1. ร้องช้าๆ กว่าต้นฉบับ 2 เท่า
+2. วางมือที่หน้าอก รู้สึกถึงการสั่น
+3. ถ้าเสียงขึ้นคอ (คอแน่น) = ผิด ให้ผ่อนคลายลง
+4. ถ้าหน้าอกสั่น = ถูกต้อง!
+
+💡 เคล็ดลับพิเศษจากครูมิ้นท์:
+"อย่าออกแรงมาก ยิ่งเกร็ง เสียงยิ่งแย่ ปล่อยตัวสบายๆ แล้วเสียงจะออกมาเองเลย"`,
+    mcq:[
+      {q:'Chest Voice เกิดจากอะไร?',choices:['ก. สายเสียงสั่นสะเทือนอย่างเต็มที่','ข. ลมหายใจเท่านั้น','ค. กล้ามเนื้อคอเกร็ง','ง. การกลืนน้ำลาย'],answer:0},
+      {q:'เราทดสอบ Chest Voice ได้อย่างไร?',choices:['ก. วางมือบนหัว','ข. วางมือบนหน้าอกแล้วร้องเสียงต่ำ','ค. มองในกระจก','ง. วางมือบนคอ'],answer:1},
+      {q:'Lip Trill ทำอย่างไร?',choices:['ก. ขยับลิ้นเร็วๆ','ข. เป่าลมออกให้ริมฝีปากสั่น','ค. กัดริมฝีปาก','ง. เม้มปากแน่น'],answer:1},
+      {q:'Lip Trill ช่วยอะไร?',choices:['ก. ผ่อนคลายกล้ามเนื้อคอ','ข. เพิ่มความดันเลือด','ค. ทำให้เสียงแหบ','ง. ลดระดับเสียง'],answer:0},
+      {q:'Humming คืออะไร?',choices:['ก. ร้องเสียงดัง','ข. ฮัมเพลงปากปิด','ค. ร้องโดยไม่หายใจ','ง. ร้องเร็วมาก'],answer:1},
+      {q:'ทำไมต้องร้องช้ากว่าปกติตอนฝึก?',choices:['ก. ประหยัดพลังงาน','ข. ได้ยินเสียงตัวเองชัดขึ้น','ค. เสียงจะดังขึ้น','ง. ทำให้ง่วงนอน'],answer:1},
+      {q:'เพลงใดที่ครูแนะนำให้ฝึก Chest Voice สัปดาห์นี้?',choices:['ก. Golden','ข. บรรยากาศ','ค. รักคือ','ง. L.O.V.E'],answer:2},
+      {q:'ก่อนร้องเพลงทุกครั้งต้องทำอะไรก่อน?',choices:['ก. ดื่มกาแฟ','ข. Warm-up','ค. นอนหลับ','ง. วิ่ง'],answer:1},
+      {q:'Warm-up routine ประจำสัปดาห์ใช้เวลากี่นาที?',choices:['ก. 5 นาที','ข. 10 นาที','ค. 20 นาที','ง. 30 นาที'],answer:1},
+      {q:'เมื่อร้องและรู้สึกว่า "คอแน่น" แสดงว่าอะไร?',choices:['ก. ถูกต้องแล้ว','ข. ใช้ chest voice ผิด ต้องผ่อนคลาย','ค. เสียงดี','ง. หายใจถูกต้อง'],answer:1},
+      {q:'เพลง "รักคือ" เหมาะฝึก chest voice เพราะอะไร?',choices:['ก. เร็วมาก','ข. มีเสียงต่ำในระดับ chest voice','ค. ง่ายที่สุด','ง. สั้นที่สุด'],answer:1},
+      {q:'ถ้าเสียงแหบควรทำอย่างไร?',choices:['ก. ร้องให้ดังขึ้น','ข. พักเสียงและดื่มน้ำ','ค. ร้องต่อ','ง. ร้องเสียงสูงขึ้น'],answer:1},
+      {q:'ทำไม warm-up จึงสำคัญก่อนร้องเพลง?',choices:['ก. ทำให้ฟันขาว','ข. อุ่นกล้ามเนื้อป้องกันบาดเจ็บ','ค. ทำให้ง่วงนอน','ง. ไม่มีประโยชน์'],answer:1},
+      {q:'เคล็ดลับของครูมิ้นท์คือข้อใด?',choices:['ก. ออกแรงมากๆ','ข. เกร็งคอไว้','ค. ปล่อยตัวสบายๆ อย่าเกร็ง','ง. ร้องเสียงดังที่สุด'],answer:2},
+      {q:'Chest voice ต่างจาก Head voice อย่างไร?',choices:['ก. เหมือนกันทุกอย่าง','ข. Chest voice หนากว่า Head voice เบากว่า','ค. Head voice ดีกว่า','ง. Chest voice ใช้สำหรับเสียงสูง'],answer:1},
+    ],
+    written:[
+      {q:'อธิบายว่า Chest Voice คืออะไร และทำไมจึงสำคัญสำหรับนักร้อง (2-3 ประโยค)'},
+      {q:'บันทึกผลการฝึก Warm-up วันนี้: ทำอะไรบ้าง? แต่ละขั้นตอนรู้สึกอย่างไร?'},
+      {q:'หลังจากร้องเพลง "รักคือ" ช้าๆ รู้สึกว่าเสียงอยู่ที่ไหน? (อก คอ หัว) อธิบาย'},
+      {q:'ความแตกต่างระหว่าง Chest Voice กับ Head Voice ตามความเข้าใจของตัวเอง'},
+      {q:'ตั้งเป้าหมาย: อยากพัฒนาเสียงด้านไหนมากที่สุดในเดือนนี้ เพราะอะไร?'},
+    ]
+  },
+  // ── เปียโน ──────────────────────────────────────────────
+  {
+    id:'piano-w1', subject:'เปียโน', teacher:'ครูบิ๊ก', teacherId:'kru-big', icon:'🎹',
+    bg:'bg-violet-50', border:'border-violet-200', badge:'bg-violet-100 text-violet-700',
+    week:1, month:'พฤษภาคม 2026',
+    title:'Note Reading — Treble Clef ทุกเส้นและทุกช่อง + Interval 5th',
+    goal:'วอลนัทอ่านโน้ตบน Treble Clef ได้ถูกต้อง ≥80% และเล่น interval 5th ได้ทุก key',
+    monthly_plan:[
+      {week:1, topic:'Treble Clef — อ่านโน้ตทุกเส้น/ช่อง + Interval 5th'},
+      {week:2, topic:'Bass Clef เบื้องต้น + เล่นมือซ้าย'},
+      {week:3, topic:'สองมือพร้อมกัน + เพลงสั้น'},
+      {week:4, topic:'Note Reading Test + ทบทวน Interval'},
+    ],
+    reading:`🎹 บทที่ 1: อ่านโน้ตดนตรี — Treble Clef ฉบับสมบูรณ์
+
+การอ่านโน้ตดนตรีคือทักษะสำคัญที่สุดสำหรับนักเปียโน เหมือนกับการอ่านหนังสือสำหรับนักเรียน ถ้าอ่านโน้ตแม่น เล่นเพลงอะไรก็ทำได้!
+
+📋 บรรทัด 5 เส้น (Treble Clef) — จากล่างขึ้นบน:
+เส้นที่ 1 = E
+เส้นที่ 2 = G
+เส้นที่ 3 = B
+เส้นที่ 4 = D
+เส้นที่ 5 = F
+
+💡 วลีจำง่าย: "Every Good Boy Does Fine" (E-G-B-D-F)
+หรือภาษาไทย: "ทุก·คน·บ้าง·ดี·ฝัน"
+
+📋 ช่องระหว่างเส้น — จากล่างขึ้นบน:
+ช่องที่ 1 = F
+ช่องที่ 2 = A
+ช่องที่ 3 = C
+ช่องที่ 4 = E
+
+💡 วลีจำง่าย: FACE — จำแค่คำนี้คำเดียว!
+
+🎵 Interval 5th คืออะไร?
+Interval คือระยะห่างระหว่างโน้ต 2 ตัว
+5th = ห่างกัน 5 ขั้น
+ตัวอย่าง: C→G, D→A, E→B, F→C, G→D
+
+เสียง Interval 5th มีลักษณะ "กว้างๆ สดใส โล่ง" ฟังแล้วรู้สึกโล่ง!
+
+🎹 ตำแหน่งโน้ตบนเปียโน:
+• โน้ต C — อยู่ทางซ้ายของกลุ่มปุ่มดำ 2 ปุ่ม
+• โน้ต D — อยู่ตรงกลางปุ่มดำ 2 ปุ่ม
+• โน้ต E — อยู่ทางขวาของปุ่มดำ 2 ปุ่ม
+
+🏋️ แบบฝึกหัดประจำวัน:
+1. อ่านโน้ต Flash Card — 10 นาที
+2. เล่น Interval 5th ทุก key (C D E F G) — 10 นาที
+3. ฝึกเพลงที่ครูกำหนด — 15 นาที`,
+    mcq:[
+      {q:'เส้นที่ 1 ของ Treble Clef (นับจากล่าง) คือโน้ตอะไร?',choices:['ก. C','ข. D','ค. E','ง. F'],answer:2},
+      {q:'เส้นที่ 2 คือโน้ตอะไร?',choices:['ก. F','ข. G','ค. A','ง. B'],answer:1},
+      {q:'เส้นที่ 3 คือโน้ตอะไร?',choices:['ก. A','ข. B','ค. C','ง. D'],answer:1},
+      {q:'เส้นที่ 4 คือโน้ตอะไร?',choices:['ก. B','ข. C','ค. D','ง. E'],answer:2},
+      {q:'เส้นที่ 5 คือโน้ตอะไร?',choices:['ก. D','ข. E','ค. F','ง. G'],answer:2},
+      {q:'ช่องที่ 1 ของ Treble Clef คือโน้ตอะไร?',choices:['ก. D','ข. E','ค. F','ง. G'],answer:2},
+      {q:'ช่องที่ 2 คือโน้ตอะไร?',choices:['ก. A','ข. B','ค. C','ง. D'],answer:0},
+      {q:'ช่องที่ 3 คือโน้ตอะไร?',choices:['ก. B','ข. C','ค. D','ง. E'],answer:1},
+      {q:'"Every Good Boy Does Fine" — ตัวอักษรแรกแต่ละคำย่อมาจากโน้ตอะไร?',choices:['ก. E G B D F','ข. E G C D F','ค. A G B D F','ง. E G B C F'],answer:0},
+      {q:'"FACE" ในการอ่านโน้ตหมายถึงอะไร?',choices:['ก. โน้ตบนเส้น','ข. โน้ตในช่อง','ค. โน้ตบน Bass Clef','ง. ชื่อบทเพลง'],answer:1},
+      {q:'Interval 5th หมายถึงอะไร?',choices:['ก. ห่างกัน 3 ขั้น','ข. ห่างกัน 4 ขั้น','ค. ห่างกัน 5 ขั้น','ง. ห่างกัน 6 ขั้น'],answer:2},
+      {q:'C→G เป็น Interval อะไร?',choices:['ก. 3rd','ข. 4th','ค. 5th','ง. 6th'],answer:2},
+      {q:'โน้ต C อยู่ที่ไหนบนเปียโน?',choices:['ก. ขวาของปุ่มดำ 3 ปุ่ม','ข. ซ้ายของปุ่มดำ 2 ปุ่ม','ค. กลางปุ่มดำ 2 ปุ่ม','ง. ขวาของปุ่มดำ 2 ปุ่ม'],answer:1},
+      {q:'ทำไมการอ่านโน้ตจึงสำคัญ?',choices:['ก. เล่นได้เร็วขึ้น','ข. เล่นได้ทุกเพลง','ค. นิ้วแข็งแรง','ง. เปียโนสวยขึ้น'],answer:1},
+      {q:'เสียง Interval 5th มีลักษณะอย่างไร?',choices:['ก. แหลมและเจ็บปวด','ข. กว้างๆ สดใส โล่ง','ค. เศร้าและเบา','ง. ดังและน่ากลัว'],answer:1},
+    ],
+    written:[
+      {q:'เขียนชื่อโน้ตบนเส้น 5 เส้นของ Treble Clef จากล่างขึ้นบน พร้อมวลีจำ'},
+      {q:'เขียนชื่อโน้ตในช่องของ Treble Clef จากล่างขึ้นบน และอธิบายว่าจำด้วยวิธีใด'},
+      {q:'วาดบรรทัด 5 เส้น แล้วระบุตำแหน่งโน้ต G, E, C (ลากวงกลมในตำแหน่งที่ถูกต้อง)'},
+      {q:'ฝึกเล่น Interval 5th: C→G วันนี้ ทำได้กี่ครั้งถูกต้องจาก 10 ครั้ง? บันทึกผล'},
+      {q:'อธิบายว่า Interval 5th ฟังแล้วรู้สึกอย่างไร เปรียบเทียบกับการเล่นโน้ตเดี่ยวๆ'},
+    ]
+  }
+];
   {
     subject: 'ภาษาไทย', teacher: 'ครูนิ่ม', icon: '✍️',
     bg: 'bg-yellow-50', border: 'border-yellow-200', badge: 'bg-yellow-100 text-yellow-700',
@@ -778,81 +1171,359 @@ const WALNUT_LESSONS = [
 ];
 
 // ─── TAB: WALNUT LESSONS ───────────────────────────────────
-let activeLesson = null;
-let activeHwIndex = null;
+function getHwState(id) { return JSON.parse(localStorage.getItem('hw_'+id)||'{}'); }
+function saveHwState(id, s) { localStorage.setItem('hw_'+id, JSON.stringify(s)); }
 
 function tabWalnutLessons() {
+  const scores = WALNUT_LESSONS.map(l=>{ const s=getHwState(l.id); return s.score??null; });
+  const done = scores.filter(s=>s!==null).length;
   return `
     <div class="bg-white rounded-b-2xl border border-t-0 border-gray-100 p-5">
       <div class="flex items-center justify-between mb-5">
         <div>
-          <h3 class="font-bold text-gray-900">บทเรียนประจำสัปดาห์ที่ 1</h3>
-          <p class="text-sm text-gray-400 mt-0.5">พฤษภาคม 2026 · ออกแบบโดยทีมครู Walnut Learning</p>
+          <h3 class="font-bold text-gray-900">บทเรียนสัปดาห์ที่ 1 — พฤษภาคม 2026</h3>
+          <p class="text-sm text-gray-400 mt-0.5">ออกแบบโดยทีมครู · อนุมัติโดย 🌸 Tangmo</p>
         </div>
-        <span class="status-badge bg-amber-100 text-amber-700">🌸 Tangmo approved</span>
+        <div class="text-center">
+          <div class="text-xl font-bold text-amber-500">${done}/${WALNUT_LESSONS.length}</div>
+          <div class="text-xs text-gray-400">ส่งแล้ว</div>
+        </div>
       </div>
+      <!-- Monthly Timeline -->
+      <div class="mb-5 bg-amber-50 rounded-2xl p-4">
+        <div class="text-xs font-bold text-amber-700 mb-3">📅 แผนการเรียนเดือนพฤษภาคม</div>
+        <div class="grid grid-cols-4 gap-2">
+          ${['สัปดาห์ 1','สัปดาห์ 2','สัปดาห์ 3','สัปดาห์ 4'].map((wk,wi)=>`
+            <div class="${wi===0?'bg-amber-400 text-white':'bg-white text-gray-600'} rounded-xl p-2 text-center">
+              <div class="text-xs font-bold mb-1">${wk}</div>
+              ${WALNUT_LESSONS.map(l=>`<div class="text-xs truncate opacity-80">${l.icon} ${l.monthly_plan[wi]?.topic?.split(' ')[0]||''}</div>`).join('')}
+            </div>`).join('')}
+        </div>
+      </div>
+      <!-- Lesson Cards -->
       <div class="space-y-3">
-        ${WALNUT_LESSONS.map((l,i)=>`
-          <div class="${l.bg} border ${l.border} rounded-2xl overflow-hidden">
-            <button onclick="toggleLesson(${i})" class="w-full p-4 text-left flex items-center gap-3">
-              <div class="text-2xl">${l.icon}</div>
+        ${WALNUT_LESSONS.map((l,i)=>{
+          const st = getHwState(l.id);
+          const submitted = !!st.submitted;
+          const score = st.score??null;
+          return `
+          <div class="${l.bg} border ${l.border} rounded-2xl p-4">
+            <div class="flex items-center gap-3">
+              <div class="text-2xl flex-shrink-0">${l.icon}</div>
               <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-2 flex-wrap">
                   <span class="font-bold text-gray-900 text-sm">${l.subject}</span>
                   <span class="status-badge ${l.badge}">${l.teacher}</span>
+                  ${submitted ? `<span class="status-badge bg-green-100 text-green-700">✅ ${score??0}/20</span>` : ''}
                 </div>
-                <div class="text-xs text-gray-600 mt-0.5 truncate">${l.title}</div>
+                <div class="text-xs text-gray-600 mt-0.5">${l.title}</div>
+                <div class="text-xs text-gray-400 mt-0.5">🎯 ${l.goal}</div>
               </div>
-              <svg class="w-4 h-4 text-gray-400 flex-shrink-0 transition-transform ${activeLesson===i?'rotate-90':''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-              </svg>
-            </button>
-            ${activeLesson===i ? `
-              <div class="px-4 pb-5 border-t border-white/60">
-                <div class="mt-3 mb-4">
-                  <div class="text-xs font-semibold text-gray-500 mb-1">🎯 เป้าหมายสัปดาห์นี้</div>
-                  <div class="text-sm text-gray-700">${l.goal}</div>
-                </div>
-                <div class="mb-4">
-                  <div class="text-xs font-semibold text-gray-500 mb-1">📚 เนื้อหา</div>
-                  <div class="text-sm text-gray-700 bg-white/70 rounded-xl p-3 leading-relaxed whitespace-pre-line">${l.content}</div>
-                </div>
-                <div>
-                  <div class="text-xs font-semibold text-gray-500 mb-2">✏️ การบ้าน ${l.homework.length} ข้อ</div>
-                  <div class="space-y-1.5">
-                    ${l.homework.map((hw,j)=>`
-                      <div class="flex items-start gap-2 text-sm bg-white/70 rounded-lg px-3 py-2 cursor-pointer hover:bg-white transition-colors"
-                           onclick="toggleHw(${i},${j})">
-                        <div class="w-5 h-5 rounded-full border-2 flex-shrink-0 mt-0.5 flex items-center justify-center transition-colors
-                          ${activeHwIndex && activeHwIndex[0]===i && activeHwIndex[1]===j ? 'bg-green-400 border-green-400':'border-gray-300'}">
-                          ${activeHwIndex && activeHwIndex[0]===i && activeHwIndex[1]===j ? '✓':''}
-                        </div>
-                        <span class="text-xs text-gray-700">${j+1}. ${hw}</span>
-                      </div>`).join('')}
-                  </div>
-                </div>
-                <button onclick="openTeacherChat('${l.teacher==='ครูนิ่ม'?'kru-nim':l.teacher==='ครูโอ๋'?'kru-o':l.teacher==='ครูไก่'?'kru-kai':l.teacher==='ครูมิ้นท์'?'kru-mint':'kru-big'}')"
-                  class="mt-4 w-full bg-amber-400 hover:bg-amber-500 text-white py-2.5 rounded-xl text-sm font-semibold transition-colors">
-                  💬 ถาม${l.teacher}
-                </button>
-              </div>` : ''}
-          </div>`).join('')}
+            </div>
+            <div class="flex gap-2 mt-3">
+              <button onclick="openHomework('${l.id}')"
+                class="${submitted?'bg-gray-100 text-gray-600 hover:bg-gray-200':'bg-amber-400 hover:bg-amber-500 text-white'} flex-1 py-2 rounded-xl text-sm font-semibold transition-colors">
+                ${submitted ? '📋 ดูผลการบ้าน' : '✏️ ทำการบ้าน (15+5 ข้อ)'}
+              </button>
+              <button onclick="openTeacherChat('${l.teacherId}')"
+                class="px-4 py-2 rounded-xl text-sm border border-current ${l.badge} font-medium transition-colors hover:opacity-80">
+                💬
+              </button>
+            </div>
+          </div>`;
+        }).join('')}
       </div>
     </div>`;
 }
 
-function toggleLesson(i) {
-  activeLesson = activeLesson === i ? null : i;
-  switchTab('lessons', 3);
+// ─── HOMEWORK OPEN/CLOSE ────────────────────────────────────
+let currentHwLesson = null;
+let hwMcqAnswers = [];
+let hwWrittenAnswers = [];
+
+function openHomework(lessonId) {
+  const l = WALNUT_LESSONS.find(x=>x.id===lessonId);
+  if (!l) return;
+  currentHwLesson = l;
+  const st = getHwState(lessonId);
+  hwMcqAnswers = st.mcqAnswers || new Array(l.mcq.length).fill(null);
+  hwWrittenAnswers = st.writtenAnswers || new Array(l.written.length).fill('');
+
+  // Set header
+  document.getElementById('hw-header').className = `rounded-2xl p-5 mb-5 flex items-center justify-between ${l.bg} border ${l.border}`;
+  document.getElementById('hw-icon').textContent = l.icon;
+  document.getElementById('hw-subject').textContent = l.subject;
+  document.getElementById('hw-teacher').textContent = `${l.teacher} · ${l.month}`;
+  document.getElementById('hw-title').textContent = l.title;
+  document.getElementById('hw-goal').textContent = '🎯 ' + l.goal;
+  document.getElementById('hw-content').textContent = l.reading;
+
+  // Render MCQ
+  document.getElementById('hw-mcq').innerHTML = l.mcq.map((q,i)=>`
+    <div class="border border-gray-100 rounded-xl p-4 bg-gray-50">
+      <div class="text-sm font-medium text-gray-800 mb-3">${i+1}. ${q.q}</div>
+      <div class="space-y-2">
+        ${q.choices.map((c,ci)=>`
+          <button onclick="selectMcq(${i},${ci})" data-q="${i}" data-c="${ci}"
+            class="mcq-btn w-full text-left px-4 py-2.5 rounded-lg text-sm border transition-colors
+              ${hwMcqAnswers[i]===ci ? 'bg-amber-400 border-amber-400 text-white font-semibold' : 'bg-white border-gray-200 hover:border-amber-300 text-gray-700'}">
+            ${c}
+          </button>`).join('')}
+      </div>
+    </div>`).join('');
+
+  // Render Written
+  document.getElementById('hw-written').innerHTML = l.written.map((q,i)=>`
+    <div class="border border-gray-100 rounded-xl p-4 bg-gray-50">
+      <div class="text-sm font-medium text-gray-800 mb-2">${i+1}. ${q.q}</div>
+      <textarea rows="3" placeholder="เขียนคำตอบที่นี่..." data-wi="${i}"
+        onchange="hwWrittenAnswers[${i}]=this.value"
+        class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-400 resize-none bg-white"
+      >${hwWrittenAnswers[i]||''}</textarea>
+    </div>`).join('');
+
+  // Show/hide result
+  if (st.submitted && st.feedback) {
+    showHwResult(st);
+    document.getElementById('hw-submit-btn').textContent = '✅ ส่งแล้ว — ดูผลด้านบน';
+    document.getElementById('hw-submit-btn').disabled = true;
+    document.getElementById('hw-submit-btn').className = 'w-full bg-green-400 text-white py-3 rounded-2xl font-bold text-base cursor-not-allowed';
+  } else {
+    document.getElementById('hw-result').classList.add('hidden');
+    document.getElementById('hw-submit-btn').textContent = 'ส่งการบ้าน →';
+    document.getElementById('hw-submit-btn').disabled = false;
+    document.getElementById('hw-submit-btn').className = 'w-full bg-amber-400 hover:bg-amber-500 text-white py-3 rounded-2xl font-bold text-base transition-colors';
+  }
+
+  document.getElementById('hw-modal').classList.remove('hidden');
+  window.scrollTo(0,0);
 }
 
-function toggleHw(lessonIdx, hwIdx) {
-  if (activeHwIndex && activeHwIndex[0]===lessonIdx && activeHwIndex[1]===hwIdx) {
-    activeHwIndex = null;
-  } else {
-    activeHwIndex = [lessonIdx, hwIdx];
+function closeHomework() {
+  document.getElementById('hw-modal').classList.add('hidden');
+  currentHwLesson = null;
+}
+
+function selectMcq(qi, ci) {
+  hwMcqAnswers[qi] = ci;
+  document.querySelectorAll(`[data-q="${qi}"]`).forEach(btn => {
+    const isSel = +btn.dataset.c === ci;
+    btn.className = `mcq-btn w-full text-left px-4 py-2.5 rounded-lg text-sm border transition-colors ${isSel?'bg-amber-400 border-amber-400 text-white font-semibold':'bg-white border-gray-200 hover:border-amber-300 text-gray-700'}`;
+  });
+}
+
+function showHwResult(st) {
+  const res = document.getElementById('hw-result');
+  const pct = Math.round((st.score/20)*100);
+  const emoji = pct>=80?'🏆':pct>=60?'😊':'💪';
+  res.innerHTML = `
+    <div class="text-center mb-4">
+      <div class="text-4xl mb-2">${emoji}</div>
+      <div class="text-2xl font-bold text-gray-900">${st.score}/20 คะแนน</div>
+      <div class="text-sm text-gray-500">(${pct}%)</div>
+    </div>
+    <div class="grid grid-cols-2 gap-3 mb-4">
+      <div class="bg-amber-50 rounded-xl p-3 text-center">
+        <div class="text-lg font-bold text-amber-600">${st.mcqScore}/15</div>
+        <div class="text-xs text-gray-500">เลือกตอบ</div>
+      </div>
+      <div class="bg-blue-50 rounded-xl p-3 text-center">
+        <div class="text-lg font-bold text-blue-600">${st.writtenScore}/5</div>
+        <div class="text-xs text-gray-500">เขียนตอบ</div>
+      </div>
+    </div>
+    ${st.feedback ? `<div class="bg-gray-50 rounded-xl p-4 text-sm text-gray-700 leading-relaxed whitespace-pre-line"><div class="font-semibold mb-1">💬 ความเห็นจากครู:</div>${st.feedback}</div>` : ''}`;
+  res.classList.remove('hidden');
+}
+
+async function submitHomework() {
+  if (!currentHwLesson) return;
+  const l = currentHwLesson;
+
+  // Collect written answers from textareas
+  document.querySelectorAll('[data-wi]').forEach(el => {
+    hwWrittenAnswers[+el.dataset.wi] = el.value;
+  });
+
+  const answered = hwMcqAnswers.filter(a=>a!==null).length;
+  if (answered < l.mcq.length * 0.5) {
+    showToast('⚠️ ตอบอย่างน้อยครึ่งหนึ่งของข้อเลือกตอบก่อนนะ');
+    return;
   }
-  switchTab('lessons', 3);
+
+  const btn = document.getElementById('hw-submit-btn');
+  btn.textContent = 'กำลังตรวจ...';
+  btn.disabled = true;
+
+  // Auto-grade MCQ
+  let mcqScore = 0;
+  l.mcq.forEach((q,i) => { if (hwMcqAnswers[i] === q.answer) mcqScore++; });
+
+  // Grade written with Claude
+  let writtenScore = 0;
+  let feedback = '';
+
+  if (CFG.claude) {
+    try {
+      const writtenText = l.written.map((q,i)=>`ข้อ${i+1}: ${q.q}\nคำตอบ: ${hwWrittenAnswers[i]||'(ไม่ได้ตอบ)'}`).join('\n\n');
+      const res = await fetch('/api/chat', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          model:'claude-sonnet-4-6', max_tokens:600,
+          system: `คุณคือ${l.teacher} ครูของวอลนัท (8 ขวบ ป.4) กำลังตรวจการบ้านเขียนตอบ 5 ข้อ
+ให้คะแนน 0-1 ต่อข้อ (รวมสูงสุด 5 คะแนน) ตามความถูกต้องและความเข้าใจ
+ตอบในรูปแบบ JSON เท่านั้น: {"scores":[0,1,0,1,1],"feedback":"ความเห็นรวม 2-3 ประโยค ภาษาไทย อบอุ่น"}`,
+          messages:[{role:'user',content:`วิชา: ${l.subject}\nหัวข้อ: ${l.title}\n\n${writtenText}`}]
+        })
+      });
+      const data = await res.json();
+      const text = data.content?.[0]?.text || '{}';
+      const match = text.match(/\{[\s\S]*\}/);
+      if (match) {
+        const parsed = JSON.parse(match[0]);
+        writtenScore = (parsed.scores||[]).reduce((a,b)=>a+b,0);
+        feedback = parsed.feedback || '';
+      }
+    } catch(e) { writtenScore = 2; feedback = 'ขอบคุณที่ส่งการบ้านนะคะ'; }
+  } else {
+    writtenScore = 2;
+    feedback = 'ขอบคุณที่ส่งการบ้าน! ใส่ Claude API Key เพื่อรับการตรวจแบบละเอียดนะคะ';
+  }
+
+  const total = mcqScore + writtenScore;
+  const st = { submitted:true, mcqAnswers:hwMcqAnswers, writtenAnswers:hwWrittenAnswers, mcqScore, writtenScore, score:total, feedback, submittedAt: new Date().toISOString() };
+  saveHwState(l.id, st);
+
+  showHwResult(st);
+  btn.textContent = '✅ ส่งแล้ว';
+  btn.disabled = true;
+  btn.className = 'w-full bg-green-400 text-white py-3 rounded-2xl font-bold text-base cursor-not-allowed';
+  showToast(`✅ ได้ ${total}/20 คะแนน!`);
+
+  // Scroll to result
+  document.getElementById('hw-result').scrollIntoView({behavior:'smooth'});
+}
+
+// ─── TAB: TANGMO REPORT ────────────────────────────────────
+function tabTangmoReport() {
+  const scores = WALNUT_LESSONS.map(l => {
+    const st = getHwState(l.id);
+    return { subject: l.subject, teacher: l.teacher, icon: l.icon, bg: l.bg, badge: l.badge,
+             score: st.score ?? null, submitted: !!st.submitted, submittedAt: st.submittedAt || null,
+             feedback: st.feedback || '' };
+  });
+  const done = scores.filter(s=>s.submitted).length;
+  const total = scores.reduce((a,s)=>a+(s.score||0),0);
+  const avg = done > 0 ? Math.round(total/done) : 0;
+  const pct = done > 0 ? Math.round((avg/20)*100) : 0;
+  const nextWed = getNextDay(3);
+  const nextSat = getNextDay(6);
+
+  return `
+    <div class="bg-white rounded-b-2xl border border-t-0 border-gray-100 p-5">
+      <!-- Tangmo Header -->
+      <div class="bg-pink-50 border border-pink-200 rounded-2xl p-4 mb-5 flex items-start gap-3">
+        <div class="text-2xl">🌸</div>
+        <div>
+          <div class="font-bold text-gray-900 text-sm">Tangmo — Weekly Report</div>
+          <div class="text-xs text-gray-500">สัปดาห์ที่ 1 · พฤษภาคม 2026 · รายงานต่อ CEO Wit</div>
+        </div>
+      </div>
+
+      <!-- Pipeline Status -->
+      <div class="mb-5">
+        <div class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Pipeline Status</div>
+        <div class="space-y-2">
+          ${[
+            {step:'Tangmo รับ Brief จาก CEO', done:true},
+            {step:'Dr.Aim + Ploy วิเคราะห์ระดับวอลนัท', done:true},
+            {step:'ครูทุกคนออกแบบบทเรียนสัปดาห์ 1', done:true},
+            {step:'วอลนัทเรียน + ทำการบ้าน', done: done > 0},
+            {step:'ทีมหลักวิเคราะห์ผล + ปรับเนื้อหา', done: done >= 3},
+            {step:'ส่งรายงานให้คุณวิท', done: done >= 3},
+          ].map(s=>`
+            <div class="flex items-center gap-3 text-sm">
+              <div class="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 text-xs
+                ${s.done?'bg-green-400 text-white':'bg-gray-100 text-gray-400'}">
+                ${s.done?'✓':'○'}
+              </div>
+              <span class="${s.done?'text-gray-800':'text-gray-400'}">${s.step}</span>
+            </div>`).join('')}
+        </div>
+      </div>
+
+      <!-- Score Summary -->
+      <div class="mb-5">
+        <div class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">ผลคะแนนวอลนัท</div>
+        <div class="grid grid-cols-3 gap-3 mb-4">
+          <div class="bg-amber-50 border border-amber-200 rounded-2xl p-3 text-center">
+            <div class="text-xl font-bold text-amber-600">${done}/${WALNUT_LESSONS.length}</div>
+            <div class="text-xs text-gray-500">ส่งการบ้าน</div>
+          </div>
+          <div class="bg-blue-50 border border-blue-200 rounded-2xl p-3 text-center">
+            <div class="text-xl font-bold text-blue-600">${avg}/20</div>
+            <div class="text-xs text-gray-500">เฉลี่ยต่อวิชา</div>
+          </div>
+          <div class="${pct>=80?'bg-green-50 border-green-200':pct>=60?'bg-yellow-50 border-yellow-200':'bg-red-50 border-red-200'} border rounded-2xl p-3 text-center">
+            <div class="text-xl font-bold ${pct>=80?'text-green-600':pct>=60?'text-yellow-600':'text-red-500'}">${pct}%</div>
+            <div class="text-xs text-gray-500">ภาพรวม</div>
+          </div>
+        </div>
+        <div class="space-y-2">
+          ${scores.map(s=>`
+            <div class="${s.bg} border ${s.submitted?'':'border-gray-200'} rounded-xl p-3 flex items-center gap-3">
+              <div class="text-lg">${s.icon}</div>
+              <div class="flex-1 min-w-0">
+                <div class="text-sm font-medium text-gray-800">${s.subject}</div>
+                <div class="text-xs text-gray-400">${s.teacher}</div>
+              </div>
+              ${s.submitted
+                ? `<div class="text-right">
+                     <div class="font-bold text-gray-900 text-sm">${s.score}/20</div>
+                     <div class="text-xs ${s.score>=16?'text-green-500':s.score>=12?'text-amber-500':'text-red-400'}">
+                       ${s.score>=16?'ดีมาก 🌟':s.score>=12?'ดี 👍':'ต้องพัฒนา 💪'}
+                     </div>
+                   </div>`
+                : `<span class="status-badge bg-gray-100 text-gray-400">ยังไม่ส่ง</span>`}
+            </div>`).join('')}
+        </div>
+      </div>
+
+      <!-- Next Update -->
+      <div class="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-5">
+        <div class="text-xs font-bold text-amber-700 mb-2">📅 กำหนดการอัปเดต</div>
+        <div class="space-y-1.5 text-sm text-gray-700">
+          <div class="flex gap-2"><span>🗓️</span><span>อัปเดตครั้งถัดไป: <strong>พุธ ${nextWed}</strong> เวลา 18:00 น.</span></div>
+          <div class="flex gap-2"><span>🗓️</span><span>อัปเดตรอบ 2: <strong>เสาร์ ${nextSat}</strong> เวลา 18:00 น.</span></div>
+          <div class="flex gap-2"><span>📝</span><span>สอบปลายเดือน: <strong>31 พ.ค. 2026</strong></span></div>
+        </div>
+      </div>
+
+      <!-- Tangmo Note -->
+      <div class="bg-pink-50 border border-pink-200 rounded-2xl p-4">
+        <div class="text-xs font-bold text-pink-700 mb-2">🌸 หมายเหตุจาก Tangmo</div>
+        <div class="text-sm text-gray-700 leading-relaxed">
+          ${done === 0
+            ? 'วอลนัทยังไม่ได้เริ่มทำการบ้านสัปดาห์แรก แนะนำให้เริ่มทำวันนี้ค่ะ!'
+            : done < 3
+            ? `วอลนัทส่งการบ้านแล้ว ${done} วิชา ขอให้ทำต่อให้ครบนะคะ เก่งมากเลย! 💪`
+            : pct >= 80
+            ? `วอลนัททำได้ดีมากค่ะ! คะแนนเฉลี่ย ${pct}% สัปดาห์หน้าจะปรับเนื้อหาให้ท้าทายขึ้นนิดนึงค่ะ 🌟`
+            : pct >= 60
+            ? `วอลนัททำได้ดีนะคะ คะแนน ${pct}% ครูจะช่วยดูว่าส่วนไหนที่ยังต้องพัฒนาค่ะ 😊`
+            : `วอลนัทพยายามดีแล้วนะคะ คะแนน ${pct}% ไม่เป็นไร ครูจะปรับแนวทางการสอนให้เหมาะกับวอลนัทมากขึ้นค่ะ 💪`}
+        </div>
+      </div>
+    </div>`;
+}
+
+function getNextDay(dayOfWeek) {
+  const today = new Date();
+  const d = new Date(today);
+  const diff = (dayOfWeek - today.getDay() + 7) % 7 || 7;
+  d.setDate(today.getDate() + diff);
+  return d.toLocaleDateString('th-TH', {day:'numeric', month:'short'});
 }
 
 // ─── TAB: WALNUT TEAM ──────────────────────────────────────
