@@ -370,7 +370,7 @@ function updateDashboardCounts() {
 // ─── ROUTER ────────────────────────────────────────────────
 function navigate(r) {
   route = r;
-  deptTab = 'tasks';
+  deptTab = r === 'dept/3' ? 'lessons' : 'tasks';
   document.querySelectorAll('.sidebar-item').forEach(el => {
     el.classList.toggle('active', el.dataset.route === r);
   });
@@ -567,10 +567,9 @@ const WALNUT_TEAM = [
 function renderDept(id) {
   const d = DEPTS.find(x=>x.id===id);
   const tabs = id === 3 ? [
-    {id:'tasks',    label:'Tasks',    icon:'✅'},
+    {id:'lessons',  label:'บทเรียน',  icon:'📖'},
     {id:'kru',      label:'ทีมครู',   icon:'👩‍🏫'},
-    {id:'flow',     label:'Flow',     icon:'🔄'},
-    {id:'team',     label:'ทีม',      icon:'👥'},
+    {id:'tasks',    label:'Tasks',    icon:'✅'},
     {id:'projects', label:'Projects', icon:'📁'},
     {id:'timeline', label:'Timeline', icon:'📅'},
   ] : [
@@ -610,6 +609,7 @@ function switchTab(tab, id) {
 }
 
 function renderTab(id, tab) {
+  if (tab==='lessons')  return tabWalnutLessons();
   if (tab==='tasks')    return tabTasks(id);
   if (tab==='kru')      return tabWalnutTeam();
   if (tab==='flow')     return tabFlow(id);
@@ -617,6 +617,242 @@ function renderTab(id, tab) {
   if (tab==='projects') return tabProjects(id);
   if (tab==='timeline') return tabTimeline(id);
   return '';
+}
+
+// ─── WALNUT LESSON CONTENT ─────────────────────────────────
+const WALNUT_LESSONS = [
+  {
+    subject: 'ภาษาไทย', teacher: 'ครูนิ่ม', icon: '✍️',
+    bg: 'bg-yellow-50', border: 'border-yellow-200', badge: 'bg-yellow-100 text-yellow-700',
+    week: 1, title: 'มาตราตัวสะกด — แม่กง กน กม',
+    goal: 'วอลนัทแยกแม่กง กน กม ได้ถูกต้อง และอ่านจับใจความสั้นๆ ได้',
+    content: `📖 เนื้อหา: มาตราตัวสะกด 3 แม่แรก
+• แม่กง: สิ่งของที่ลงท้ายด้วยเสียง "ง" เช่น ดาวจรัส ลม น้ำ วาง ของ
+• แม่กน: เสียง "น" เช่น กิน นอน วิ่ง วัน คน
+• แม่กม: เสียง "ม" เช่น ชม นาม ยิ้ม ลิ้ม
+
+💡 เคล็ดลับ: ร้องเพลง "L.O.V.E" แล้วหาคำไทยที่ใช้แม่แต่ละแม่`,
+    homework: [
+      'เติมตัวสะกดที่ถูกต้อง: ลม___ (กง/กน/กม)',
+      'เติมตัวสะกดที่ถูกต้อง: วิ่___ (กง/กน/กม)',
+      'เติมตัวสะกดที่ถูกต้อง: ยิ้___ (กง/กน/กม)',
+      'เติมตัวสะกดที่ถูกต้อง: ของ___ (กง/กน/กม)',
+      'เติมตัวสะกดที่ถูกต้อง: ชม___ (กง/กน/กม)',
+      'อ่านข้อความแล้วตอบ: "วันนี้วอลนัทไปโรงเรียนแล้วร้องเพลง" — ใครทำอะไร?',
+      'หาคำที่ใช้แม่กน ในประโยค: "คนนั้นวิ่งมากิน"',
+      'เขียนคำที่ใช้แม่กง 3 คำ',
+      'เขียนคำที่ใช้แม่กน 3 คำ',
+      'เขียนคำที่ใช้แม่กม 3 คำ',
+      'เลือกคำที่สะกดถูก: ลม / ลมม',
+      'เลือกคำที่สะกดถูก: คนน / คน',
+      'แต่งประโยคโดยใช้คำว่า "วาง"',
+      'แต่งประโยคโดยใช้คำว่า "ยิ้ม"',
+      'หาความหมายของคำว่า "จรัส" จากประโยค "ดาวจรัสแสงบนท้องฟ้า"'
+    ]
+  },
+  {
+    subject: 'คณิตศาสตร์', teacher: 'ครูโอ๋', icon: '🎮',
+    bg: 'bg-orange-50', border: 'border-orange-200', badge: 'bg-orange-100 text-orange-700',
+    week: 1, title: 'สูตรคูณในโจทย์ปัญหา — ดึงสูตรมาใช้จริง',
+    goal: 'วอลนัทใช้สูตรคูณแก้โจทย์ปัญหาได้ โดยไม่ต้องนับทีละอัน',
+    content: `🎮 เกมวอร์มอัพ: "ครูบอกเลข 2 ตัว วอลนัทตอบผลคูณใน 3 วินาที!"
+
+💡 ทริคประจำสัปดาห์:
+"อ่านโจทย์ → หาของที่นับ → หาจำนวน → คูณ"
+
+ตัวอย่าง: "วอลนัทซ้อมเพลง 6 เพลง เพลงละ 7 รอบ ซ้อมกี่รอบ?"
+→ ของที่นับ = รอบ | จำนวน = 6×7 = 42 รอบ`,
+    homework: [
+      'วอลนัทซ้อมเพลง 6 เพลง เพลงละ 8 รอบ ซ้อมทั้งหมดกี่รอบ?',
+      'ร้านกาแฟขายกาแฟ 9 แก้วต่อชั่วโมง ใน 7 ชั่วโมงขายกี่แก้ว?',
+      'วอลนัทมีโน้ต 4 ตัวต่อบรรทัด มี 8 บรรทัด รวมกี่ตัวโน้ต?',
+      'สมาชิกวง 5 คน แต่ละคนต้องซ้อม 9 เพลง ทั้งวงซ้อมกี่เพลง?',
+      'กาแฟ 1 แก้วใส่น้ำตาล 3 ก้อน สั่ง 11 แก้ว ใช้น้ำตาลกี่ก้อน?',
+      '7 × 8 = ?',
+      '9 × 6 = ?',
+      '11 × 4 = ?',
+      '8 × 8 = ?',
+      '6 × 9 = ?',
+      'หาข้อที่คำนวณผิด: 7×6=48 หรือ 7×6=42?',
+      'หาข้อที่คำนวณผิด: 8×9=81 หรือ 8×9=72?',
+      'หาข้อที่คำนวณผิด: 11×5=65 หรือ 11×5=55?',
+      'ถ้า 5×?=45 เครื่องหมาย ? คือเลขอะไร?',
+      'ถ้า ?×7=63 เครื่องหมาย ? คือเลขอะไร?'
+    ]
+  },
+  {
+    subject: 'วิทยาศาสตร์', teacher: 'ครูไก่', icon: '🔭',
+    bg: 'bg-cyan-50', border: 'border-cyan-200', badge: 'bg-cyan-100 text-cyan-700',
+    week: 1, title: 'ร่างกายของเรา — ระบบกล้ามเนื้อและกระดูก',
+    goal: 'วอลนัทอธิบายได้ว่ากล้ามเนื้อและกระดูกทำงานร่วมกันอย่างไร',
+    content: `🤔 คำถามน่าสงสัย: "ทำไมเราถึงร้องเพลงได้? กล้ามเนื้อส่วนไหนทำงาน?"
+
+🌍 เรื่องเล่า: เวลาวอลนัทร้องเพลง กล้ามเนื้อกะบังลม หน้าอก และคอ
+ต่างทำงานพร้อมกัน เหมือนออร์เคสตราในร่างกาย!
+
+📚 เนื้อหา:
+• กระดูก: โครงสร้างค้ำจุนร่างกาย 206 ชิ้น
+• กล้ามเนื้อ: ทำให้ร่างกายเคลื่อนไหว ~600 มัด
+• การทำงานร่วมกัน: กล้ามเนื้อดึงกระดูกให้เคลื่อนที่`,
+    homework: [
+      'กระดูกทำหน้าที่อะไร? ก) ค้ำจุนร่างกาย ข) ย่อยอาหาร ค) ส่งเลือด',
+      'ร่างกายมนุษย์มีกระดูกกี่ชิ้น? ก) 100 ข) 206 ค) 300',
+      'กล้ามเนื้อทำหน้าที่อะไร? ก) หายใจ ข) ทำให้ร่างกายเคลื่อนไหว ค) มองเห็น',
+      'เวลาเดิน กล้ามเนื้อส่วนไหนทำงานหลัก? ก) แขน ข) ขา ค) คอ',
+      'กระดูกสันหลังทำหน้าที่สำคัญอะไร?',
+      'เติมคำ: กล้ามเนื้อดึง_____ให้เคลื่อนที่',
+      'เติมคำ: กระดูก_____ชิ้น ช่วยค้ำจุนร่างกาย',
+      'เติมคำ: เวลาร้องเพลง กล้ามเนื้อ_____ทำงาน',
+      'วาดภาพแขนแล้วระบุว่า กล้ามเนื้ออยู่ตรงไหน กระดูกอยู่ตรงไหน',
+      'ทดลอง: กำมือแน่นๆ แล้วสัมผัสแขน รู้สึกอะไร? บันทึกผล',
+      'ทดลอง: งอแขนช้าๆ ส่วนไหนของแขนแข็งขึ้น?',
+      'กล้ามเนื้อหัวใจต่างจากกล้ามเนื้อขาอย่างไร?',
+      'ทำไมนักกีฬาถึงต้องออกกำลังกายสม่ำเสมอ?',
+      'ถ้ากระดูกขาหัก เราจะเคลื่อนไหวลำบากเพราะอะไร?',
+      'คิดต่อ: ถ้าไม่มีกล้ามเนื้อเลย จะเกิดอะไรขึ้น?'
+    ]
+  },
+  {
+    subject: 'ร้องเพลง', teacher: 'ครูมิ้นท์', icon: '🎤',
+    bg: 'bg-rose-50', border: 'border-rose-200', badge: 'bg-rose-100 text-rose-700',
+    week: 1, title: 'Chest Voice — พัฒนาเสียงต่ำให้นิ่งและมีพลัง',
+    goal: 'วอลนัทร้องเสียงต่ำใน chest voice ได้นิ่งและมั่นคงขึ้น',
+    content: `🎵 Warm-up วันนี้:
+1. Lip trill ขึ้นลง 5 ครั้ง
+2. Humming เพลง "รักคือ" ท่อน chorus
+3. "Ma-me-mi-mo-mu" จากต่ำขึ้นสูง
+
+🎯 Focus: Chest Voice
+• วางมือบนหน้าอก ร้องเสียงต่ำ — รู้สึกสั่น = chest voice ถูกแล้ว!
+• เพลงฝึก: ท่อน "รักคือ" — ร้องช้าๆ ให้รู้สึกเสียงอยู่ในหน้าอก`,
+    homework: [
+      'Warm-up routine เช้า 10 นาที: จันทร์',
+      'Warm-up routine เช้า 10 นาที: อังคาร',
+      'Warm-up routine เช้า 10 นาที: พุธ',
+      'Warm-up routine เช้า 10 นาที: พฤหัส',
+      'Warm-up routine เช้า 10 นาที: ศุกร์',
+      'ซ้อม "รักคือ" ท่อน A ช้า×20 รอบ: บันทึกว่าทำได้กี่รอบ',
+      'ซ้อม "รักคือ" ท่อน chorus ×20 รอบ: บันทึกว่าทำได้กี่รอบ',
+      'อัดเสียงร้องเพลง "รักคือ" ครั้งที่ 1: บันทึกว่าเสียงเป็นยังไง',
+      'อัดเสียงร้องเพลง "รักคือ" ครั้งที่ 2 หลังซ้อม: เปรียบเทียบ',
+      'Chest voice คืออะไร? อธิบายด้วยคำพูดตัวเอง',
+      'เสียงอยู่ที่ไหนเมื่อร้อง chest voice?',
+      'ทำไมต้อง warm-up ก่อนร้องเพลงทุกครั้ง?',
+      'Vocal journal: วันจันทร์ เสียงเป็นยังไง (ดี/ปกติ/แห้ง)?',
+      'Vocal journal: วันพุธ เสียงเป็นยังไง?',
+      'Vocal journal: วันศุกร์ เสียงเป็นยังไง? สังเกตความเปลี่ยนแปลงอะไรบ้าง?'
+    ]
+  },
+  {
+    subject: 'เปียโน', teacher: 'ครูบิ๊ก', icon: '🎹',
+    bg: 'bg-violet-50', border: 'border-violet-200', badge: 'bg-violet-100 text-violet-700',
+    week: 1, title: 'Note Reading — Treble Clef ทุกเส้นและทุกช่อง',
+    goal: 'วอลนัทระบุชื่อโน้ตบน Treble Clef ได้ถูกต้องอย่างน้อย 80%',
+    content: `🎵 จำโน้ตบนเส้น (ล่างขึ้นบน): E G B D F
+💡 ทริคจำ: "Every Good Boy Does Fine"
+
+🎵 จำโน้ตในช่อง (ล่างขึ้นบน): F A C E
+💡 ทริคจำ: FACE — หน้าตาเลย!
+
+🎼 Interval 5th วันนี้:
+• C→G, D→A, E→B — ลองเล่นและฟังเสียง
+• สังเกต: interval 5th มีเสียงกว้างๆ สดใส`,
+    homework: [
+      'โน้ตบนเส้นที่ 1 (Treble Clef) คือโน้ตอะไร?',
+      'โน้ตบนเส้นที่ 2 คือโน้ตอะไร?',
+      'โน้ตบนเส้นที่ 3 คือโน้ตอะไร?',
+      'โน้ตบนเส้นที่ 4 คือโน้ตอะไร?',
+      'โน้ตบนเส้นที่ 5 คือโน้ตอะไร?',
+      'โน้ตในช่องที่ 1 คือโน้ตอะไร?',
+      'โน้ตในช่องที่ 2 คือโน้ตอะไร?',
+      'โน้ตในช่องที่ 3 คือโน้ตอะไร?',
+      'เขียนโน้ต G บนบรรทัด 5 เส้น (วาดตำแหน่ง)',
+      'เขียนโน้ต C บนบรรทัด 5 เส้น',
+      'เขียนโน้ต E บนบรรทัด 5 เส้น',
+      'เล่น interval 5th: C→G กี่ครั้งที่ทำได้ถูก (จาก 10)?',
+      'เล่น interval 5th: D→A กี่ครั้งที่ทำได้ถูก (จาก 10)?',
+      '"Every Good Boy Does Fine" แต่ละคำย่อมาจากโน้ตอะไร?',
+      'FACE หมายความว่าอะไรในการอ่านโน้ต?'
+    ]
+  }
+];
+
+// ─── TAB: WALNUT LESSONS ───────────────────────────────────
+let activeLesson = null;
+let activeHwIndex = null;
+
+function tabWalnutLessons() {
+  return `
+    <div class="bg-white rounded-b-2xl border border-t-0 border-gray-100 p-5">
+      <div class="flex items-center justify-between mb-5">
+        <div>
+          <h3 class="font-bold text-gray-900">บทเรียนประจำสัปดาห์ที่ 1</h3>
+          <p class="text-sm text-gray-400 mt-0.5">พฤษภาคม 2026 · ออกแบบโดยทีมครู Walnut Learning</p>
+        </div>
+        <span class="status-badge bg-amber-100 text-amber-700">🌸 Tangmo approved</span>
+      </div>
+      <div class="space-y-3">
+        ${WALNUT_LESSONS.map((l,i)=>`
+          <div class="${l.bg} border ${l.border} rounded-2xl overflow-hidden">
+            <button onclick="toggleLesson(${i})" class="w-full p-4 text-left flex items-center gap-3">
+              <div class="text-2xl">${l.icon}</div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="font-bold text-gray-900 text-sm">${l.subject}</span>
+                  <span class="status-badge ${l.badge}">${l.teacher}</span>
+                </div>
+                <div class="text-xs text-gray-600 mt-0.5 truncate">${l.title}</div>
+              </div>
+              <svg class="w-4 h-4 text-gray-400 flex-shrink-0 transition-transform ${activeLesson===i?'rotate-90':''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+              </svg>
+            </button>
+            ${activeLesson===i ? `
+              <div class="px-4 pb-5 border-t border-white/60">
+                <div class="mt-3 mb-4">
+                  <div class="text-xs font-semibold text-gray-500 mb-1">🎯 เป้าหมายสัปดาห์นี้</div>
+                  <div class="text-sm text-gray-700">${l.goal}</div>
+                </div>
+                <div class="mb-4">
+                  <div class="text-xs font-semibold text-gray-500 mb-1">📚 เนื้อหา</div>
+                  <div class="text-sm text-gray-700 bg-white/70 rounded-xl p-3 leading-relaxed whitespace-pre-line">${l.content}</div>
+                </div>
+                <div>
+                  <div class="text-xs font-semibold text-gray-500 mb-2">✏️ การบ้าน ${l.homework.length} ข้อ</div>
+                  <div class="space-y-1.5">
+                    ${l.homework.map((hw,j)=>`
+                      <div class="flex items-start gap-2 text-sm bg-white/70 rounded-lg px-3 py-2 cursor-pointer hover:bg-white transition-colors"
+                           onclick="toggleHw(${i},${j})">
+                        <div class="w-5 h-5 rounded-full border-2 flex-shrink-0 mt-0.5 flex items-center justify-center transition-colors
+                          ${activeHwIndex && activeHwIndex[0]===i && activeHwIndex[1]===j ? 'bg-green-400 border-green-400':'border-gray-300'}">
+                          ${activeHwIndex && activeHwIndex[0]===i && activeHwIndex[1]===j ? '✓':''}
+                        </div>
+                        <span class="text-xs text-gray-700">${j+1}. ${hw}</span>
+                      </div>`).join('')}
+                  </div>
+                </div>
+                <button onclick="openTeacherChat('${l.teacher==='ครูนิ่ม'?'kru-nim':l.teacher==='ครูโอ๋'?'kru-o':l.teacher==='ครูไก่'?'kru-kai':l.teacher==='ครูมิ้นท์'?'kru-mint':'kru-big'}')"
+                  class="mt-4 w-full bg-amber-400 hover:bg-amber-500 text-white py-2.5 rounded-xl text-sm font-semibold transition-colors">
+                  💬 ถาม${l.teacher}
+                </button>
+              </div>` : ''}
+          </div>`).join('')}
+      </div>
+    </div>`;
+}
+
+function toggleLesson(i) {
+  activeLesson = activeLesson === i ? null : i;
+  switchTab('lessons', 3);
+}
+
+function toggleHw(lessonIdx, hwIdx) {
+  if (activeHwIndex && activeHwIndex[0]===lessonIdx && activeHwIndex[1]===hwIdx) {
+    activeHwIndex = null;
+  } else {
+    activeHwIndex = [lessonIdx, hwIdx];
+  }
+  switchTab('lessons', 3);
 }
 
 // ─── TAB: WALNUT TEAM ──────────────────────────────────────
