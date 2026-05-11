@@ -122,6 +122,30 @@
 <!-- OVERLAY -->
 <div id="overlay" class="fixed inset-0 bg-black/20 z-40 hidden" onclick="toggleChat()"></div>
 
+<!-- TEACHER CHAT PANEL -->
+<div id="teacher-panel" class="fixed right-0 top-0 h-full w-96 bg-white shadow-2xl border-l border-gray-100 z-50 flex flex-col chat-panel translate-x-full">
+  <div id="teacher-header" class="p-4 border-b border-gray-100 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div id="teacher-icon" class="w-10 h-10 rounded-xl flex items-center justify-center text-xl"></div>
+      <div>
+        <div id="teacher-name" class="font-semibold text-gray-900 text-sm"></div>
+        <div id="teacher-role" class="text-xs text-gray-500"></div>
+      </div>
+    </div>
+    <button onclick="closeTeacherChat()" class="text-gray-400 hover:text-gray-700 text-2xl leading-none">&times;</button>
+  </div>
+  <div id="teacher-messages" class="flex-1 overflow-y-auto p-4 space-y-3"></div>
+  <div class="p-4 border-t border-gray-100 bg-gray-50">
+    <div class="flex gap-2">
+      <input id="teacher-input" type="text" placeholder="ถามครู..."
+        class="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 bg-white"
+        onkeydown="if(event.key==='Enter')sendTeacherChat()">
+      <button onclick="sendTeacherChat()" class="bg-amber-400 hover:bg-amber-500 text-white w-11 h-11 rounded-xl flex items-center justify-center transition-colors text-lg">➤</button>
+    </div>
+  </div>
+</div>
+<div id="teacher-overlay" class="fixed inset-0 bg-black/20 z-40 hidden" onclick="closeTeacherChat()"></div>
+
 <!-- TOAST -->
 <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 hidden">
   <div class="bg-gray-900 text-white px-5 py-3 rounded-2xl text-sm shadow-xl toast"></div>
@@ -461,10 +485,95 @@ function renderDashboard() {
     </div>`;
 }
 
+// ─── WALNUT TEAM DATA ──────────────────────────────────────
+const WALNUT_TEAM = [
+  {
+    id:'tangmo', name:'Tangmo', role:'หัวหน้าแผนก', icon:'🌸',
+    bg:'bg-pink-50', border:'border-pink-200', badge:'bg-pink-100 text-pink-700',
+    desc:'รับ brief ประสานทีม สรุปรายงานรายสัปดาห์',
+    prompt:`คุณคือ Tangmo หัวหน้าแผนก Walnut Learning ของ RungSura Co.,Ltd.
+อบอุ่น มีระเบียบ รักเด็ก ทำงานเป็นระบบ
+วอลนัท: อายุ 8 ขวบ ป.4 ไทยคริสเตียนพระโขนง อ่อนเลข/วิทย์/ไทย ร้องเพลง 3 ปี วง Last Minute Band เปียโนเกือบ 2 ปี
+ตอบภาษาไทย อบอุ่น กระชับ มืออาชีพ`
+  },
+  {
+    id:'dr-aim', name:'Dr.Aim', role:'นักวิเคราะห์วิชาการ', icon:'📊',
+    bg:'bg-blue-50', border:'border-blue-200', badge:'bg-blue-100 text-blue-700',
+    desc:'วิเคราะห์ผลเทส หา learning gap แนะนำปรับระดับ',
+    prompt:`คุณคือ Dr.Aim นักวิเคราะห์วิชาการเด็กของแผนก Walnut Learning
+เฉียบ ข้อมูลแน่น พูดน้อยแต่ตรงจุด เชี่ยวชาญพัฒนาการเด็ก ป.3-5
+วอลนัท: สูตรคูณท่องได้แม่ 11 แต่ใช้ในโจทย์ปัญหาไม่เป็น — procedural ดีแต่ conceptual อ่อน
+ตอบภาษาไทย มืออาชีพ วิเคราะห์ตรงประเด็น`
+  },
+  {
+    id:'ploy', name:'Ploy', role:'นักพัฒนาศักยภาพ', icon:'🌱',
+    bg:'bg-green-50', border:'border-green-200', badge:'bg-green-100 text-green-700',
+    desc:'ประเมิน mood วอลนัท แนะนำให้กำลังใจ ป้องกัน burnout',
+    prompt:`คุณคือ Ploy นักพัฒนาศักยภาพเด็กของแผนก Walnut Learning
+อ่อนโยน เข้าใจจิตใจเด็ก รู้ว่าเมื่อไหร่ควรผลักดันหรือชะลอ
+"วอลนัทคือเด็ก ไม่ใช่แค่นักเรียน"
+ตอบภาษาไทย นุ่มนวล ให้กำลังใจ แต่มีความเป็นมืออาชีพ`
+  },
+  {
+    id:'kru-nim', name:'ครูนิ่ม', role:'ครูภาษาไทย', icon:'✍️',
+    bg:'bg-yellow-50', border:'border-yellow-200', badge:'bg-yellow-100 text-yellow-700',
+    desc:'เนี้ยบทุกคำ เน้นอ่านจับใจความ + คำศัพท์',
+    prompt:`คุณคือครูนิ่ม ครูภาษาไทยที่เนี้ยบที่สุด รักภาษาไทยอย่างลึกซึ้ง
+สอนวอลนัท ป.4 ผสม ป.3 เน้นอ่านจับใจความและคำศัพท์ ใช้เนื้อเพลงที่วอลนัทร้องเป็นตัวอย่าง
+การบ้าน 15 ข้อ: อ่านจับใจความ 5 ข้อ มาตราตัวสะกด 5 ข้อ คำศัพท์ 3 ข้อ เขียนประโยค 2 ข้อ
+ตอบภาษาไทยสละสลวย เนี้ยบ อ่อนโยน`
+  },
+  {
+    id:'kru-o', name:'ครูโอ๋', role:'ครูคณิตศาสตร์', icon:'🎮',
+    bg:'bg-orange-50', border:'border-orange-200', badge:'bg-orange-100 text-orange-700',
+    desc:'ใจดี ทริคเยอะ สอดแทรกเกมส์ให้สนุก',
+    prompt:`คุณคือครูโอ๋ ครูเลขที่ขี้เล่นที่สุด ใจดีมาก มีมุกตลอด
+"เลขคือเกม ไม่ใช่ศัตรู" — สอนผ่านเกมและชีวิตจริงของวอลนัท
+วอลนัทสูตรคูณท่องได้แม่ 11 แต่ใช้ในโจทย์ปัญหาไม่เป็น ต้องสอน application
+โจทย์ปัญหาใช้ชีวิตวอลนัท: เพลง วง ร้านกาแฟของพ่อ
+ตอบภาษาไทย สนุก ให้กำลังใจ ไม่มีคำว่าผิดแล้วโง่`
+  },
+  {
+    id:'kru-kai', name:'ครูไก่', role:'ครูวิทยาศาสตร์', icon:'🔭',
+    bg:'bg-cyan-50', border:'border-cyan-200', badge:'bg-cyan-100 text-cyan-700',
+    desc:'ความรู้กว้าง เปิดโลก ทดลองที่บ้านได้',
+    prompt:`คุณคือครูไก่ ครูวิทยาศาสตร์ที่ตื่นเต้นกับทุกสิ่ง ความรู้กว้างมาก
+"คำถามที่ดีสำคัญกว่าคำตอบที่ถูก" — เล่าเรื่องก่อนแล้วค่อยสอน
+สอนวอลนัท ป.4 ผสม ป.3 เชื่อมวิทย์กับดนตรี (เสียง การสั่นสะเทือน)
+ตอบภาษาไทย กระตือรือร้น ชวนให้อยากรู้ตาม`
+  },
+  {
+    id:'kru-mint', name:'ครูมิ้นท์', role:'ครูร้องเพลง', icon:'🎤',
+    bg:'bg-rose-50', border:'border-rose-200', badge:'bg-rose-100 text-rose-700',
+    desc:'passionate ทุกสาย อยากให้วอลนัทเป็นศิลปิน',
+    prompt:`คุณคือครูมิ้นท์ ครูร้องเพลงที่ passionate กับดนตรีทุกแนว
+เชื่อมั่น 100% ว่าวอลนัทเกิดมาเพื่อเป็นศิลปิน
+วอลนัทร้องเพลง 3 ปี อยู่วง Last Minute Band กำลังพัฒนา chest voice
+เพลงปัจจุบัน: L.O.V.E, รักคือ, Golden, บรรยากาศ, กำลังเพิ่ม Bad Romance
+ตอบภาษาไทย passionate ให้กำลังใจสูง เชื่อมั่นในตัววอลนัท`
+  },
+  {
+    id:'kru-big', name:'ครูบิ๊ก', role:'ครูเปียโน', icon:'🎹',
+    bg:'bg-violet-50', border:'border-violet-200', badge:'bg-violet-100 text-violet-700',
+    desc:'แม่นทฤษฎี เข้าใจเด็ก ให้วอลนัทเข้าใจทุกโน้ต',
+    prompt:`คุณคือครูบิ๊ก ครูเปียโนที่แม่นทฤษฎีสุดๆ ใจเย็น เข้าใจเด็กดีมาก
+"ถ้าเข้าใจทฤษฎี เล่นได้ทุกเพลงในโลก"
+วอลนัทเรียนเปียโนเกือบ 2 ปี กำลังเรียน interval 5th อ่านโน้ตยังไม่แม่น — ต้องแก้ก่อน
+ตอบภาษาไทย ใจเย็น อธิบายชัด ให้กำลังใจ`
+  },
+];
+
 // ─── DEPARTMENT ────────────────────────────────────────────
 function renderDept(id) {
   const d = DEPTS.find(x=>x.id===id);
-  const tabs = [
+  const tabs = id === 3 ? [
+    {id:'tasks',    label:'Tasks',    icon:'✅'},
+    {id:'kru',      label:'ทีมครู',   icon:'👩‍🏫'},
+    {id:'flow',     label:'Flow',     icon:'🔄'},
+    {id:'team',     label:'ทีม',      icon:'👥'},
+    {id:'projects', label:'Projects', icon:'📁'},
+    {id:'timeline', label:'Timeline', icon:'📅'},
+  ] : [
     {id:'tasks',    label:'Tasks',    icon:'✅'},
     {id:'flow',     label:'Flow',     icon:'🔄'},
     {id:'team',     label:'ทีม',      icon:'👥'},
@@ -502,11 +611,64 @@ function switchTab(tab, id) {
 
 function renderTab(id, tab) {
   if (tab==='tasks')    return tabTasks(id);
+  if (tab==='kru')      return tabWalnutTeam();
   if (tab==='flow')     return tabFlow(id);
   if (tab==='team')     return tabTeam(id);
   if (tab==='projects') return tabProjects(id);
   if (tab==='timeline') return tabTimeline(id);
   return '';
+}
+
+// ─── TAB: WALNUT TEAM ──────────────────────────────────────
+function tabWalnutTeam() {
+  return `
+    <div class="bg-white rounded-b-2xl border border-t-0 border-gray-100 p-5">
+      <div class="mb-5">
+        <h3 class="font-bold text-gray-900 mb-1">ทีมครูและผู้เชี่ยวชาญ</h3>
+        <p class="text-sm text-gray-400">คลิกที่การ์ดเพื่อคุยกับแต่ละคนโดยตรง</p>
+      </div>
+      <div class="grid grid-cols-2 gap-3 mb-6">
+        <div class="col-span-2 text-xs font-semibold text-gray-400 uppercase tracking-wider pb-1 border-b border-gray-100">ทีมหลัก</div>
+        ${WALNUT_TEAM.slice(0,3).map(m=>`
+          <div class="${m.bg} border ${m.border} rounded-2xl p-4 cursor-pointer hover:shadow-md transition-all"
+               onclick="openTeacherChat('${m.id}')">
+            <div class="flex items-center gap-3 mb-2">
+              <div class="text-2xl">${m.icon}</div>
+              <div>
+                <div class="font-bold text-gray-900 text-sm">${m.name}</div>
+                <span class="status-badge ${m.badge}">${m.role}</span>
+              </div>
+            </div>
+            <div class="text-xs text-gray-500">${m.desc}</div>
+          </div>`).join('')}
+        <div class="col-span-2 text-xs font-semibold text-gray-400 uppercase tracking-wider pt-3 pb-1 border-b border-gray-100">ทีมครูวิชาการ</div>
+        ${WALNUT_TEAM.slice(3,6).map(m=>`
+          <div class="${m.bg} border ${m.border} rounded-2xl p-4 cursor-pointer hover:shadow-md transition-all"
+               onclick="openTeacherChat('${m.id}')">
+            <div class="flex items-center gap-3 mb-2">
+              <div class="text-2xl">${m.icon}</div>
+              <div>
+                <div class="font-bold text-gray-900 text-sm">${m.name}</div>
+                <span class="status-badge ${m.badge}">${m.role}</span>
+              </div>
+            </div>
+            <div class="text-xs text-gray-500">${m.desc}</div>
+          </div>`).join('')}
+        <div class="col-span-2 text-xs font-semibold text-gray-400 uppercase tracking-wider pt-3 pb-1 border-b border-gray-100">ทีมครูดนตรี</div>
+        ${WALNUT_TEAM.slice(6).map(m=>`
+          <div class="${m.bg} border ${m.border} rounded-2xl p-4 cursor-pointer hover:shadow-md transition-all"
+               onclick="openTeacherChat('${m.id}')">
+            <div class="flex items-center gap-3 mb-2">
+              <div class="text-2xl">${m.icon}</div>
+              <div>
+                <div class="font-bold text-gray-900 text-sm">${m.name}</div>
+                <span class="status-badge ${m.badge}">${m.role}</span>
+              </div>
+            </div>
+            <div class="text-xs text-gray-500">${m.desc}</div>
+          </div>`).join('')}
+      </div>
+    </div>`;
 }
 
 // ─── TAB: TASKS ────────────────────────────────────────────
@@ -807,6 +969,95 @@ ${pending || 'ไม่มีงานค้าง'}
   } catch(e) {
     document.getElementById(lid)?.remove();
     addMsg('assistant', `❌ ${e.message}`);
+  }
+}
+
+// ─── TEACHER CHAT ──────────────────────────────────────────
+let currentTeacher = null;
+let teacherHistory = [];
+
+function openTeacherChat(id) {
+  currentTeacher = WALNUT_TEAM.find(m=>m.id===id);
+  if (!currentTeacher) return;
+  teacherHistory = [];
+
+  // Set header
+  document.getElementById('teacher-icon').textContent = currentTeacher.icon;
+  document.getElementById('teacher-icon').className = `w-10 h-10 rounded-xl flex items-center justify-center text-xl ${currentTeacher.bg} border ${currentTeacher.border}`;
+  document.getElementById('teacher-name').textContent = currentTeacher.name;
+  document.getElementById('teacher-role').textContent = currentTeacher.role;
+
+  // Clear messages + greeting
+  document.getElementById('teacher-messages').innerHTML = `
+    <div class="flex gap-2">
+      <div class="w-7 h-7 rounded-full flex items-center justify-center text-base flex-shrink-0 mt-0.5 ${currentTeacher.bg}">${currentTeacher.icon}</div>
+      <div class="${currentTeacher.bg} rounded-2xl rounded-tl-none px-4 py-3 text-sm max-w-xs leading-relaxed">
+        สวัสดีครับ/ค่ะ! ${currentTeacher.name} พร้อมช่วยแล้วค่ะ 😊
+      </div>
+    </div>`;
+
+  document.getElementById('teacher-panel').classList.remove('translate-x-full');
+  document.getElementById('teacher-overlay').classList.remove('hidden');
+  setTimeout(()=>document.getElementById('teacher-input').focus(), 100);
+}
+
+function closeTeacherChat() {
+  document.getElementById('teacher-panel').classList.add('translate-x-full');
+  document.getElementById('teacher-overlay').classList.add('hidden');
+  currentTeacher = null;
+  teacherHistory = [];
+}
+
+function addTeacherMsg(role, text) {
+  const isUser = role === 'user';
+  const html = `
+    <div class="flex gap-2 ${isUser?'flex-row-reverse':''}">
+      <div class="w-7 h-7 rounded-full flex items-center justify-center text-base flex-shrink-0 mt-0.5 ${isUser?'bg-blue-400 text-white':currentTeacher.bg}">
+        ${isUser?'W':currentTeacher.icon}
+      </div>
+      <div class="${isUser?'bg-blue-50 rounded-2xl rounded-tr-none ml-8':currentTeacher.bg+' rounded-2xl rounded-tl-none mr-8'} px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap">${text}</div>
+    </div>`;
+  const msgs = document.getElementById('teacher-messages');
+  msgs.insertAdjacentHTML('beforeend', html);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+async function sendTeacherChat() {
+  const inp = document.getElementById('teacher-input');
+  const msg = inp.value.trim(); if (!msg) return;
+  inp.value = '';
+  addTeacherMsg('user', msg);
+  teacherHistory.push({role:'user', content: msg});
+
+  if (!CFG.claude) {
+    addTeacherMsg('assistant', '⚠️ กรุณาใส่ Claude API Key ก่อน กด ⚙️ ครับ');
+    return;
+  }
+
+  const lid = 'tld'+Date.now();
+  document.getElementById('teacher-messages').insertAdjacentHTML('beforeend',
+    `<div id="${lid}" class="flex gap-2"><div class="${currentTeacher.bg} w-7 h-7 rounded-full flex items-center justify-center text-base">${currentTeacher.icon}</div><div class="${currentTeacher.bg} rounded-2xl rounded-tl-none px-4 py-3 text-sm text-gray-400 animate-pulse">กำลังคิด...</div></div>`);
+  document.getElementById('teacher-messages').scrollTop = 9999;
+
+  try {
+    const res = await fetch('/api/chat', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model:'claude-sonnet-4-6',
+        max_tokens:1024,
+        system: currentTeacher.prompt,
+        messages: teacherHistory,
+      }),
+    });
+    const data = await res.json();
+    const reply = data.content?.[0]?.text || data.error?.message || 'เกิดข้อผิดพลาด';
+    document.getElementById(lid)?.remove();
+    teacherHistory.push({role:'assistant', content: reply});
+    addTeacherMsg('assistant', reply);
+  } catch(e) {
+    document.getElementById(lid)?.remove();
+    addTeacherMsg('assistant', `❌ ${e.message}`);
   }
 }
 
