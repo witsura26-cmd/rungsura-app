@@ -254,7 +254,7 @@ const TODAY = new Date().toISOString().slice(0,10);
 let sb=null, tasks=[], chatOpen=false, chatHistory=[];
 let currentTeacher=null, teacherHistory=[];
 let currentHwLesson=null, hwMcqAnswers=[], hwWrittenAnswers=[];
-let activeTab="calendar";
+let activeTab="tasks";
 let taskFilter="all";
 
 // ── SUPABASE ──────────────────────────────────────────────
@@ -273,14 +273,13 @@ function saveHwState(id,s){localStorage.setItem("hw_"+id,JSON.stringify(s));}
 // ── PAGE SHELL ────────────────────────────────────────────
 function renderPage(){
   const tabs=[
-    {id:"calendar",label:"ปฏิทิน",      icon:"📅"},
     {id:"tasks",   label:"Tasks",        icon:"✅"},
     {id:"lessons", label:"บทเรียน",     icon:"📖"},
     {id:"report",  label:"รายงาน",      icon:"🌸"},
     {id:"kru",     label:"ทีมครู",      icon:"👩‍🏫"},
   ];
   document.getElementById("app").innerHTML=`
-    <div class="mb-5">
+    <div class="mb-3">
       <div class="flex items-center gap-4">
         <div class="bg-pink-400 w-14 h-14 rounded-2xl flex items-center justify-center text-3xl shadow">🎵</div>
         <div>
@@ -288,6 +287,9 @@ function renderPage(){
           <p class="text-gray-400 text-sm">การศึกษา + อาชีพนักร้อง</p>
         </div>
       </div>
+    </div>
+    <div class="mb-4 bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
+      <div id="cal-top-area">${renderCalTop()}</div>
     </div>
     <div class="flex bg-white rounded-t-2xl border-b border-gray-100 px-2">
       ${tabs.map(t=>`
@@ -306,7 +308,6 @@ function switchTab(t){
   document.getElementById("tab-area").innerHTML=renderTab();
 }
 function renderTab(){
-  if(activeTab==="calendar") return renderCalendarTab();
   if(activeTab==="tasks")    return renderTasks();
   if(activeTab==="lessons")  return renderLessons();
   if(activeTab==="report")   return renderReport();

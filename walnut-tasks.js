@@ -269,8 +269,8 @@ function getWeekDates(offset){
 }
 function dStr(d){return d.toISOString().slice(0,10);}
 
-// openCalendar → now just switches to the calendar tab
-function openCalendar(){switchTab("calendar");}
+// openCalendar → calendar is always visible at top, just scroll up
+function openCalendar(){ window.scrollTo({top:0,behavior:"smooth"}); }
 function closeCalendar(){}
 
 function timeToFrac(t){ // "HH:MM" → fraction of CAL range
@@ -482,7 +482,7 @@ function saveCalEvent(){
   }
   saveCalEvents(evts);
   document.getElementById("add-event-modal").classList.add("hidden");
-  renderCalendar();
+  refreshCalTop();
 }
 
 function deleteCalEvent(){
@@ -493,7 +493,7 @@ function deleteCalEvent(){
   if(!e||!confirm("ลบ: "+e.title+"?")) return;
   saveCalEvents(evts.filter(function(x){return x.id!==id;}));
   document.getElementById("add-event-modal").classList.add("hidden");
-  renderCalendar();
+  refreshCalTop();
 }
 
 // keep old name for backward compat
@@ -562,22 +562,28 @@ async function analyzeSchedule(){
     } else {
       calAnalysisResult=text;
     }
-    // Re-render tab to show results
-    switchTab("calendar");
+    // Re-render calendar top area to show results
+    refreshCalTop();
   }catch(e){
     calAnalysisResult="⚠️ เกิดข้อผิดพลาด: "+e.message;
     calAnalysisTasks=[];
-    switchTab("calendar");
+    refreshCalTop();
   }
 }
 
 function addAnalysisTasks(){
   if(!calAnalysisTasks.length) return;
   var ts=getLocalTasks();
+  var dayNamesThai=["อาทิตย์","จันทร์","อังคาร","พุธ","พฤหัสบดี","ศุกร์","เสาร์"];
   calAnalysisTasks.forEach(function(t){
+    var title=t.title;
+    if(t.due){
+      var d=new Date(t.due);
+      title=title+" (วัน"+dayNamesThai[d.getDay()]+")";
+    }
     ts.push({
       id:"ai-"+Date.now()+"-"+Math.random().toString(36).slice(2,6),
-      title:t.title,subject:t.subject||"ทั่วไป",
+      title:title,subject:t.subject||"ทั่วไป",
       icon:t.icon||"📌",badge:"bg-amber-100 text-amber-700",
       type:"manual",status:"pending",due:t.due||getFriday()
     });
@@ -585,7 +591,7 @@ function addAnalysisTasks(){
   saveLocalTasks(ts);
   calAnalysisTasks=[];
   calAnalysisResult="✅ เพิ่ม Task แล้ว — ไปดูที่แท็บ Tasks ได้เลย";
-  switchTab("calendar");
+  refreshCalTop();
 }
 
 function renderCalendarTab(){
@@ -694,4 +700,124 @@ function renderCalendarTab(){
     '<div class="overflow-hidden rounded-b-xl border border-gray-100">'+calHtml+'</div>'+
     '<div class="px-4 pb-4">'+analysisHtml+'</div>'+
   '</div>';
+}
+
+// ── CALENDAR TOP AREA (always visible above tabs) ─────────
+function renderCalTop(){
+  var dates=getWeekDates(calWeekOffset);
+  var evts=getCalEvents();
+  var totalH=CAL_END-CAL_START;
+  var hours=[];
+  for(var h=CAL_START;h<=CAL_END;h++) hours.push(h);
+  var label=dates[0].toLocaleDateString("th-TH",{day:"numeric",month:"short"})+" – "+
+    dates[6].toLocaleDateString("th-TH",{day:"numeric",month:"short",year:"2-digit"});
+
+  // Header row
+  var header='<div style="display:flex;align-items:center;padding:10px 14px;background:#fffbeb;border-bottom:1px solid #fde68a;gap:6px;flex-wrap:wrap">'+
+    '<button onclick="calWeekOffset--;refreshCalTop()" style="color:#d97706;background:#fef3c7;border:1px solid #fde68a;padding:5px 11px;border-radius:8px;font-weight:600;cursor:pointer;font-size:12px">← ก่อน</button>'+
+    '<div style="flex:1;text-align:center;min-width:120px">'+
+      '<span style="font-weight:700;font-size:13px;color:#374151">'+label+'</span>'+
+      '<button onclick="calWeekOffset=0;refreshCalTop()" style="font-size:10px;color:#d97706;background:none;border:none;cursor:pointer;text-decoration:underline;margin-left:6px">วันนี้</button>'+
+    '</div>'+
+    '<button onclick="calWeekOffset++;refreshCalTop()" style="color:#d97706;background:#fef3c7;border:1px solid #fde68a;padding:5px 11px;border-radius:8px;font-weight:600;cursor:pointer;font-size:12px">ถัดไป →</button>'+
+    '<button onclick="openAddEvent(TODAY,\'08:00\',1)" style="background:#fbbf24;color:#fff;border:none;padding:5px 11px;border-radius:8px;font-weight:600;cursor:pointer;font-size:12px">+ เพิ่ม</button>'+
+    '<button id="cal-analyze-btn" onclick="analyzeSchedule()" style="background:#2563eb;color:#fff;border:none;padding:5px 11px;border-radius:8px;font-weight:600;cursor:pointer;font-size:12px">🔍 ทีมวิเคราะห์</button>'+
+  '</div>';
+
+  // Time ruler
+  var ruler='<div style="display:flex;margin-left:56px;position:relative;height:18px;overflow:hidden">';
+  hours.forEach(function(h){
+    var pct=((h-CAL_START)/totalH*100).toFixed(2);
+    ruler+='<div style="position:absolute;left:'+pct+'%;transform:translateX(-50%);font-size:10px;color:#9ca3af;white-space:nowrap">'+String(h).padStart(2,"0")+'</div>';
+  });
+  ruler+='</div>';
+
+  // Day rows
+  var rows="";
+  dates.forEach(function(d,di){
+    var dow=(di+1)%7;
+    var dateStr=dStr(d);
+    var isToday=dateStr===TODAY;
+    var dayEvts=evts.filter(function(e){return eventOnDay(e,dateStr,dow);})
+      .sort(function(a,b){return a.startTime.localeCompare(b.startTime);});
+    var lanes=[];
+    var evtLanes=dayEvts.map(function(e){
+      var s=timeToFrac(e.startTime||"06:00");
+      var en=timeToFrac(e.endTime||"07:00");
+      for(var lane=0;lane<20;lane++){
+        if(!lanes[lane]||lanes[lane]<=s){lanes[lane]=en;return lane;}
+      }
+      return 0;
+    });
+    var nLanes=Math.max(1,lanes.length);
+    var rowH=Math.max(36,nLanes*26);
+    var gridLines="";
+    hours.forEach(function(h){
+      var pct=((h-CAL_START)/totalH*100).toFixed(2);
+      gridLines+='<div style="position:absolute;left:'+pct+'%;top:0;bottom:0;width:1px;background:#f3f4f6;pointer-events:none"></div>';
+    });
+    // event bars — ชื่อนำหน้า เวลาอยู่หลัง
+    var bars=dayEvts.map(function(e,i){
+      var tp=CAL_TYPES[e.type]||CAL_TYPES.other;
+      var sf=timeToFrac(e.startTime||"06:00");
+      var ef=timeToFrac(e.endTime||"07:00");
+      var w=Math.max(0.004,ef-sf)*100;
+      var lane=evtLanes[i]||0;
+      return '<div onclick="event.stopPropagation();editCalEvent(\''+e.id+'\')" '+
+        'title="'+e.title+' '+e.startTime.slice(0,5)+'-'+e.endTime.slice(0,5)+'" '+
+        'style="position:absolute;left:'+(sf*100).toFixed(2)+'%;width:'+w.toFixed(2)+'%;top:'+(lane*26+4)+'px;height:22px;'+
+        'background:'+tp.bg+';color:'+tp.tx+';border:1px solid '+tp.bd+';border-radius:6px;'+
+        'padding:2px 5px;box-sizing:border-box;cursor:pointer;overflow:hidden;white-space:nowrap;'+
+        'display:flex;align-items:center;gap:3px;font-size:11px;font-weight:600;z-index:2;">'+
+        '<span style="flex-shrink:0">'+tp.icon+'</span>'+
+        '<span style="overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0">'+e.title+'</span>'+
+        '<span style="opacity:.5;font-size:9px;flex-shrink:0;padding-left:3px">'+e.startTime.slice(0,5)+'</span>'+
+      '</div>';
+    }).join("");
+    rows+='<div style="display:flex;border-bottom:1px solid #f3f4f6;'+(isToday?"background:#fffbeb":"")+'">'+
+      '<div style="width:56px;min-width:56px;padding:0 6px;display:flex;flex-direction:column;justify-content:center;border-right:1px solid #f3f4f6;font-size:12px">'+
+        '<div style="font-weight:700;color:'+(isToday?"#b45309":"#374151")+'">'+["จ","อ","พ","พฤ","ศ","ส","อา"][di]+'</div>'+
+        '<div style="color:#9ca3af;font-size:10px">'+d.getDate()+'/'+(d.getMonth()+1)+'</div>'+
+      '</div>'+
+      '<div style="flex:1;position:relative;height:'+rowH+'px;cursor:crosshair;min-width:0" '+
+        'onclick="handleCalRowClick(event,\''+dateStr+'\','+dow+')">'+gridLines+bars+'</div>'+
+    '</div>';
+  });
+
+  // Legend
+  var legend='<div style="display:flex;flex-wrap:wrap;gap:5px;padding:8px 12px;background:#f9fafb;border-top:1px solid #f3f4f6">'+
+    Object.entries(CAL_TYPES).map(function(kv){
+      return '<span style="font-size:10px;padding:2px 7px;border-radius:20px;background:'+kv[1].bg+';color:'+kv[1].tx+';border:1px solid '+kv[1].bd+'">'+kv[1].icon+' '+kv[1].label+'</span>';
+    }).join("")+'</div>';
+
+  // Analysis panel
+  var analysisHtml="";
+  if(calAnalysisResult){
+    analysisHtml='<div style="padding:12px;border-top:1px solid #e5e7eb">'+
+      '<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:12px;margin-bottom:10px">'+
+        '<div style="font-size:13px;font-weight:700;color:#1e40af;margin-bottom:6px">🔍 Tangmo + Dr.Aim วิเคราะห์</div>'+
+        '<div style="font-size:12px;color:#374151;line-height:1.6;white-space:pre-wrap">'+calAnalysisResult+'</div>'+
+      '</div>'+
+      (calAnalysisTasks.length?
+        '<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:12px">'+
+          '<div style="font-size:12px;font-weight:700;color:#92400e;margin-bottom:8px">📋 Tasks ที่แนะนำ ('+calAnalysisTasks.length+' รายการ)</div>'+
+          calAnalysisTasks.map(function(t){
+            return '<div style="display:flex;align-items:center;gap:6px;font-size:12px;padding:3px 0">'+
+              '<span>'+(t.icon||"📌")+'</span>'+
+              '<span style="font-weight:500">'+t.title+'</span>'+
+              '<span style="color:#9ca3af;font-size:11px;margin-left:auto">'+t.due+'</span>'+
+            '</div>';
+          }).join("")+
+          '<button onclick="addAnalysisTasks()" style="width:100%;margin-top:8px;background:#fbbf24;color:#fff;border:none;padding:7px;border-radius:10px;font-weight:600;cursor:pointer;font-size:12px">✅ เพิ่ม Tasks ทั้งหมดเลย</button>'+
+        '</div>':'')+'</div>';
+  }
+
+  return header+ruler+
+    '<div style="overflow-x:auto"><div style="min-width:600px">'+rows+'</div></div>'+
+    legend+analysisHtml;
+}
+
+function refreshCalTop(){
+  var el=document.getElementById("cal-top-area");
+  if(el) el.innerHTML=renderCalTop();
 }
