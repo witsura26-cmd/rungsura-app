@@ -769,9 +769,9 @@ function renderCalTop(){
         'background:'+tp.bg+';color:'+tp.tx+';border:1px solid '+tp.bd+';border-radius:6px;'+
         'padding:2px 5px;box-sizing:border-box;cursor:pointer;overflow:hidden;white-space:nowrap;'+
         'display:flex;align-items:center;gap:3px;font-size:11px;font-weight:600;z-index:2;">'+
-        '<span style="flex-shrink:0">'+tp.icon+'</span>'+
         '<span style="overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0">'+e.title+'</span>'+
-        '<span style="opacity:.5;font-size:9px;flex-shrink:0;padding-left:3px">'+e.startTime.slice(0,5)+'</span>'+
+        '<span style="flex-shrink:0;padding:0 2px">'+tp.icon+'</span>'+
+        '<span style="opacity:.5;font-size:9px;flex-shrink:0">'+e.startTime.slice(0,5)+'</span>'+
       '</div>';
     }).join("");
     rows+='<div style="display:flex;border-bottom:1px solid #f3f4f6;'+(isToday?"background:#fffbeb":"")+'">'+
