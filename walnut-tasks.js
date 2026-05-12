@@ -766,28 +766,28 @@ function renderCalTop(){
       return 0;
     });
     var nLanes=Math.max(1,lanes.length);
-    var rowH=Math.max(36,nLanes*26);
+    var rowH=Math.max(52,nLanes*36);
     var gridLines="";
     hours.forEach(function(h){
       var pct=((h-CAL_START)/totalH*100).toFixed(2);
       gridLines+='<div style="position:absolute;left:'+pct+'%;top:0;bottom:0;width:1px;background:#f3f4f6;pointer-events:none"></div>';
     });
-    // event bars — ชื่อนำหน้า เวลาอยู่หลัง
+    // event bars — ชื่อนำหน้า icon ตาม
     var bars=dayEvts.map(function(e,i){
       var tp=CAL_TYPES[e.type]||CAL_TYPES.other;
       var sf=timeToFrac(e.startTime||"06:00");
       var ef=timeToFrac(e.endTime||"07:00");
       var w=Math.max(0.004,ef-sf)*100;
       var lane=evtLanes[i]||0;
+      var topPx=lane*36+5;
       return '<div onclick="event.stopPropagation();editCalEvent(\''+e.id+'\')" '+
-        'title="'+e.title+' '+e.startTime.slice(0,5)+'-'+e.endTime.slice(0,5)+'" '+
-        'style="position:absolute;left:'+(sf*100).toFixed(2)+'%;width:'+w.toFixed(2)+'%;top:'+(lane*26+4)+'px;height:22px;'+
-        'background:'+tp.bg+';color:'+tp.tx+';border:1px solid '+tp.bd+';border-radius:6px;'+
-        'padding:2px 5px;box-sizing:border-box;cursor:pointer;overflow:hidden;white-space:nowrap;'+
-        'display:flex;align-items:center;gap:3px;font-size:11px;font-weight:600;z-index:2;">'+
+        'title="'+e.title+'\n'+e.startTime.slice(0,5)+' – '+e.endTime.slice(0,5)+'" '+
+        'style="position:absolute;left:'+(sf*100).toFixed(2)+'%;width:'+w.toFixed(2)+'%;top:'+topPx+'px;height:28px;'+
+        'background:'+tp.bg+';color:'+tp.tx+';border:1.5px solid '+tp.bd+';border-radius:7px;'+
+        'padding:0 7px;box-sizing:border-box;cursor:pointer;overflow:hidden;white-space:nowrap;'+
+        'display:flex;align-items:center;gap:4px;font-size:12px;font-weight:700;z-index:2;">'+
         '<span style="overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0">'+e.title+'</span>'+
-        '<span style="flex-shrink:0;padding:0 2px">'+tp.icon+'</span>'+
-        '<span style="opacity:.5;font-size:9px;flex-shrink:0">'+e.startTime.slice(0,5)+'</span>'+
+        '<span style="flex-shrink:0;font-size:13px">'+tp.icon+'</span>'+
       '</div>';
     }).join("");
     rows+='<div style="display:flex;border-bottom:1px solid #f3f4f6;'+(isToday?"background:#fffbeb":"")+'">'+
