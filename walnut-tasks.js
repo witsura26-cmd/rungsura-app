@@ -400,7 +400,7 @@ function renderCalendar(){
       var tp=CAL_TYPES[e.type]||CAL_TYPES.other;
       var sf=timeToFrac(e.startTime||"06:00");
       var ef=timeToFrac(e.endTime||"07:00");
-      var w=Math.max(0.5,ef-sf)*100;
+      var w=Math.max(0.004,ef-sf)*100; // minimum ~4px on 1000px wide = 0.4%
       var lane=evtLanes[i]||0;
       var top=lane*26+4;
       var ht=22;

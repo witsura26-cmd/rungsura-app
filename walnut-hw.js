@@ -356,49 +356,64 @@ async function submitHw(){
     btn.textContent="ครูกำลังตรวจ... (1/4)";
     // 2. Written grading — 0-10 per question
     try{
+      var answeredCount=hwWrittenAnswers.filter(function(a){return a&&a.trim();}).length;
       var wtext=l.written.map(function(q,i){
-        return "ข้อ"+(i+1)+": "+q.q+"\nคำตอบ: "+(hwWrittenAnswers[i]||"(ไม่ได้ตอบ)");
-      }).join("\n\n");
-      var sysWritten="คุณคือ"+l.teacher+" กำลังตรวจการบ้านเขียนตอบของวอลนัท (8 ขวบ ป.4) วิชา "+l.subject+"\n"+
-        "ให้คะแนนแต่ละข้อ 0-10 อย่างจริงใจ ไม่กั๊ก ถ้าผิดหรือขาดอะไรต้องบอกตรงๆ\n"+
-        "เกณฑ์คะแนน 0-10:\n"+
-        "  9-10 = ครบถ้วน ถูกต้อง มีความคิดเชิงวิเคราะห์หรือจินตนาการที่ดี\n"+
-        "  7-8  = ถูกต้องแต่ขาดความลึกหรือรายละเอียด\n"+
-        "  5-6  = เข้าใจบางส่วน มีข้อผิดพลาด\n"+
-        "  3-4  = พยายามแต่เข้าใจผิดพื้นฐาน\n"+
-        "  0-2  = ไม่ตอบ หรือผิดทั้งหมด\n\n"+
-        "ใน feedback ให้ระบุชัดว่า: ขาดอะไร (เช่น ขาดความคิดเชิงวิชาการ ขาดจินตนาการ ขาดรายละเอียด ขาดตรรกะ)\n"+
-        "breakdown: บอกว่าให้คะแนนตรงไหน เช่น +4 ความถูกต้อง +2 รายละเอียด +0 ความคิดสร้างสรรค์\n"+
-        'ตอบ JSON เท่านั้น: {"questions":[{"score":7,"feedback":"...ขาด...","breakdown":"...","model":"เฉลยถ้าต่ำกว่า 8"},...],"overall":"วิเคราะห์ภาพรวมข้อเขียน 2-3 ประโยค"}';
+        return "ข้อ "+(i+1)+"\nคำถาม: "+q.q+"\nคำตอบของวอลนัท: "+(hwWrittenAnswers[i]&&hwWrittenAnswers[i].trim()||"(ไม่ได้เขียนอะไร — ให้ 0 คะแนน)");
+      }).join("\n---\n");
+      var sysWritten="คุณคือ"+l.teacher+" ครูของวอลนัท อายุ 8 ขวบ ชั้น ป.4\n\n"+
+        "ตรวจข้อเขียนตอบ 5 ข้อ วิชา"+l.subject+" เรื่อง\""+l.title+"\"\n\n"+
+        "กฎการให้คะแนน 0-10:\n"+
+        "10 = สมบูรณ์แบบ ครบถ้วน มีความคิดของตัวเอง\n"+
+        "8-9 = ดีมาก ถูกต้อง อาจขาดรายละเอียดเล็กน้อย\n"+
+        "6-7 = พอใช้ได้ เข้าใจหลัก แต่ขาดความลึก\n"+
+        "4-5 = เข้าใจบางส่วน มีข้อผิดพลาดหลายจุด\n"+
+        "2-3 = พยายามตอบ แต่เข้าใจผิดพื้นฐาน\n"+
+        "0-1 = ไม่ตอบ หรือไม่เกี่ยวข้องกับคำถามเลย\n\n"+
+        "สิ่งที่ต้องบอกในแต่ละข้อ:\n"+
+        "- score: ตัวเลข 0-10\n"+
+        "- feedback: บอกตรงๆ ว่าดีหรือไม่ดีอย่างไร ขาดอะไร (ภาษาไทยธรรมชาติ ไม่ formal)\n"+
+        "- breakdown: อธิบายวิธีให้คะแนน เช่น 'ถูกประเด็นหลัก +5 แต่ไม่มีตัวอย่าง -3'\n"+
+        "- model: คำตอบที่ดีควรเป็นอย่างไร (บอกเมื่อคะแนนต่ำกว่า 7)\n\n"+
+        "ตอบเป็น JSON อย่างเดียว ไม่มีข้อความอื่น:\n"+
+        '{"questions":[{"score":8,"feedback":"ตอบได้ดี แต่ยังขาด...","breakdown":"ถูกหลัก +7 แต่ไม่มีตัวอย่าง -2","model":""},...],"overall":"สรุปภาพรวม 2-3 ประโยค"}';
       var resW=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:1200,
+        body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:2000,
           system:sysWritten,
-          messages:[{role:"user",content:"วิชา "+l.subject+" หัวข้อ: "+l.title+"\n\n"+wtext}]})});
+          messages:[{role:"user",content:wtext}]})});
       var dW=await resW.json();
+      if(dW.error){throw new Error(dW.error);}
       var txtW=dW.content?.[0]?.text||"{}";
+      // ลบ markdown code block ถ้ามี
+      txtW=txtW.replace(/```json\s*/g,"").replace(/```\s*/g,"").trim();
       var matchW=txtW.match(/\{[\s\S]*\}/);
       if(matchW){
-        var pW=JSON.parse(matchW[0]);
-        writtenEvals=pW.questions||[];
-        writtenOverall=pW.overall||"";
-        writtenRaw=writtenEvals.reduce(function(a,e){return a+(e.score||0);},0);
+        try{
+          var pW=JSON.parse(matchW[0]);
+          writtenEvals=pW.questions||[];
+          writtenOverall=pW.overall||"";
+          writtenRaw=writtenEvals.reduce(function(a,e){return a+(e.score||0);},0);
+        }catch(pe){writtenOverall="แยก JSON ไม่สำเร็จ: "+txtW.slice(0,100);}
+      } else {
+        writtenOverall="ครูให้ความเห็น: "+txtW.slice(0,300);
       }
-    }catch(e){writtenRaw=10;writtenEvals=[];writtenOverall="เกิดข้อผิดพลาดขณะตรวจ: "+e.message;}
+    }catch(e){writtenRaw=0;writtenEvals=[];writtenOverall="⚠️ ตรวจไม่สำเร็จ: "+e.message;}
 
     btn.textContent="ครูอธิบาย MCQ... (2/4)";
     // 3. MCQ explanations
     if(wrongMcq.length>0){
       try{
         var mcqPrompt=wrongMcq.map(function(w){
-          return "ข้อ"+w.qi+": "+w.q+"\nเฉลย: "+w.choices[w.correctAns];
-        }).join("\n\n");
-        var sysMcq="คุณคือ"+l.teacher+" อธิบายทำไมคำตอบถูกต้อง สำหรับเด็ก 8 ขวบ ภาษาง่ายๆ สนุก มีทริคช่วยจำ"+
-          '\nตอบ JSON เท่านั้น: [{"qi":0,"explain":"อธิบายง่ายๆ","trick":"ทริคจำ"},...]';
+          return "ข้อ "+(w.qi+1)+": "+w.q+"\nคำตอบที่ถูก: "+w.choices[w.correctAns];
+        }).join("\n---\n");
+        var sysMcq="คุณคือ"+l.teacher+" อธิบายให้วอลนัท (8 ขวบ) เข้าใจว่าทำไมคำตอบนี้ถูก\n"+
+          "ใช้ภาษาไทยง่ายๆ สนุก เหมือนครูอธิบายให้เด็ก มีทริคช่วยจำด้วย\n"+
+          "ตอบ JSON อย่างเดียว:\n"+
+          '[{"qi":0,"explain":"เพราะ...อธิบายสั้นๆ...","trick":"จำง่ายๆ ว่า..."},...]';
         var resM=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},
-          body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:600,system:sysMcq,
+          body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:800,system:sysMcq,
             messages:[{role:"user",content:"วิชา "+l.subject+"\n\n"+mcqPrompt}]})});
         var dM=await resM.json();
-        var txtM=dM.content?.[0]?.text||"[]";
+        var txtM=(dM.content?.[0]?.text||"[]").replace(/```json\s*/g,"").replace(/```\s*/g,"").trim();
         var matchM=txtM.match(/\[[\s\S]*\]/);
         if(matchM) mcqExplains=JSON.parse(matchM[0]);
       }catch(e){mcqExplains=[];}
@@ -409,42 +424,52 @@ async function submitHw(){
     var writtenNorm=Math.round(writtenRaw/10);
     var total=mcqScore+writtenNorm;
     var pct=Math.round(total/20*100);
-    var wrongList=wrongMcq.map(function(w){
-      return "ข้อ"+(w.qi+1)+": "+w.q+" (ตอบ: "+(w.userAns!==null&&w.userAns!==undefined?w.choices[w.userAns]:"ไม่ได้ตอบ")+")";
-    }).join(", ");
-    var writtenSummary=writtenEvals.map(function(e,i){
-      return "ข้อ"+(i+1)+": "+e.score+"/10 — "+e.feedback;
-    }).join("\n");
-    var context="วิชา: "+l.subject+" | หัวข้อ: "+l.title+"\n"+
-      "MCQ: "+mcqScore+"/15 | Written: "+writtenRaw+"/50 | รวม: "+total+"/20 ("+pct+"%)\n"+
-      "MCQ ที่ผิด: "+(wrongList||"ถูกทั้งหมด 🎉")+"\n"+
-      "ผลข้อเขียน:\n"+writtenSummary+"\n"+
-      "ครูวิจารณ์ภาพรวม: "+writtenOverall;
+    var wrongList=wrongMcq.length>0
+      ?wrongMcq.map(function(w){return "ข้อ"+(w.qi+1)+" ("+w.q+")";}).join(", ")
+      :"ถูกทั้งหมด";
+    var writtenSummary=writtenEvals.length>0
+      ?writtenEvals.map(function(e,i){return "ข้อ"+(i+1)+": "+e.score+"/10 — "+e.feedback;}).join("\n")
+      :"(ยังไม่มีผลตรวจข้อเขียน)";
+    var context="วิชา: "+l.subject+"\nหัวข้อ: "+l.title+"\n"+
+      "ผล MCQ: "+mcqScore+"/15 | ข้อเขียน: "+writtenRaw+"/50 | รวม: "+total+"/20 ("+pct+"%)\n"+
+      "MCQ ผิด: "+wrongList+"\n\n"+
+      "ผลตรวจข้อเขียน:\n"+writtenSummary+"\n\n"+
+      "ความเห็นภาพรวมจากครู: "+(writtenOverall||"ยังไม่มี");
 
     try{
-      var aimPrompt="คุณคือ Dr.Aim นักวิเคราะห์วิชาการเด็ก Walnut Learning\n"+
-        "วิเคราะห์ผลการบ้านอย่างจริงใจ ไม่กั๊ก ไม่สปอยล์ ถ้าไม่ดีบอกตรงๆ\n"+
-        "Format:\nย่อหน้า 1: ภาพรวม\nย่อหน้า 2: Pattern ที่เห็น\n\n"+
-        "✅ จุดแข็ง\n• ...\n\n🔴 จุดต้องพัฒนา\n• ...\n\n💡 Dr.Aim แนะนำ\n• ...";
-      var ployPrompt="คุณคือ Ploy นักพัฒนาศักยภาพเด็ก Walnut Learning\n"+
-        "วิเคราะห์ด้านแรงบันดาลใจ ความสุข และ mindset ของวอลนัทจากผลการบ้าน\n"+
-        "จริงใจ แต่อ่อนโยน บอกว่าวอลนัทรู้สึกยังไง และจะช่วยกระตุ้นให้เรียนต่อได้ยังไง\n"+
-        (pct<RETAKE_THRESHOLD?"คะแนนต่ำกว่าเกณฑ์ — ช่วยอธิบายว่าทำใหม่ไม่ใช่เรื่องแย่ แต่เป็นโอกาสฝึก\n":"")+
-        "Format:\nย่อหน้า 1: ประเมิน mindset จากคำตอบที่เห็น\n\n"+
-        "💚 สิ่งที่น่าชื่นชม\n• ...\n\n🌱 Ploy แนะนำ (ด้านความรู้สึก)\n• ...";
+      var aimPrompt="คุณคือ Dr.Aim นักวิเคราะห์วิชาการเด็กของ Walnut Learning\n\n"+
+        "วิเคราะห์ผลการบ้านของวอลนัท (8 ขวบ ป.4) จากข้อมูลที่ให้\n"+
+        "ภาษาไทยที่อ่านง่าย เป็นธรรมชาติ ไม่ formal เกินไป ตรงไปตรงมา\n"+
+        "ถ้าผลแย่ต้องบอกตรงๆ ว่าแย่ตรงไหน เพราะอะไร — ไม่ต้องปิดบัง\n\n"+
+        "เขียนในรูปแบบนี้ (ห้ามเปลี่ยน format):\n\n"+
+        "[ย่อหน้าที่ 1: ภาพรวมคะแนนและสิ่งที่เห็น 2-3 ประโยค]\n\n"+
+        "[ย่อหน้าที่ 2: pattern ที่เห็นจากข้อผิด เข้าใจผิดตรงไหน 2-3 ประโยค]\n\n"+
+        "✅ จุดแข็ง\n• [bullet point จริงๆ ไม่ใช่ ...]\n\n"+
+        "🔴 จุดที่ต้องพัฒนา\n• [bullet point จริงๆ]\n\n"+
+        "💡 Dr.Aim แนะนำ\n• [action ที่ทำได้จริง]";
+      var ployPrompt="คุณคือ Ploy นักพัฒนาศักยภาพเด็กของ Walnut Learning\n\n"+
+        "ดูผลการบ้านของวอลนัท แล้วประเมินด้านความรู้สึก แรงบันดาลใจ และ mindset\n"+
+        "ภาษาไทยอ่อนโยน อบอุ่น เป็นธรรมชาติ เหมือนพูดกับเด็กจริงๆ\n"+
+        (pct<RETAKE_THRESHOLD?"คะแนนยังไม่ผ่านเกณฑ์ — ช่วยบอกวอลนัทว่าการทำใหม่คือโอกาสฝึก ไม่ใช่ความล้มเหลว\n\n":"\n")+
+        "เขียนในรูปแบบนี้:\n\n"+
+        "[ย่อหน้าที่ 1: อ่านจากคำตอบแล้ว วอลนัทน่าจะรู้สึกหรือมี mindset อย่างไร 2-3 ประโยค]\n\n"+
+        "💚 สิ่งที่น่าชื่นชม\n• [จริงๆ ไม่ใช่ ...]\n\n"+
+        "🌱 Ploy แนะนำ\n• [แนะนำด้านความรู้สึกและแรงจูงใจ]";
       var [resA,resP]=await Promise.all([
         fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},
-          body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:600,system:aimPrompt,
+          body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:900,system:aimPrompt,
             messages:[{role:"user",content:context}]})}),
         fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},
-          body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:400,system:ployPrompt,
+          body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:700,system:ployPrompt,
             messages:[{role:"user",content:context}]})})
       ]);
       var dA=await resA.json();
       var dP=await resP.json();
-      drAimEval=dA.content?.[0]?.text||"ไม่สามารถวิเคราะห์ได้";
-      ployEval=dP.content?.[0]?.text||"ไม่สามารถประเมินได้";
-    }catch(e){drAimEval="เกิดข้อผิดพลาด: "+e.message;ployEval="";}
+      if(dA.error) throw new Error("Dr.Aim: "+dA.error);
+      if(dP.error) throw new Error("Ploy: "+dP.error);
+      drAimEval=dA.content?.[0]?.text||"Dr.Aim ไม่สามารถวิเคราะห์ได้";
+      ployEval=dP.content?.[0]?.text||"Ploy ไม่สามารถประเมินได้";
+    }catch(e){drAimEval="⚠️ "+e.message;ployEval="⚠️ "+e.message;}
   }
 
   var writtenScore=Math.round(writtenRaw/10);
