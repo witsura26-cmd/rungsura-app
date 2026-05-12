@@ -407,7 +407,7 @@ async function sendTeacher(){
   const inp=document.getElementById("t-in");
   const msg=inp.value.trim();if(!msg)return;
   inp.value=""; addTMsg("user",msg); teacherHistory.push({role:"user",content:msg});
-  if(!CFG.claude){addTMsg("assistant","⚠️ ใส่ Claude API Key ก่อน กด ⚙️ ครับ");return;}
+  // API key is on Netlify server — proceed directly
   const lid="tl"+Date.now();
   document.getElementById("t-msgs").insertAdjacentHTML("beforeend",
     `<div id="${lid}" class="flex gap-2"><div class="${currentTeacher.bg} w-7 h-7 rounded-full flex items-center justify-center text-base">${currentTeacher.icon}</div><div class="${currentTeacher.bg} rounded-2xl px-4 py-3 text-sm text-gray-400 animate-pulse">กำลังคิด...</div></div>`);

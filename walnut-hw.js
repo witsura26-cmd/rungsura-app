@@ -131,6 +131,37 @@ function selMcq(qi,ci){
   });
 }
 
+// โหลดคำอธิบาย MCQ ข้อเดิมที่ยังไม่มีทีหลัง
+async function loadMcqExplain(lessonId, qi){
+  var l=LESSONS.find(function(x){return x.id===lessonId;});
+  var st=getHwState(lessonId);
+  if(!l||!st.submitted)return;
+  var q=l.mcq[qi];
+  var btn=event.target;
+  btn.textContent="⏳ กำลังโหลด...";btn.disabled=true;
+  try{
+    var res=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:200,
+        system:"คุณคือ"+l.teacher+" อธิบายสั้นๆ สำหรับเด็ก 8 ขวบ ทำไมคำตอบนี้ถูก มีทริคช่วยจำ ตอบ JSON: {\"explain\":\"...\",\"trick\":\"...\"}",
+        messages:[{role:"user",content:"คำถาม: "+q.q+"\nเฉลย: "+q.c[q.a]}]})});
+    var d=await res.json();
+    var txt=d.content?.[0]?.text||"{}";
+    var m=txt.match(/\{[\s\S]*\}/);
+    var expl=m?JSON.parse(m[0]):{explain:"คำตอบที่ถูกต้องคือ "+q.c[q.a],trick:""};
+    var explains=st.mcqExplains||[];
+    explains=explains.filter(function(e){return e.qi!==qi;});
+    explains.push({qi:qi,explain:expl.explain||"",trick:expl.trick||""});
+    st.mcqExplains=explains;
+    saveHwState(lessonId,st);
+    // Re-render result
+    var savedLesson=currentHwLesson;
+    currentHwLesson=l;
+    showHwResult(st);
+    currentHwLesson=savedLesson;
+    switchResTab("mcq");
+  }catch(e){btn.textContent="❌ ลองใหม่";btn.disabled=false;}
+}
+
 // ── RESULT DISPLAY ────────────────────────────────────────
 function showHwResult(st){
   var l=currentHwLesson||LESSONS.find(function(x){return x.id===st.lessonId;});
@@ -159,7 +190,7 @@ function showHwResult(st){
                 '<div class="text-xs text-yellow-800"><strong>💡 อธิบาย:</strong> '+expl.explain+'</div>'+
                 (expl.trick?'<div class="text-xs text-yellow-700 mt-1"><strong>🧠 ทริค:</strong> '+expl.trick+'</div>':'')+
               '</div>':
-              '<div class="text-xs text-gray-400 italic mt-1">กำลังโหลดคำอธิบาย...</div>')+
+              '<button onclick="loadMcqExplain(\''+st.lessonId+'\','+i+')" class="mt-2 text-xs text-indigo-500 hover:text-indigo-700 underline">💡 ขอคำอธิบาย</button>')+
           '</div>')+
         '</div>';
     }).join("");
@@ -241,7 +272,8 @@ async function submitHw(){
 
   var writtenScore=0, writtenEvals=[], writtenOverall="", mcqExplains=[], drAimEval="";
 
-  if(CFG.claude){
+  // API key lives on Netlify server — always try /api/chat
+  {
     btn.textContent="ครูกำลังตรวจ... (1/3)";
     // 2. Written grading (teacher persona)
     try{
@@ -314,11 +346,7 @@ async function submitHw(){
           messages:[{role:"user",content:aimContext}]})});
       var dA=await resA.json();
       drAimEval=dA.content?.[0]?.text||"ไม่สามารถวิเคราะห์ได้";
-    }catch(e){drAimEval="เกิดข้อผิดพลาดขณะวิเคราะห์";}
-  } else {
-    writtenScore=2;
-    writtenOverall="ใส่ Claude API Key เพื่อรับการตรวจแบบละเอียดนะคะ";
-    drAimEval="ใส่ Claude API Key เพื่อรับการวิเคราะห์จาก Dr.Aim นะคะ";
+    }catch(e){drAimEval="เกิดข้อผิดพลาดขณะวิเคราะห์: "+e.message;}
   }
 
   var total=mcqScore+writtenScore;
