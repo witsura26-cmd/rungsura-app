@@ -128,6 +128,41 @@
   </div>
 </div>
 
+<!-- CREATIVE SURVEY MODAL -->
+<div id="survey-modal" class="fixed inset-0 z-50 hidden bg-gray-50 overflow-y-auto">
+  <div class="max-w-xl mx-auto px-4 py-8">
+    <div class="bg-pink-50 border border-pink-200 rounded-2xl p-5 mb-5 flex items-center gap-3">
+      <span class="text-3xl">🌟</span>
+      <div><div class="font-bold">แบบสอบถามพัฒนาการ — จินตนาการและความคิดสร้างสรรค์</div><div class="text-xs text-gray-500">โดย Tangmo · สัปดาห์ที่ 1</div></div>
+      <button onclick="document.getElementById('survey-modal').classList.add('hidden')" class="ml-auto text-gray-400 text-2xl">✕</button>
+    </div>
+    <div class="space-y-4">
+      <div class="bg-white border rounded-2xl p-4"><div class="text-sm font-semibold mb-2">1. สัปดาห์นี้วอลนัทมีไอเดียอะไรใหม่ๆ บ้าง?</div><textarea id="sq1" rows="3" placeholder="เขียนอิสระเลยนะ..." class="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-pink-400 resize-none"></textarea></div>
+      <div class="bg-white border rounded-2xl p-4"><div class="text-sm font-semibold mb-2">2. ถ้าวอลนัทจะแต่งเพลงสักเพลง จะเป็นเพลงเกี่ยวกับอะไร?</div><textarea id="sq2" rows="3" placeholder="ไม่ต้องกลัวผิด คิดอะไรก็เขียน..." class="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-pink-400 resize-none"></textarea></div>
+      <div class="bg-white border rounded-2xl p-4"><div class="text-sm font-semibold mb-2">3. อะไรที่ทำให้วอลนัทรู้สึกสนุกที่สุดสัปดาห์นี้?</div><textarea id="sq3" rows="3" placeholder="วิชาไหน กิจกรรมอะไร..." class="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-pink-400 resize-none"></textarea></div>
+      <div class="bg-white border rounded-2xl p-4"><div class="text-sm font-semibold mb-2">4. มีอะไรที่วอลนัทอยากเรียนรู้เพิ่มเติมมั้ย?</div><textarea id="sq4" rows="3" placeholder="อยากรู้เรื่องอะไร..." class="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-pink-400 resize-none"></textarea></div>
+      <div class="bg-white border rounded-2xl p-4"><div class="text-sm font-semibold mb-2">5. เขียนอธิบายสิ่งที่วอลนัทจินตนาการอยู่ตอนนี้ (อะไรก็ได้!)</div><textarea id="sq5" rows="4" placeholder="วาดเป็นคำพูดได้เลย..." class="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-pink-400 resize-none"></textarea></div>
+    </div>
+    <div id="survey-result" class="hidden bg-pink-50 border border-pink-200 rounded-2xl p-4 mt-4"></div>
+    <button onclick="submitCreativeSurvey()" id="survey-btn" class="w-full mt-5 bg-pink-400 hover:bg-pink-500 text-white py-3 rounded-2xl font-bold text-base">ส่งให้ Tangmo วิเคราะห์ →</button>
+  </div>
+</div>
+
+<!-- SCHEDULE EDIT MODAL -->
+<div id="sch-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/30">
+  <div class="bg-white rounded-2xl shadow-2xl w-[600px] max-h-[80vh] overflow-y-auto p-6">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="font-bold text-lg">🏫 แก้ไขตารางเรียนโรงเรียน</h2>
+      <button onclick="document.getElementById('sch-modal').classList.add('hidden')" class="text-gray-400 text-2xl">✕</button>
+    </div>
+    <div id="sch-edit-grid" class="space-y-3"></div>
+    <div class="flex gap-2 mt-5">
+      <button onclick="saveScheduleEdit()" class="flex-1 bg-amber-400 hover:bg-amber-500 text-white py-2.5 rounded-xl font-semibold">บันทึก</button>
+      <button onclick="document.getElementById('sch-modal').classList.add('hidden')" class="px-5 py-2.5 rounded-xl border text-gray-600">ยกเลิก</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ── CONFIG ──────────────────────────────────────────────
 const CFG = {
@@ -139,7 +174,8 @@ const TODAY = new Date().toISOString().slice(0,10);
 let sb=null, tasks=[], chatOpen=false, chatHistory=[];
 let currentTeacher=null, teacherHistory=[];
 let currentHwLesson=null, hwMcqAnswers=[], hwWrittenAnswers=[];
-let activeTab="lessons";
+let activeTab="tasks";
+let taskFilter="all";
 
 // ── SUPABASE ─────────────────────────────────────────────
 function initSb(){
@@ -180,6 +216,9 @@ const TEAM = [
   {id:"kru-big", name:"ครูบิ๊ก", role:"ครูเปียโน", icon:"🎹", bg:"bg-violet-50", border:"border-violet-200", badge:"bg-violet-100 text-violet-700",
    desc:"แม่นทฤษฎี เข้าใจเด็ก",
    prompt:"คุณคือครูบิ๊ก ครูเปียโนที่แม่นทฤษฎี ใจเย็น วอลนัทเรียนเปียโนเกือบ 2 ปี interval 5th อ่านโน้ตยังไม่แม่น ตอบภาษาไทย"},
+  {id:"kru-jen", name:"ครูเจน", role:"ครูภาษาอังกฤษ", icon:"🇬🇧", bg:"bg-indigo-50", border:"border-indigo-200", badge:"bg-indigo-100 text-indigo-700",
+   desc:"สนุกกับภาษา Communication first ไม่กลัวผิด",
+   prompt:"คุณคือครูเจน ครูภาษาอังกฤษที่สนุกและ passionate สอนวอลนัท 8 ขวบ ป.4 เน้น am/is/are simple present daily vocabulary ตอบภาษาไทย-อังกฤษผสม ให้กำลังใจสูงมาก ไม่กลัวผิด"},
 ];
 
 // ── LESSON DATA ──────────────────────────────────────────
@@ -424,15 +463,74 @@ E = ขวาของปุ่มดำ 2 ปุ่ม`,
      {q:"ฝึก Interval 5th: C→G วันนี้ทำได้กี่ครั้งถูกจาก 10 ครั้ง? บันทึกผล"},
      {q:"Interval 5th ฟังแล้วรู้สึกอย่างไร เปรียบกับโน้ตเดี่ยวๆ"},
    ]},
+  {id:"eng-w1",subject:"ภาษาอังกฤษ",teacher:"ครูเจน",teacherId:"kru-jen",icon:"🇬🇧",
+   bg:"bg-indigo-50",border:"border-indigo-200",badge:"bg-indigo-100 text-indigo-700",
+   week:1,title:"Be Verbs (am / is / are) + Daily Vocabulary",
+   goal:"วอลนัทใช้ am/is/are ถูกต้อง และรู้คำศัพท์ชีวิตประจำวัน 10 คำ",
+   plan:[{w:1,t:"Be Verbs + Daily Vocab"},{w:2,t:"Simple Present + Family"},{w:3,t:"Colors Numbers Body"},{w:4,t:"Review + Test"}],
+   reading:`Walnut's English Class
+
+Walnut is in Grade 4. She is 8 years old.
+Her school is Thai Christian School in Phrakhanong.
+
+Today is English class. Teacher Jane is very happy.
+"Good morning, students!" said Teacher Jane.
+"Good morning, Teacher Jane!" said the class.
+
+"Today we learn Be Verbs!" Teacher Jane said.
+  • I AM a student.
+  • Walnut IS a singer.
+  • We ARE friends.
+
+Vocabulary List:
+  happy     = มีความสุข
+  proud     = ภูมิใจ
+  singer    = นักร้อง
+  school    = โรงเรียน
+  student   = นักเรียน
+  teacher   = ครู
+  morning   = ตอนเช้า
+  friend    = เพื่อน
+  family    = ครอบครัว
+  music     = ดนตรี
+
+Grammar Rules:
+  I          → AM    (I am Walnut.)
+  He/She/It  → IS    (She is kind.)
+  You/We/They→ ARE   (We are students.)`,
+   mcq:[
+     {q:'I ___ happy.',c:['ก. am','ข. is','ค. are','ง. be'],a:0},
+     {q:'She ___ a teacher.',c:['ก. am','ข. is','ค. are','ง. be'],a:1},
+     {q:'We ___ students.',c:['ก. am','ข. is','ค. are','ง. be'],a:2},
+     {q:'He ___ my friend.',c:['ก. am','ข. is','ค. are','ง. be'],a:1},
+     {q:'They ___ in Grade 4.',c:['ก. am','ข. is','ค. are','ง. be'],a:2},
+     {q:'"happy" แปลว่า?',c:['ก. ภูมิใจ','ข. มีความสุข','ค. เศร้า','ง. โกรธ'],a:1},
+     {q:'"proud" แปลว่า?',c:['ก. ดีใจ','ข. กลัว','ค. ภูมิใจ','ง. ตื่นเต้น'],a:2},
+     {q:'"singer" แปลว่า?',c:['ก. นักดนตรี','ข. นักเต้น','ค. นักร้อง','ง. ครู'],a:2},
+     {q:'"school" แปลว่า?',c:['ก. บ้าน','ข. โรงเรียน','ค. ร้านค้า','ง. สวน'],a:1},
+     {q:'"friend" แปลว่า?',c:['ก. พี่น้อง','ข. ครู','ค. เพื่อน','ง. พ่อแม่'],a:2},
+     {q:'วอลนัทเรียนชั้นอะไร?',c:['ก. ป.3','ข. ป.4','ค. ป.5','ง. ป.6'],a:1},
+     {q:'ครูเจนสอนวิชาอะไร?',c:['ก. Math','ข. Thai','ค. English','ง. Science'],a:2},
+     {q:'ประโยคใดถูกต้อง?',c:['ก. I is happy','ข. She am a singer','ค. We are friends','ง. He are tall'],a:2},
+     {q:'"I AM" ใช้กับใคร?',c:['ก. เขา','ข. เธอ','ค. ฉัน','ง. พวกเรา'],a:2},
+     {q:'"teacher" แปลว่า?',c:['ก. นักเรียน','ข. ครู','ค. พ่อแม่','ง. เพื่อน'],a:1},
+   ],
+   written:[
+     {q:'เติม am/is/are: "I ___ Walnut. I ___ 8 years old. She ___ my teacher."'},
+     {q:'เขียน 2 ประโยคภาษาอังกฤษแนะนำตัวเอง (ชื่อ อายุ สิ่งที่ชอบ)'},
+     {q:'เลือก 3 คำศัพท์จากบทเรียนที่ชอบ แล้วเขียนประโยคใช้คำนั้น 1 ประโยค/คำ'},
+     {q:'"Walnut IS a singer." — ทำไมต้องใช้ IS? อธิบายกฎ am/is/are สั้นๆ'},
+     {q:'เขียน 1 ประโยคภาษาอังกฤษเกี่ยวกับครอบครัวของคุณ ใช้ am/is/are'},
+   ]},
 ];
 
 // ── MAIN RENDER ──────────────────────────────────────────
 function renderPage(){
   const tabs=[
-    {id:"lessons",label:"บทเรียน",icon:"📖"},
-    {id:"report", label:"รายงาน", icon:"🌸"},
-    {id:"kru",    label:"ทีมครู", icon:"👩‍🏫"},
-    {id:"tasks",  label:"Tasks",  icon:"✅"},
+    {id:"tasks",   label:"แผน & Tasks", icon:"📋"},
+    {id:"lessons", label:"บทเรียน",     icon:"📖"},
+    {id:"report",  label:"รายงาน",      icon:"🌸"},
+    {id:"kru",     label:"ทีมครู",      icon:"👩‍🏫"},
   ];
   document.getElementById("app").innerHTML=`
     <div class="mb-5">
@@ -602,66 +700,169 @@ function renderTeam(){
   </div>`;
 }
 
-// ── TASKS TAB ────────────────────────────────────────────
-function renderTasks(){
-  const walnutTasks=tasks.filter(t=>t.dept===3);
-  const sc={todo:{bg:"bg-gray-100",tx:"text-gray-600",lb:"รอทำ"},"in-progress":{bg:"bg-blue-100",tx:"text-blue-600",lb:"กำลังทำ"},done:{bg:"bg-green-100",tx:"text-green-600",lb:"เสร็จ"},overdue:{bg:"bg-pink-100",tx:"text-pink-600",lb:"ค้าง"}};
-  return `<div class="bg-white rounded-b-2xl border border-t-0 border-gray-100 p-5">
-    <div class="flex items-center justify-between mb-4">
-      <div class="flex gap-1.5">
-        ${["ทั้งหมด","วันนี้","ค้าง","เสร็จแล้ว"].map((f,i)=>`
-          <button onclick="filterTasks(this,'${f}')" data-f="${f}"
-            class="task-f px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${i===0?"bg-amber-400 text-white":"bg-gray-100 text-gray-500 hover:bg-amber-50"}">
-            ${f}
-          </button>`).join("")}
-      </div>
-      <button onclick="addTask()" class="bg-amber-400 hover:bg-amber-500 text-white px-4 py-2 rounded-xl text-sm font-semibold">+ เพิ่ม</button>
-    </div>
-    <div id="task-list">${taskList(walnutTasks)}</div>
-  </div>`;
+// ── LOCAL TASK STORAGE ───────────────────────────────────
+const DEFAULT_SCHEDULE={
+  mon:["ภาษาไทย","คณิตศาสตร์","วิทยาศาสตร์","สังคม","ดนตรี"],
+  tue:["ภาษาอังกฤษ","คณิตศาสตร์","ภาษาไทย","ศิลปะ","พลศึกษา"],
+  wed:["คณิตศาสตร์","วิทยาศาสตร์","ภาษาอังกฤษ","ภาษาไทย","สุขศึกษา"],
+  thu:["ภาษาไทย","สังคม","คณิตศาสตร์","วิทยาศาสตร์","ภาษาอังกฤษ"],
+  fri:["คณิตศาสตร์","ภาษาไทย","ภาษาอังกฤษ","ดนตรี","พลศึกษา"],
+};
+function getSchedule(){return JSON.parse(localStorage.getItem("walnut_sch")||JSON.stringify(DEFAULT_SCHEDULE));}
+function saveSchedule(s){localStorage.setItem("walnut_sch",JSON.stringify(s));}
+function getLocalTasks(){return JSON.parse(localStorage.getItem("walnut_tasks")||"[]");}
+function saveLocalTasks(ts){localStorage.setItem("walnut_tasks",JSON.stringify(ts));}
+function getFriday(){const d=new Date();const diff=(5-d.getDay()+7)%7||7;d.setDate(d.getDate()+diff);return d.toISOString().slice(0,10);}
+function getSaturday(){const d=new Date();const diff=(6-d.getDay()+7)%7||7;d.setDate(d.getDate()+diff);return d.toISOString().slice(0,10);}
+
+function syncLessonTasks(){
+  let ts=getLocalTasks();let changed=false;
+  LESSONS.forEach(l=>{
+    const music=l.id.startsWith("sing")||l.id.startsWith("piano");
+    const due=music?getSaturday():getFriday();
+    const existing=ts.find(t=>t.lessonId===l.id);
+    const hwDone=getHwState(l.id).submitted;
+    if(!existing){
+      ts.push({id:"lt-"+l.id,lessonId:l.id,title:"📝 การบ้าน"+l.subject,subject:l.subject,icon:l.icon,badge:l.badge,type:"lesson",status:hwDone?"done":"pending",due});
+      changed=true;
+    } else if(hwDone&&existing.status!=="done"){
+      existing.status="done";changed=true;
+    }
+  });
+  if(changed)saveLocalTasks(ts);
 }
-function taskList(ts){
-  if(!ts.length) return '<div class="text-center text-gray-300 py-10 text-sm">ไม่มี Task</div>';
-  const sc={todo:{bg:"bg-gray-100",tx:"text-gray-600",lb:"รอทำ"},"in-progress":{bg:"bg-blue-100",tx:"text-blue-600",lb:"กำลังทำ"},done:{bg:"bg-green-100",tx:"text-green-600",lb:"เสร็จ"},overdue:{bg:"bg-pink-100",tx:"text-pink-600",lb:"ค้าง"}};
-  return ts.map(t=>{const s=sc[t.status]||sc.todo;const ov=t.due<TODAY&&t.status!=="done";
-    return `<div class="flex items-center gap-3 p-3 rounded-xl border border-transparent hover:bg-amber-50 transition-colors mb-1">
-      <button onclick="toggleDone(${t.id},'${t.status}')" class="w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-colors ${t.status==="done"?"bg-green-400 border-green-400":"border-gray-300 hover:border-amber-400"}">
-        ${t.status==="done"?'<svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>':''}
-      </button>
-      <div class="flex-1 min-w-0">
-        <div class="text-sm font-medium ${t.status==="done"?"line-through text-gray-300":"text-gray-800"} truncate">${t.title}</div>
-        <div class="text-xs text-gray-400">${t.assignee} · ${ov?`<span class="text-pink-400">⚠️ ${t.due}</span>`:t.due}</div>
-      </div>
-      <span class="status-badge ${s.bg} ${s.tx}">${s.lb}</span>
-    </div>`;
-  }).join("");
+
+function toggleLocalTask(id){
+  const ts=getLocalTasks();
+  const t=ts.find(x=>x.id===id);
+  if(t){t.status=t.status==="done"?"pending":"done";saveLocalTasks(ts);}
+  switchTab("tasks");
 }
-function filterTasks(btn,f){
+function deleteLocalTask(id){
+  const ts=getLocalTasks().filter(t=>t.id!==id);
+  saveLocalTasks(ts);switchTab("tasks");
+}
+function openAddTask(){
+  const title=prompt("ชื่อ Task:");if(!title)return;
+  const due=prompt("วันครบกำหนด (YYYY-MM-DD):",getFriday())||getFriday();
+  const ts=getLocalTasks();
+  ts.push({id:"m-"+Date.now(),title,subject:"ทั่วไป",icon:"📌",badge:"bg-gray-100 text-gray-600",type:"manual",status:"pending",due});
+  saveLocalTasks(ts);switchTab("tasks");
+}
+function setTaskFilter(f,btn){
+  taskFilter=f;
   document.querySelectorAll(".task-f").forEach(el=>{
     el.className="task-f px-3 py-1.5 rounded-lg text-xs font-medium transition-colors "+(el.dataset.f===f?"bg-amber-400 text-white":"bg-gray-100 text-gray-500 hover:bg-amber-50");
   });
-  let ts=tasks.filter(t=>t.dept===3);
-  if(f==="วันนี้")ts=ts.filter(t=>t.due===TODAY);
-  else if(f==="ค้าง")ts=ts.filter(t=>t.due<TODAY&&t.status!=="done");
-  else if(f==="เสร็จแล้ว")ts=ts.filter(t=>t.status==="done");
-  document.getElementById("task-list").innerHTML=taskList(ts);
+  const all=getLocalTasks();
+  const shown=f==="done"?all.filter(t=>t.status==="done"):f==="pending"?all.filter(t=>t.status!=="done"):all;
+  document.getElementById("task-list-inner").innerHTML=renderTaskList(shown);
 }
-async function toggleDone(id,status){
-  const ns=status==="done"?"todo":"done";
-  if(sb){await sb.from("tasks").update({status:ns}).eq("id",id);}
-  const t=tasks.find(x=>x.id===id);if(t)t.status=ns;
-  renderTasks(); document.getElementById("task-list").innerHTML=taskList(tasks.filter(t=>t.dept===3));
-  switchTab("tasks");
+
+function renderTaskList(ts){
+  if(!ts.length) return '<div class="text-center text-gray-300 py-8 text-sm">ไม่มี Task ในหมวดนี้</div>';
+  const groups={overdue:[],today:[],week:[],done:[]};
+  ts.forEach(t=>{
+    if(t.status==="done")groups.done.push(t);
+    else if(t.due<TODAY)groups.overdue.push(t);
+    else if(t.due===TODAY)groups.today.push(t);
+    else groups.week.push(t);
+  });
+  const renderGroup=(label,color,items)=>{
+    if(!items.length)return "";
+    return '<div class="mb-4"><div class="text-xs font-bold '+color+' mb-2">'+label+'</div>'+
+      items.map(t=>'<div class="flex items-center gap-3 p-3 rounded-xl border border-transparent hover:bg-amber-50 transition-colors mb-1">'+
+        '<button onclick="toggleLocalTask(\''+t.id+'\')" class="w-6 h-6 rounded-full border-2 flex-shrink-0 flex items-center justify-center text-xs font-bold transition-colors '+(t.status==="done"?"bg-green-400 border-green-400 text-white":"border-gray-300 hover:border-amber-400 text-transparent")+'" >✓</button>'+
+        '<span class="text-lg">'+t.icon+'</span>'+
+        '<div class="flex-1 min-w-0">'+
+          '<div class="text-sm font-medium '+(t.status==="done"?"line-through text-gray-300":"text-gray-800")+' truncate">'+t.title+'</div>'+
+          '<div class="flex items-center gap-2 mt-0.5"><span class="status-badge '+t.badge+'">'+t.subject+'</span><span class="text-xs text-gray-400">'+t.due+'</span></div>'+
+        '</div>'+
+        (t.type==="manual"?'<button onclick="deleteLocalTask(\''+t.id+'\')" class="text-gray-300 hover:text-red-400 text-lg transition-colors ml-1">×</button>':'')+
+      '</div>').join("")+
+    '</div>';
+  };
+  return renderGroup("⚠️ ค้างจากที่แล้ว","text-red-400",groups.overdue)+
+         renderGroup("📌 วันนี้","text-amber-600",groups.today)+
+         renderGroup("📅 สัปดาห์นี้","text-gray-500",groups.week)+
+         renderGroup("✅ เสร็จแล้ว","text-green-500",groups.done);
 }
-async function addTask(){
-  const title=prompt("ชื่อ Task:");if(!title)return;
-  const assignee=prompt("ผู้รับผิดชอบ:")||"วอลนัท";
-  const due=prompt("วันครบกำหนด (YYYY-MM-DD):",TODAY)||TODAY;
-  if(sb){
-    const{data,error}=await sb.from("tasks").insert({dept:3,title,assignee,priority:"medium",due,status:"todo"}).select().single();
-    if(!error)tasks.push(data);
-  }
-  switchTab("tasks");
+
+// ── TASKS TAB ────────────────────────────────────────────
+function renderTasks(){
+  syncLessonTasks();
+  const all=getLocalTasks();
+  const shown=taskFilter==="done"?all.filter(t=>t.status==="done"):taskFilter==="pending"?all.filter(t=>t.status!=="done"):all;
+  const doneLessons=LESSONS.filter(l=>getHwState(l.id).submitted).length;
+  const allDone=doneLessons===LESSONS.length;
+  const sch=getSchedule();
+  const dayKeys=["mon","tue","wed","thu","fri"];
+  const dayNames={mon:"จ.",tue:"อ.",wed:"พ.",thu:"พฤ.",fri:"ศ."};
+
+  const scheduleRows=(()=>{
+    let rows="";
+    for(let p=0;p<5;p++){
+      rows+="<tr>";
+      dayKeys.forEach(d=>{
+        const sub=sch[d][p]||"";
+        const color=sub.includes("คณิต")?"bg-orange-50 text-orange-700":
+          sub.includes("ไทย")?"bg-yellow-50 text-yellow-700":
+          sub.includes("อังกฤษ")?"bg-indigo-50 text-indigo-700":
+          sub.includes("วิทย์")?"bg-cyan-50 text-cyan-700":
+          sub.includes("ดนตรี")?"bg-rose-50 text-rose-700":"bg-gray-50 text-gray-500";
+        rows+='<td class="px-0.5 py-0.5"><div class="'+color+' rounded px-1 py-0.5 text-center text-xs truncate">'+sub+'</div></td>';
+      });
+      rows+="</tr>";
+    }
+    return rows;
+  })();
+
+  return '<div class="bg-white rounded-b-2xl border border-t-0 border-gray-100 p-5 space-y-4">'+
+    // Progress
+    '<div class="bg-amber-50 border border-amber-200 rounded-2xl p-4">'+
+      '<div class="flex items-center justify-between mb-2">'+
+        '<span class="text-sm font-bold text-amber-800">ความคืบหน้าสัปดาห์นี้</span>'+
+        '<span class="text-sm font-bold text-amber-600">'+doneLessons+'/'+LESSONS.length+' วิชา</span>'+
+      '</div>'+
+      '<div class="bg-amber-100 rounded-full h-3"><div class="bg-amber-400 h-3 rounded-full transition-all" style="width:'+Math.round(doneLessons/LESSONS.length*100)+'%"></div></div>'+
+      (allDone?'<div class="mt-3 flex items-center justify-between"><span class="text-green-600 font-semibold text-sm">🎉 ครบทุกวิชาแล้ว!</span><button onclick="openCreativeSurvey()" class="bg-pink-400 hover:bg-pink-500 text-white px-4 py-2 rounded-xl text-sm font-semibold">ตอบแบบสอบถามพัฒนาการ →</button></div>':'')+
+    '</div>'+
+    // Team analysis
+    '<div class="border border-blue-100 rounded-2xl p-4 bg-blue-50">'+
+      '<div class="flex items-center justify-between mb-3">'+
+        '<div class="flex items-center gap-2"><span class="text-lg">📊</span><span class="font-bold text-sm text-blue-800">Dr.Aim + Tangmo — วิเคราะห์แผนสัปดาห์นี้</span></div>'+
+        '<button onclick="openTeacher(\'dr-aim\')" class="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700">คุย Dr.Aim</button>'+
+      '</div>'+
+      '<div class="space-y-2 text-sm">'+
+        '<div class="flex gap-2"><span class="text-red-500 shrink-0">🔴</span><span><strong>Priority 1 — คณิต:</strong> เรียนทุกวัน → ฝึกโจทย์ปัญหา 20 นาทีหลังเลิกโรงเรียน</span></div>'+
+        '<div class="flex gap-2"><span class="text-yellow-500 shrink-0">🟡</span><span><strong>Priority 2 — ไทย+อังกฤษ:</strong> สลับกัน วันคู่ทำไทย วันคี่ทำอังกฤษ 15 นาที</span></div>'+
+        '<div class="flex gap-2"><span class="text-cyan-500 shrink-0">🔵</span><span><strong>วิทย์:</strong> อาทิตย์ละ 2 ครั้ง ทำ experiment เสริมที่บ้าน</span></div>'+
+        '<div class="flex gap-2"><span class="text-green-500 shrink-0">🟢</span><span><strong>ดนตรี:</strong> ซ้อมทุกเย็น เปียโน 15 นาที + ร้องเพลง warm-up 10 นาที</span></div>'+
+      '</div>'+
+    '</div>'+
+    // Schedule
+    '<div class="border border-gray-100 rounded-2xl p-4">'+
+      '<div class="flex items-center justify-between mb-3">'+
+        '<div class="flex items-center gap-2"><span>🏫</span><span class="font-bold text-sm text-gray-800">ตารางเรียนโรงเรียน</span></div>'+
+        '<button onclick="openScheduleEdit()" class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 px-3 py-1.5 rounded-lg">✏️ แก้ไข</button>'+
+      '</div>'+
+      '<div class="overflow-x-auto"><table class="w-full text-xs">'+
+        '<tr>'+dayKeys.map(d=>'<th class="pb-1 text-gray-400 font-semibold text-center">'+dayNames[d]+'</th>').join('')+'</tr>'+
+        scheduleRows+
+      '</table></div>'+
+    '</div>'+
+    // Tasks
+    '<div>'+
+      '<div class="flex items-center justify-between mb-3">'+
+        '<div class="flex gap-1.5">'+
+          ['all','pending','done'].map(f=>'<button onclick="setTaskFilter(\''+f+'\',this)" data-f="'+f+'" class="task-f px-3 py-1.5 rounded-lg text-xs font-medium transition-colors '+(taskFilter===f?'bg-amber-400 text-white':'bg-gray-100 text-gray-500')+'">'+
+            (f==='all'?'ทั้งหมด':f==='pending'?'รอทำ':'เสร็จ')+'</button>').join('')+
+        '</div>'+
+        '<button onclick="openAddTask()" class="bg-amber-400 hover:bg-amber-500 text-white px-4 py-2 rounded-xl text-sm font-semibold">+ เพิ่ม Task</button>'+
+      '</div>'+
+      '<div id="task-list-inner">'+renderTaskList(shown)+'</div>'+
+    '</div>'+
+  '</div>';
 }
 
 // ── HOMEWORK ─────────────────────────────────────────────
@@ -677,7 +878,7 @@ function openHw(id){
   document.getElementById("hw-tch").textContent=l.teacher+" · "+l.week+"  พ.ค. 2026";
   document.getElementById("hw-title").textContent=l.title;
   document.getElementById("hw-goal").textContent="🎯 "+l.goal;
-  document.getElementById("hw-content").textContent=l.reading;
+  document.getElementById("hw-content").innerHTML=getLessonVisual(l.id)+'<div class="whitespace-pre-line text-sm text-gray-700 leading-relaxed">'+l.reading.replace(/</g,"&lt;").replace(/>/g,"&gt;")+'</div>';
   document.getElementById("hw-mcq").innerHTML=l.mcq.map((q,i)=>`
     <div class="border border-gray-100 rounded-xl p-4 bg-gray-50">
       <div class="text-sm font-medium text-gray-800 mb-3">${i+1}. ${q.q}</div>
@@ -829,6 +1030,153 @@ function saveSettings(){
   localStorage.setItem("rs_sb_url",document.getElementById("s-url").value.trim());
   localStorage.setItem("rs_sb_key",document.getElementById("s-key").value.trim());
   location.reload();
+}
+
+// ── CREATIVE SURVEY ──────────────────────────────────────
+function openCreativeSurvey(){
+  const saved=JSON.parse(localStorage.getItem("walnut_survey_w1")||"{}");
+  if(saved.submitted){
+    document.getElementById("sq1").value=saved.answers[0]||"";
+    document.getElementById("sq2").value=saved.answers[1]||"";
+    document.getElementById("sq3").value=saved.answers[2]||"";
+    document.getElementById("sq4").value=saved.answers[3]||"";
+    document.getElementById("sq5").value=saved.answers[4]||"";
+    if(saved.feedback){
+      const r=document.getElementById("survey-result");
+      r.classList.remove("hidden");
+      r.innerHTML='<div class="text-xs font-bold text-pink-700 mb-2">🌸 Tangmo วิเคราะห์</div><div class="text-sm text-gray-700 whitespace-pre-wrap">'+saved.feedback+'</div>';
+    }
+    const btn=document.getElementById("survey-btn");
+    btn.textContent="ส่งแล้ว ✅";btn.disabled=true;btn.className="w-full mt-5 bg-green-400 text-white py-3 rounded-2xl font-bold cursor-not-allowed";
+  }
+  document.getElementById("survey-modal").classList.remove("hidden");
+}
+async function submitCreativeSurvey(){
+  const answers=[
+    document.getElementById("sq1").value.trim(),
+    document.getElementById("sq2").value.trim(),
+    document.getElementById("sq3").value.trim(),
+    document.getElementById("sq4").value.trim(),
+    document.getElementById("sq5").value.trim(),
+  ];
+  const btn=document.getElementById("survey-btn");
+  btn.textContent="Tangmo กำลังวิเคราะห์...";btn.disabled=true;
+  let feedback="(ไม่ได้เชื่อมต่อ Claude — บันทึกคำตอบแล้ว)";
+  if(CFG.claude){
+    try{
+      const qs=["ไอเดียใหม่สัปดาห์นี้","เพลงที่อยากแต่ง","สิ่งที่สนุกที่สุด","อยากเรียนรู้เพิ่ม","สิ่งที่จินตนาการ"];
+      const body=qs.map((q,i)=>"คำถาม: "+q+"\nคำตอบวอลนัท: "+(answers[i]||"(ไม่ได้ตอบ)")).join("\n\n");
+      const res=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:600,
+          system:"คุณคือ Tangmo หัวหน้าแผนก Walnut Learning วิเคราะห์คำตอบแบบสอบถามพัฒนาการจินตนาการและความคิดสร้างสรรค์ของวอลนัท (8 ขวบ) ตอบภาษาไทย อบอุ่น 3-4 ย่อหน้า เน้น insight ที่น่าสนใจ + แนะนำกิจกรรมเสริม",
+          messages:[{role:"user",content:body}]})});
+      const d=await res.json();
+      feedback=d.content?.[0]?.text||feedback;
+    }catch(e){feedback="เกิดข้อผิดพลาด: "+e.message;}
+  }
+  localStorage.setItem("walnut_survey_w1",JSON.stringify({submitted:true,answers,feedback}));
+  const r=document.getElementById("survey-result");
+  r.classList.remove("hidden");
+  r.innerHTML='<div class="text-xs font-bold text-pink-700 mb-2">🌸 Tangmo วิเคราะห์</div><div class="text-sm text-gray-700 whitespace-pre-wrap">'+feedback+'</div>';
+  btn.textContent="ส่งแล้ว ✅";btn.className="w-full mt-5 bg-green-400 text-white py-3 rounded-2xl font-bold cursor-not-allowed";
+}
+
+// ── SCHEDULE EDIT ─────────────────────────────────────────
+function openScheduleEdit(){
+  const sch=getSchedule();
+  const days=["mon","tue","wed","thu","fri"];
+  const dayLabels={mon:"วันจันทร์",tue:"วันอังคาร",wed:"วันพุธ",thu:"วันพฤหัส",fri:"วันศุกร์"};
+  const grid=document.getElementById("sch-edit-grid");
+  grid.innerHTML=days.map(d=>
+    '<div><div class="text-xs font-bold text-gray-600 mb-1">'+dayLabels[d]+'</div>'+
+    '<div class="grid grid-cols-5 gap-1">'+
+    [0,1,2,3,4].map(p=>
+      '<input type="text" data-day="'+d+'" data-p="'+p+'" value="'+((sch[d]&&sch[d][p])||"")+
+      '" placeholder="คาบ '+(p+1)+'" class="border rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:border-amber-400">'
+    ).join('')+
+    '</div></div>'
+  ).join('');
+  document.getElementById("sch-modal").classList.remove("hidden");
+}
+function saveScheduleEdit(){
+  const sch={mon:[],tue:[],wed:[],thu:[],fri:[]};
+  document.querySelectorAll("#sch-edit-grid input").forEach(inp=>{
+    sch[inp.dataset.day][parseInt(inp.dataset.p)]=inp.value.trim();
+  });
+  saveSchedule(sch);
+  document.getElementById("sch-modal").classList.add("hidden");
+  switchTab("tasks");
+}
+
+// ── LESSON VISUAL ─────────────────────────────────────────
+function getLessonVisual(id){
+  if(id.startsWith("thai")) return (
+    '<div class="bg-gradient-to-r from-yellow-50 to-amber-50 rounded-2xl p-4 mb-4 border border-yellow-100">'+
+    '<div class="text-xs font-bold text-amber-700 mb-3">📚 ตารางมาตราตัวสะกด</div>'+
+    '<div class="grid grid-cols-3 gap-2">'+
+    [["แม่กง","วาง กาง วิ่ง สิ่ง","🔔"],["แม่กน","กิน คน นอน วัน","📝"],["แม่กม","ยิ้ม ชม ลิ้ม นาม","💜"]].map(function(m){
+      return '<div class="bg-white rounded-xl p-3 text-center shadow-sm"><div class="font-bold text-amber-600 mb-1">'+m[0]+' '+m[2]+'</div>'+
+        m[1].split(" ").map(function(w){return '<span class="inline-block bg-amber-50 text-amber-800 px-2 py-0.5 rounded-lg text-xs m-0.5">'+w+'</span>';}).join("")+
+      '</div>';
+    }).join("")+
+    '</div></div>');
+  if(id.startsWith("math")) return (
+    '<div class="bg-gradient-to-r from-orange-50 to-yellow-50 rounded-2xl p-4 mb-4 border border-orange-100">'+
+    '<div class="text-xs font-bold text-orange-700 mb-3">🎮 ตารางสูตรคูณ แม่ 6–9</div>'+
+    '<div class="grid grid-cols-4 gap-1 text-xs text-center">'+
+    [6,7,8,9].map(function(a){
+      return '<div><div class="font-bold text-orange-600 bg-orange-100 rounded-t-lg py-1">×'+a+'</div>'+
+        [6,7,8,9,10,11].map(function(b){
+          return '<div class="'+(a===b?"bg-amber-200 font-bold":"bg-white")+' border-b py-1 rounded">'+a+'×'+b+'='+a*b+'</div>';
+        }).join("")+
+      '</div>';
+    }).join("")+
+    '</div></div>');
+  if(id.startsWith("sci")) return (
+    '<div class="bg-gradient-to-r from-cyan-50 to-blue-50 rounded-2xl p-4 mb-4 border border-cyan-100">'+
+    '<div class="text-xs font-bold text-cyan-700 mb-3">🔬 แผนภาพร่างกาย</div>'+
+    '<div class="flex items-start gap-4">'+
+    '<div class="text-center text-4xl leading-tight">🧠<br>🫁🫀<br>💪<br>🦷<br>🦵</div>'+
+    '<div class="flex-1 space-y-1.5 text-xs">'+
+    [["🧠 สมอง","สั่งการร่างกาย","bg-purple-50 text-purple-700"],
+     ["🫀 หัวใจ","กล้ามเนื้อหัวใจ — ทำงาน 24/7","bg-red-50 text-red-700"],
+     ["💪 กล้ามเนื้อโครงร่าง","ควบคุมได้ตามใจ","bg-orange-50 text-orange-700"],
+     ["🦴 กระดูก 206 ชิ้น","ค้ำจุน + ปกป้องอวัยวะ","bg-cyan-50 text-cyan-700"]].map(function(r){
+      return '<div class="'+r[2]+' rounded-lg px-2 py-1"><strong>'+r[0]+'</strong> — '+r[1]+'</div>';
+    }).join("")+
+    '</div></div></div>');
+  if(id.startsWith("sing")) return (
+    '<div class="bg-gradient-to-r from-rose-50 to-pink-50 rounded-2xl p-4 mb-4 border border-rose-100">'+
+    '<div class="text-xs font-bold text-rose-700 mb-3">🎤 Warm-Up Routine (10 นาที)</div>'+
+    '<div class="flex gap-2 items-center flex-wrap">'+
+    [["Lip Trill","2 นาที","🌬️","bg-rose-100"],["Humming","3 นาที","🎵","bg-pink-100"],["Ma-Me-Mi","3 นาที","🗣️","bg-fuchsia-100"],["Scale","2 นาที","🎼","bg-purple-100"]].map(function(s){
+      return '<div class="'+s[3]+' rounded-xl p-2.5 text-center flex-1 min-w-0"><div class="text-xl">'+s[2]+'</div><div class="font-bold text-xs mt-1">'+s[0]+'</div><div class="text-xs text-gray-500">'+s[1]+'</div></div>';
+    }).join('<div class="text-gray-300 text-lg">→</div>')+
+    '</div></div>');
+  if(id.startsWith("piano")) return (
+    '<div class="bg-gradient-to-r from-violet-50 to-purple-50 rounded-2xl p-4 mb-4 border border-violet-100">'+
+    '<div class="text-xs font-bold text-violet-700 mb-3">🎹 คีย์บอร์ด Treble Clef</div>'+
+    '<div class="flex gap-0.5 items-end justify-center mb-3">'+
+    ["C","D","E","F","G","A","B","C"].map(function(n){
+      return '<div class="flex flex-col items-center"><div class="w-8 h-16 bg-white border-2 border-gray-200 rounded-b-lg flex items-end justify-center pb-1 text-xs font-bold text-violet-600">'+n+'</div></div>';
+    }).join("")+
+    '</div>'+
+    '<div class="text-xs text-gray-600 text-center">เส้น: <strong>E G B D F</strong> ("Every Good Boy Does Fine") · ช่อง: <strong>F A C E</strong></div>'+
+    '</div>');
+  if(id.startsWith("eng")) return (
+    '<div class="bg-gradient-to-r from-indigo-50 to-blue-50 rounded-2xl p-4 mb-4 border border-indigo-100">'+
+    '<div class="text-xs font-bold text-indigo-700 mb-3">🇬🇧 Vocabulary Flashcards</div>'+
+    '<div class="grid grid-cols-3 gap-2">'+
+    [["happy","มีความสุข","😊"],["proud","ภูมิใจ","🏆"],["singer","นักร้อง","🎤"],
+     ["school","โรงเรียน","🏫"],["friend","เพื่อน","🤝"],["music","ดนตรี","🎵"]].map(function(v){
+      return '<div class="bg-white rounded-xl p-2.5 text-center shadow-sm border border-indigo-50">'+
+        '<div class="text-xl">'+v[2]+'</div>'+
+        '<div class="font-bold text-indigo-600 text-xs mt-1">'+v[0]+'</div>'+
+        '<div class="text-gray-500 text-xs">'+v[1]+'</div>'+
+      '</div>';
+    }).join("")+
+    '</div></div>');
+  return "";
 }
 
 // ── UTILS ────────────────────────────────────────────────
