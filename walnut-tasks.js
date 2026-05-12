@@ -186,8 +186,24 @@ function openCreativeSurvey(){
     var btn=document.getElementById("survey-btn");
     btn.textContent="ส่งแล้ว ✅";btn.disabled=true;
     btn.className="w-full mt-5 bg-green-400 text-white py-3 rounded-2xl font-bold cursor-not-allowed";
+    // แสดงปุ่มล้างคำตอบ (สำหรับทดสอบหรือให้วอลนัทตอบใหม่)
+    var resetBtn=document.getElementById("survey-reset-btn");
+    if(resetBtn) resetBtn.classList.remove("hidden");
   }
   document.getElementById("survey-modal").classList.remove("hidden");
+}
+function resetCreativeSurvey(){
+  if(!confirm("ล้างคำตอบทั้งหมดเพื่อให้วอลนัทตอบใหม่?")) return;
+  localStorage.removeItem("walnut_survey_w1");
+  ["sq1","sq2","sq3","sq4","sq5"].forEach(function(id){
+    var el=document.getElementById(id);if(el)el.value="";
+  });
+  var r=document.getElementById("survey-result");if(r)r.classList.add("hidden");
+  var btn=document.getElementById("survey-btn");
+  if(btn){btn.textContent="ส่งให้ Tangmo วิเคราะห์ →";btn.disabled=false;
+    btn.className="w-full mt-5 bg-pink-400 hover:bg-pink-500 text-white py-3 rounded-2xl font-bold text-base";}
+  var resetBtn=document.getElementById("survey-reset-btn");
+  if(resetBtn) resetBtn.classList.add("hidden");
 }
 async function submitCreativeSurvey(){
   var answers=["sq1","sq2","sq3","sq4","sq5"].map(function(id){
