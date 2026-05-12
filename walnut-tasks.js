@@ -135,27 +135,6 @@ function renderTasks(){
              taskFilter==="pending"?all.filter(function(t){return t.status!=="done";}):all;
   var doneLessons=LESSONS.filter(function(l){return getHwState(l.id).submitted;}).length;
   var allDone=doneLessons===LESSONS.length;
-  var sch=getSchedule();
-  var dayKeys=["mon","tue","wed","thu","fri"];
-  var dayNames={mon:"จ.",tue:"อ.",wed:"พ.",thu:"พฤ.",fri:"ศ."};
-
-  var scheduleRows=(function(){
-    var rows="";
-    for(var p=0;p<5;p++){
-      rows+="<tr>";
-      dayKeys.forEach(function(d){
-        var sub=(sch[d]&&sch[d][p])||"";
-        var color=sub.includes("คณิต")?"bg-orange-50 text-orange-700":
-          sub.includes("ไทย")?"bg-yellow-50 text-yellow-700":
-          sub.includes("อังกฤษ")?"bg-indigo-50 text-indigo-700":
-          sub.includes("วิทย์")?"bg-cyan-50 text-cyan-700":
-          sub.includes("ดนตรี")?"bg-rose-50 text-rose-700":"bg-gray-50 text-gray-500";
-        rows+='<td class="px-0.5 py-0.5"><div class="'+color+' rounded px-1 py-0.5 text-center text-xs truncate">'+sub+'</div></td>';
-      });
-      rows+="</tr>";
-    }
-    return rows;
-  })();
 
   return '<div class="bg-white rounded-b-2xl border border-t-0 border-gray-100 p-5 space-y-4">'+
     // Progress
@@ -170,33 +149,6 @@ function renderTasks(){
           '<span class="text-green-600 font-semibold text-sm">🎉 ครบทุกวิชาแล้ว!</span>'+
           '<button onclick="openCreativeSurvey()" class="bg-pink-400 hover:bg-pink-500 text-white px-4 py-2 rounded-xl text-sm font-semibold">ตอบแบบสอบถามพัฒนาการ →</button>'+
         '</div>':'')+
-    '</div>'+
-    // Team analysis
-    '<div class="border border-blue-100 rounded-2xl p-4 bg-blue-50">'+
-      '<div class="flex items-center justify-between mb-3">'+
-        '<div class="flex items-center gap-2"><span class="text-lg">📊</span><span class="font-bold text-sm text-blue-800">Dr.Aim + Tangmo — แผนสัปดาห์นี้</span></div>'+
-        '<button onclick="openTeacher(\'dr-aim\')" class="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700">คุย Dr.Aim</button>'+
-      '</div>'+
-      '<div class="space-y-2 text-sm">'+
-        '<div class="flex gap-2"><span class="text-red-500 shrink-0">🔴</span><span><strong>Priority 1 — คณิต:</strong> เรียนทุกวัน → ฝึกโจทย์ปัญหา 20 นาทีหลังเลิกโรงเรียน</span></div>'+
-        '<div class="flex gap-2"><span class="text-yellow-500 shrink-0">🟡</span><span><strong>Priority 2 — ไทย+อังกฤษ:</strong> สลับกัน วันคู่ไทย วันคี่อังกฤษ 15 นาที</span></div>'+
-        '<div class="flex gap-2"><span class="text-cyan-500 shrink-0">🔵</span><span><strong>วิทย์:</strong> อาทิตย์ละ 2 ครั้ง ทำ experiment เสริมที่บ้าน</span></div>'+
-        '<div class="flex gap-2"><span class="text-green-500 shrink-0">🟢</span><span><strong>ดนตรี:</strong> ซ้อมทุกเย็น เปียโน 15 นาที + ร้องเพลง warm-up 10 นาที</span></div>'+
-      '</div>'+
-    '</div>'+
-    // School schedule
-    '<div class="border border-gray-100 rounded-2xl p-4">'+
-      '<div class="flex items-center justify-between mb-3">'+
-        '<div class="flex items-center gap-2"><span>🏫</span><span class="font-bold text-sm text-gray-800">ตารางเรียนโรงเรียน</span></div>'+
-        '<div class="flex gap-2">'+
-          '<button onclick="openCalendar()" class="text-xs bg-amber-400 hover:bg-amber-500 text-white px-3 py-1.5 rounded-lg font-semibold">📅 ปฏิทินเต็ม</button>'+
-          '<button onclick="openScheduleEdit()" class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 px-3 py-1.5 rounded-lg">✏️ แก้ไข</button>'+
-        '</div>'+
-      '</div>'+
-      '<div class="overflow-x-auto"><table class="w-full text-xs">'+
-        '<tr>'+dayKeys.map(function(d){return '<th class="pb-1 text-gray-400 font-semibold text-center">'+dayNames[d]+'</th>';}).join('')+'</tr>'+
-        scheduleRows+
-      '</table></div>'+
     '</div>'+
     // Task list
     '<div>'+
@@ -317,12 +269,9 @@ function getWeekDates(offset){
 }
 function dStr(d){return d.toISOString().slice(0,10);}
 
-function openCalendar(){
-  calWeekOffset=0;
-  document.getElementById("cal-modal").classList.remove("hidden");
-  renderCalendar();
-}
-function closeCalendar(){document.getElementById("cal-modal").classList.add("hidden");}
+// openCalendar → now just switches to the calendar tab
+function openCalendar(){switchTab("calendar");}
+function closeCalendar(){}
 
 function timeToFrac(t){ // "HH:MM" → fraction of CAL range
   var h=parseInt(t.slice(0,2)),m=parseInt(t.slice(3,5));
@@ -438,12 +387,12 @@ function renderCalendar(){
 
   document.getElementById("cal-content").innerHTML=
     '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:#fffbeb;border-bottom:1px solid #fde68a;border-radius:16px 16px 0 0">'+
-      '<button onclick="calWeekOffset--;renderCalendar()" style="color:#d97706;background:#fef3c7;border:none;padding:6px 12px;border-radius:8px;font-weight:600;cursor:pointer;font-size:13px">← ก่อน</button>'+
+      '<button onclick="calWeekOffset--;switchTab(\'calendar\')" style="color:#d97706;background:#fef3c7;border:none;padding:6px 12px;border-radius:8px;font-weight:600;cursor:pointer;font-size:13px">← ก่อน</button>'+
       '<div style="text-align:center">'+
         '<div style="font-weight:700;font-size:14px;color:#374151">'+label+'</div>'+
-        '<button onclick="calWeekOffset=0;renderCalendar()" style="font-size:11px;color:#d97706;background:none;border:none;cursor:pointer;text-decoration:underline">สัปดาห์นี้</button>'+
+        '<button onclick="calWeekOffset=0;switchTab(\'calendar\')" style="font-size:11px;color:#d97706;background:none;border:none;cursor:pointer;text-decoration:underline">สัปดาห์นี้</button>'+
       '</div>'+
-      '<button onclick="calWeekOffset++;renderCalendar()" style="color:#d97706;background:#fef3c7;border:none;padding:6px 12px;border-radius:8px;font-weight:600;cursor:pointer;font-size:13px">ถัดไป →</button>'+
+      '<button onclick="calWeekOffset++;switchTab(\'calendar\')" style="color:#d97706;background:#fef3c7;border:none;padding:6px 12px;border-radius:8px;font-weight:600;cursor:pointer;font-size:13px">ถัดไป →</button>'+
     '</div>'+
     ruler+
     '<div style="overflow-x:auto"><div style="min-width:600px">'+rows+'</div></div>'+
@@ -549,3 +498,200 @@ function deleteCalEvent(){
 
 // keep old name for backward compat
 function openAddEvent(dateStr,time,dow){ openAddEventForm(dateStr,time,dow,null); }
+
+// ── CALENDAR TAB ──────────────────────────────────────────
+var calAnalysisResult = "";
+var calAnalysisTasks = [];
+
+function buildCalendarSummary(){
+  var dates=getWeekDates(calWeekOffset);
+  var evts=getCalEvents();
+  var dayLabels=["จ","อ","พ","พฤ","ศ","ส","อา"];
+  var summary="ตารางของวอลนัท สัปดาห์ "+
+    dates[0].toLocaleDateString("th-TH",{day:"numeric",month:"short"})+" ถึง "+
+    dates[6].toLocaleDateString("th-TH",{day:"numeric",month:"short"})+":\n";
+  dates.forEach(function(d,di){
+    var dow=(di+1)%7;
+    var dateStr=dStr(d);
+    var dayEvts=evts.filter(function(e){return eventOnDay(e,dateStr,dow);})
+      .sort(function(a,b){return a.startTime.localeCompare(b.startTime);});
+    summary+="\n"+dayLabels[di]+" "+d.getDate()+"/"+(d.getMonth()+1)+":\n";
+    if(!dayEvts.length) summary+="  (ว่างทั้งวัน)\n";
+    else dayEvts.forEach(function(e){
+      var tp=CAL_TYPES[e.type]||CAL_TYPES.other;
+      summary+="  "+e.startTime+"-"+e.endTime+" "+tp.icon+" "+e.title+"\n";
+    });
+  });
+  summary+="\nวิชาที่ยังไม่ได้ทำการบ้าน:\n";
+  var pending=LESSONS.filter(function(l){return !getHwState(l.id).submitted;});
+  if(!pending.length) summary+="  ✅ ทำครบทุกวิชาแล้ว!\n";
+  else pending.forEach(function(l){summary+="  - "+l.icon+" "+l.subject+": "+l.title+"\n";});
+  return summary;
+}
+
+async function analyzeSchedule(){
+  var btn=document.getElementById("cal-analyze-btn");
+  if(btn){btn.textContent="⏳ ทีมกำลังประชุม...";btn.disabled=true;}
+  var resDiv=document.getElementById("cal-analysis-result");
+  if(resDiv){resDiv.innerHTML='<div class="text-gray-400 text-sm text-center py-4">ทีมกำลังวิเคราะห์...</div>';resDiv.classList.remove("hidden");}
+  var summary=buildCalendarSummary();
+  try{
+    var sysPrompt="คุณคือ Tangmo (หัวหน้า) ประชุมร่วมกับ Dr.Aim (วิชาการ) เพื่อวางแผนการเรียนของวอลนัท\n"+
+      "ดูตารางด้านล่าง แล้วช่วยตอบ 2 ส่วน:\n\n"+
+      "ส่วนที่ 1 — วิเคราะห์และแนะนำ (ภาษาไทยธรรมชาติ อ่านง่าย):\n"+
+      "• วันไหนมีเวลาว่างเหมาะทำการบ้าน\n"+
+      "• วิชาไหนควรทำก่อนหลัง เพราะอะไร\n"+
+      "• ถ้าตารางแน่นหรือเบาเกินไป แจ้งด้วย\n"+
+      "• แนะนำการจัดเวลาที่เหมาะสม\n\n"+
+      "ส่วนที่ 2 — Task ที่แนะนำ (JSON เท่านั้น ต่อท้ายการวิเคราะห์):\n"+
+      '```json\n[{"title":"ทำการบ้านภาษาไทย","subject":"ภาษาไทย","due":"YYYY-MM-DD","icon":"✍️"},...]```\n'+
+      "ใส่เฉพาะวิชาที่ยังไม่ได้ทำ กำหนดวันที่ให้เหมาะกับช่องว่างในตาราง";
+    var res=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:1200,
+        system:sysPrompt,
+        messages:[{role:"user",content:summary}]})});
+    var d=await res.json();
+    if(d.error)throw new Error(d.error);
+    var text=d.content?.[0]?.text||"ไม่สามารถวิเคราะห์ได้";
+    // แยก JSON tasks ออกจาก analysis text
+    var jsonMatch=text.match(/```json\s*([\s\S]*?)```/);
+    calAnalysisTasks=[];
+    if(jsonMatch){
+      try{calAnalysisTasks=JSON.parse(jsonMatch[1].trim());}catch(e){}
+      calAnalysisResult=text.replace(/```json[\s\S]*?```/g,"").trim();
+    } else {
+      calAnalysisResult=text;
+    }
+    // Re-render tab to show results
+    switchTab("calendar");
+  }catch(e){
+    calAnalysisResult="⚠️ เกิดข้อผิดพลาด: "+e.message;
+    calAnalysisTasks=[];
+    switchTab("calendar");
+  }
+}
+
+function addAnalysisTasks(){
+  if(!calAnalysisTasks.length) return;
+  var ts=getLocalTasks();
+  calAnalysisTasks.forEach(function(t){
+    ts.push({
+      id:"ai-"+Date.now()+"-"+Math.random().toString(36).slice(2,6),
+      title:t.title,subject:t.subject||"ทั่วไป",
+      icon:t.icon||"📌",badge:"bg-amber-100 text-amber-700",
+      type:"manual",status:"pending",due:t.due||getFriday()
+    });
+  });
+  saveLocalTasks(ts);
+  calAnalysisTasks=[];
+  calAnalysisResult="✅ เพิ่ม Task แล้ว — ไปดูที่แท็บ Tasks ได้เลย";
+  switchTab("calendar");
+}
+
+function renderCalendarTab(){
+  // Build calendar HTML inline
+  var dates=getWeekDates(calWeekOffset);
+  var evts=getCalEvents();
+  var totalH=CAL_END-CAL_START;
+  var hours=[];
+  for(var h=CAL_START;h<=CAL_END;h++) hours.push(h);
+  var label=dates[0].toLocaleDateString("th-TH",{day:"numeric",month:"short"})+" – "+
+    dates[6].toLocaleDateString("th-TH",{day:"numeric",month:"short",year:"2-digit"});
+  var ruler='<div style="display:flex;margin-left:56px;position:relative;height:20px;overflow:hidden">';
+  hours.forEach(function(h){
+    var pct=((h-CAL_START)/totalH*100).toFixed(2);
+    ruler+='<div style="position:absolute;left:'+pct+'%;transform:translateX(-50%);font-size:10px;color:#9ca3af;white-space:nowrap">'+String(h).padStart(2,"0")+'</div>';
+  });
+  ruler+='</div>';
+  var rows="";
+  dates.forEach(function(d,di){
+    var dow=(di+1)%7;
+    var dateStr=dStr(d);
+    var isToday=dateStr===TODAY;
+    var dayEvts=evts.filter(function(e){return eventOnDay(e,dateStr,dow);})
+      .sort(function(a,b){return a.startTime.localeCompare(b.startTime);});
+    var lanes=[];
+    var evtLanes=dayEvts.map(function(e){
+      var s=timeToFrac(e.startTime||"06:00");
+      var en=timeToFrac(e.endTime||"07:00");
+      for(var lane=0;lane<20;lane++){
+        if(!lanes[lane]||lanes[lane]<=s){lanes[lane]=en;return lane;}
+      }
+      return 0;
+    });
+    var nLanes=Math.max(1,lanes.length);
+    var rowH=Math.max(44,nLanes*26);
+    var gridLines="";
+    hours.forEach(function(h){
+      var pct=((h-CAL_START)/totalH*100).toFixed(2);
+      gridLines+='<div style="position:absolute;left:'+pct+'%;top:0;bottom:0;width:1px;background:#f3f4f6;pointer-events:none"></div>';
+    });
+    var bars=dayEvts.map(function(e,i){
+      var tp=CAL_TYPES[e.type]||CAL_TYPES.other;
+      var sf=timeToFrac(e.startTime||"06:00");
+      var ef=timeToFrac(e.endTime||"07:00");
+      var w=Math.max(0.004,ef-sf)*100;
+      var lane=evtLanes[i]||0;
+      return '<div onclick="event.stopPropagation();editCalEvent(\''+e.id+'\')" '+
+        'style="position:absolute;left:'+(sf*100).toFixed(2)+'%;width:'+w.toFixed(2)+'%;top:'+(lane*26+4)+'px;height:22px;'+
+        'background:'+tp.bg+';color:'+tp.tx+';border:1px solid '+tp.bd+';border-radius:6px;'+
+        'padding:2px 6px;box-sizing:border-box;cursor:pointer;overflow:hidden;white-space:nowrap;'+
+        'display:flex;align-items:center;gap:3px;font-size:11px;font-weight:600;z-index:2;">'+
+        '<span>'+tp.icon+'</span><span style="overflow:hidden;text-overflow:ellipsis">'+e.title+'</span>'+
+        '<span style="opacity:.55;font-size:10px;margin-left:auto">'+e.startTime.slice(0,5)+'-'+e.endTime.slice(0,5)+'</span>'+
+      '</div>';
+    }).join("");
+    rows+='<div style="display:flex;border-bottom:1px solid #f3f4f6;'+(isToday?"background:#fffbeb":"")+'">'+
+      '<div style="width:56px;min-width:56px;padding:0 6px;display:flex;flex-direction:column;justify-content:center;border-right:1px solid #f3f4f6;font-size:12px">'+
+        '<div style="font-weight:700;color:'+(isToday?"#b45309":"#374151")+'">'+["จ","อ","พ","พฤ","ศ","ส","อา"][di]+'</div>'+
+        '<div style="color:#9ca3af;font-size:10px">'+d.getDate()+'/'+(d.getMonth()+1)+'</div>'+
+      '</div>'+
+      '<div style="flex:1;position:relative;height:'+rowH+'px;cursor:crosshair;min-width:0" '+
+        'onclick="handleCalRowClick(event,\''+dateStr+'\','+dow+')">'+gridLines+bars+'</div>'+
+    '</div>';
+  });
+  var legend='<div style="display:flex;flex-wrap:wrap;gap:6px;padding:10px 12px;background:#f9fafb;border-top:1px solid #f3f4f6">'+
+    Object.entries(CAL_TYPES).map(function(kv){
+      return '<span style="font-size:11px;padding:2px 8px;border-radius:20px;background:'+kv[1].bg+';color:'+kv[1].tx+';border:1px solid '+kv[1].bd+'">'+kv[1].icon+' '+kv[1].label+'</span>';
+    }).join("")+'</div>';
+  var calHtml=
+    '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:#fffbeb;border-bottom:1px solid #fde68a">'+
+      '<button onclick="calWeekOffset--;switchTab(\'calendar\')" style="color:#d97706;background:#fef3c7;border:none;padding:6px 12px;border-radius:8px;font-weight:600;cursor:pointer;font-size:13px">← ก่อน</button>'+
+      '<div style="text-align:center"><div style="font-weight:700;font-size:14px;color:#374151">'+label+'</div>'+
+        '<button onclick="calWeekOffset=0;switchTab(\'calendar\')" style="font-size:11px;color:#d97706;background:none;border:none;cursor:pointer;text-decoration:underline">สัปดาห์นี้</button></div>'+
+      '<button onclick="calWeekOffset++;switchTab(\'calendar\')" style="color:#d97706;background:#fef3c7;border:none;padding:6px 12px;border-radius:8px;font-weight:600;cursor:pointer;font-size:13px">ถัดไป →</button>'+
+    '</div>'+ruler+
+    '<div style="overflow-x:auto"><div style="min-width:600px">'+rows+'</div></div>'+legend;
+
+  // Analysis panel
+  var analysisHtml="";
+  if(calAnalysisResult){
+    analysisHtml='<div class="mt-4 space-y-3">'+
+      '<div class="bg-blue-50 border border-blue-200 rounded-2xl p-4">'+
+        '<div class="flex items-center gap-2 mb-2"><span>🔍</span><strong class="text-sm text-blue-800">Tangmo + Dr.Aim ประชุมวิเคราะห์</strong></div>'+
+        '<div class="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">'+calAnalysisResult+'</div>'+
+      '</div>'+
+      (calAnalysisTasks.length?
+        '<div class="bg-amber-50 border border-amber-200 rounded-2xl p-4">'+
+          '<div class="text-sm font-semibold text-amber-800 mb-2">📋 ทีมแนะนำ Tasks ต่อไปนี้ ('+calAnalysisTasks.length+' รายการ):</div>'+
+          '<div class="space-y-1 mb-3">'+
+            calAnalysisTasks.map(function(t){
+              return '<div class="flex items-center gap-2 text-sm"><span>'+(t.icon||"📌")+'</span><span class="font-medium">'+t.title+'</span><span class="text-xs text-gray-400 ml-auto">'+t.due+'</span></div>';
+            }).join("")+
+          '</div>'+
+          '<button onclick="addAnalysisTasks()" class="w-full bg-amber-400 hover:bg-amber-500 text-white py-2 rounded-xl text-sm font-semibold">✅ เพิ่ม Tasks ทั้งหมดเลย</button>'+
+        '</div>':'')+'</div>';
+  }
+
+  return '<div class="bg-white rounded-b-2xl border border-t-0 border-gray-100">'+
+    '<div class="p-4 border-b flex items-center justify-between">'+
+      '<div class="flex items-center gap-2"><span class="text-lg">📅</span><span class="font-bold">ปฏิทินวอลนัท</span></div>'+
+      '<div class="flex gap-2">'+
+        '<button onclick="openAddEvent(TODAY,\'08:00\',1)" class="bg-amber-400 hover:bg-amber-500 text-white px-3 py-1.5 rounded-xl text-sm font-semibold">+ เพิ่ม</button>'+
+        '<button id="cal-analyze-btn" onclick="analyzeSchedule()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-xl text-sm font-semibold">🔍 ทีมวิเคราะห์</button>'+
+      '</div>'+
+    '</div>'+
+    '<div class="overflow-hidden rounded-b-xl border border-gray-100">'+calHtml+'</div>'+
+    '<div class="px-4 pb-4">'+analysisHtml+'</div>'+
+  '</div>';
+}

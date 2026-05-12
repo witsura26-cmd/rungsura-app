@@ -168,20 +168,6 @@
   </div>
 </div>
 
-<!-- CALENDAR MODAL -->
-<div id="cal-modal" class="fixed inset-0 z-50 hidden bg-white overflow-y-auto">
-  <div class="max-w-5xl mx-auto px-3 py-4">
-    <div class="flex items-center justify-between mb-3">
-      <h2 class="font-bold text-lg">📅 ปฏิทินวอลนัท</h2>
-      <div class="flex gap-2">
-        <button onclick="openAddEvent(TODAY,'08:00',1)" class="bg-amber-400 hover:bg-amber-500 text-white px-4 py-2 rounded-xl text-sm font-semibold">+ เพิ่มกิจกรรม</button>
-        <button onclick="closeCalendar()" class="bg-gray-100 hover:bg-gray-200 text-gray-600 px-4 py-2 rounded-xl text-sm">✕ ปิด</button>
-      </div>
-    </div>
-    <div id="cal-content" class="bg-white rounded-2xl border border-gray-200 overflow-hidden"></div>
-  </div>
-</div>
-
 <!-- ADD/EDIT EVENT MODAL -->
 <div id="add-event-modal" class="fixed inset-0 z-[60] hidden flex items-center justify-center bg-black/40" data-edit-id="">
   <div class="bg-white rounded-2xl p-5 w-96 shadow-2xl max-h-[90vh] overflow-y-auto">
@@ -268,7 +254,7 @@ const TODAY = new Date().toISOString().slice(0,10);
 let sb=null, tasks=[], chatOpen=false, chatHistory=[];
 let currentTeacher=null, teacherHistory=[];
 let currentHwLesson=null, hwMcqAnswers=[], hwWrittenAnswers=[];
-let activeTab="tasks";
+let activeTab="calendar";
 let taskFilter="all";
 
 // ── SUPABASE ──────────────────────────────────────────────
@@ -287,7 +273,8 @@ function saveHwState(id,s){localStorage.setItem("hw_"+id,JSON.stringify(s));}
 // ── PAGE SHELL ────────────────────────────────────────────
 function renderPage(){
   const tabs=[
-    {id:"tasks",   label:"แผน & Tasks", icon:"📋"},
+    {id:"calendar",label:"ปฏิทิน",      icon:"📅"},
+    {id:"tasks",   label:"Tasks",        icon:"✅"},
     {id:"lessons", label:"บทเรียน",     icon:"📖"},
     {id:"report",  label:"รายงาน",      icon:"🌸"},
     {id:"kru",     label:"ทีมครู",      icon:"👩‍🏫"},
@@ -319,10 +306,11 @@ function switchTab(t){
   document.getElementById("tab-area").innerHTML=renderTab();
 }
 function renderTab(){
-  if(activeTab==="tasks")   return renderTasks();
-  if(activeTab==="lessons") return renderLessons();
-  if(activeTab==="report")  return renderReport();
-  if(activeTab==="kru")     return renderTeam();
+  if(activeTab==="calendar") return renderCalendarTab();
+  if(activeTab==="tasks")    return renderTasks();
+  if(activeTab==="lessons")  return renderLessons();
+  if(activeTab==="report")   return renderReport();
+  if(activeTab==="kru")      return renderTeam();
   return "";
 }
 
