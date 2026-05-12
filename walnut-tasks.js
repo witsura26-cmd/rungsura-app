@@ -718,15 +718,121 @@ function renderCalendarTab(){
   '</div>';
 }
 
-// ── CALENDAR TOP AREA (always visible above tabs) ─────────
+// ── CALENDAR TOP AREA — multi-view (Month / Week / Day) ────
+var calView="week"; // "month"|"week"|"day"
+var calMonthOffset=0;
+var calDaySelected=TODAY;
+
 function renderCalTop(){
+  return buildCalHeader()+buildCalBody()+buildCalLegend()+buildCalAnalysis();
+}
+
+function buildCalHeader(){
+  var nav="",label="";
+  if(calView==="month"){
+    var ref=new Date();ref.setDate(1);ref.setMonth(ref.getMonth()+calMonthOffset);
+    label=ref.toLocaleDateString("th-TH",{month:"long",year:"numeric"});
+    nav='<button onclick="calMonthOffset--;refreshCalTop()" style="'+btnSt()+'">← ก่อน</button>'+
+        '<button onclick="calMonthOffset=0;refreshCalTop()" style="font-size:10px;color:#d97706;background:none;border:none;cursor:pointer;text-decoration:underline">วันนี้</button>'+
+        '<button onclick="calMonthOffset++;refreshCalTop()" style="'+btnSt()+'">ถัดไป →</button>';
+  } else if(calView==="day"){
+    var d=new Date(calDaySelected);
+    label=d.toLocaleDateString("th-TH",{weekday:"short",day:"numeric",month:"short"});
+    nav='<button onclick="prevDay()" style="'+btnSt()+'">← ก่อน</button>'+
+        '<button onclick="calDaySelected=TODAY;refreshCalTop()" style="font-size:10px;color:#d97706;background:none;border:none;cursor:pointer;text-decoration:underline">วันนี้</button>'+
+        '<button onclick="nextDay()" style="'+btnSt()+'">ถัดไป →</button>';
+  } else {
+    var dates=getWeekDates(calWeekOffset);
+    label=dates[0].toLocaleDateString("th-TH",{day:"numeric",month:"short"})+" – "+
+          dates[6].toLocaleDateString("th-TH",{day:"numeric",month:"short",year:"2-digit"});
+    nav='<button onclick="calWeekOffset--;refreshCalTop()" style="'+btnSt()+'">← ก่อน</button>'+
+        '<button onclick="calWeekOffset=0;refreshCalTop()" style="font-size:10px;color:#d97706;background:none;border:none;cursor:pointer;text-decoration:underline">วันนี้</button>'+
+        '<button onclick="calWeekOffset++;refreshCalTop()" style="'+btnSt()+'">ถัดไป →</button>';
+  }
+  var viewBtns=['month','week','day'].map(function(v){
+    var on=calView===v;
+    var lbl={month:"เดือน",week:"สัปดาห์",day:"วัน"}[v];
+    return '<button onclick="calView=\''+v+'\';refreshCalTop()" style="font-size:11px;padding:4px 9px;border-radius:6px;cursor:pointer;font-weight:600;border:1px solid #fde68a;'+
+      (on?"background:#fbbf24;color:#fff":"background:#fef3c7;color:#d97706")+'">'+lbl+'</button>';
+  }).join("");
+  return '<div style="display:flex;flex-wrap:wrap;align-items:center;padding:10px 14px;background:#fffbeb;border-bottom:1px solid #fde68a;gap:6px">'+
+    nav+
+    '<div style="flex:1;text-align:center;font-weight:700;font-size:13px;color:#374151;min-width:120px">'+label+'</div>'+
+    '<div style="display:flex;gap:4px">'+viewBtns+'</div>'+
+    '<button onclick="openAddEvent(TODAY,\'08:00\',1)" style="background:#fbbf24;color:#fff;border:none;padding:5px 11px;border-radius:8px;font-weight:600;cursor:pointer;font-size:12px">+ เพิ่ม</button>'+
+    '<button id="cal-analyze-btn" onclick="analyzeSchedule()" style="background:#2563eb;color:#fff;border:none;padding:5px 11px;border-radius:8px;font-weight:600;cursor:pointer;font-size:12px">🔍 ทีมวิเคราะห์</button>'+
+  '</div>';
+}
+function btnSt(){ return "color:#d97706;background:#fef3c7;border:1px solid #fde68a;padding:5px 11px;border-radius:8px;font-weight:600;cursor:pointer;font-size:12px"; }
+function prevDay(){ var d=new Date(calDaySelected);d.setDate(d.getDate()-1);calDaySelected=dStr(d);refreshCalTop(); }
+function nextDay(){ var d=new Date(calDaySelected);d.setDate(d.getDate()+1);calDaySelected=dStr(d);refreshCalTop(); }
+
+function buildCalBody(){
+  if(calView==="month") return renderCalMonth();
+  if(calView==="day")   return renderCalDay();
+  return renderCalWeek();
+}
+
+// ── MONTH VIEW ────────────────────────────────────────────
+function renderCalMonth(){
+  var ref=new Date();ref.setDate(1);ref.setMonth(ref.getMonth()+calMonthOffset);
+  var year=ref.getFullYear(),month=ref.getMonth();
+  var firstDow=(new Date(year,month,1).getDay()+6)%7; // Mon=0
+  var daysInMonth=new Date(year,month+1,0).getDate();
+  var evts=getCalEvents();
+  var hdr=['จ','อ','พ','พฤ','ศ','ส','อา'].map(function(d){
+    return '<div style="text-align:center;font-weight:700;font-size:11px;color:#9ca3af;padding:5px 0">'+d+'</div>';
+  }).join("");
+  var cells="";
+  for(var i=0;i<firstDow;i++) cells+='<div style="min-height:70px"></div>';
+  for(var day=1;day<=daysInMonth;day++){
+    var dateStr=year+"-"+String(month+1).padStart(2,"0")+"-"+String(day).padStart(2,"0");
+    var d=new Date(year,month,day);
+    var dow=d.getDay(); // Sun=0
+    var isToday=dateStr===TODAY;
+    var dayEvts=evts.filter(function(e){return eventOnDay(e,dateStr,dow);})
+      .sort(function(a,b){return a.startTime.localeCompare(b.startTime);});
+    var chips=dayEvts.slice(0,3).map(function(e){
+      var tp=CAL_TYPES[e.type]||CAL_TYPES.other;
+      return '<div style="font-size:10px;background:'+tp.bg+';color:'+tp.tx+';border-radius:4px;padding:1px 4px;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+tp.icon+' '+e.title+'</div>';
+    }).join("")+(dayEvts.length>3?'<div style="font-size:9px;color:#9ca3af;padding-left:2px">+'+( dayEvts.length-3)+' อื่น</div>':'');
+    cells+='<div onclick="calDaySelected=\''+dateStr+'\';calView=\'day\';refreshCalTop()" style="min-height:70px;padding:4px;border:1px solid #f3f4f6;border-radius:6px;cursor:pointer;'+(isToday?'background:#fffbeb;border-color:#fde68a':'')+' hover:background:#f9fafb">'+
+      '<div style="font-size:12px;font-weight:'+(isToday?'700':'500')+';color:'+(isToday?'#b45309':'#374151')+';margin-bottom:2px">'+day+'</div>'+
+      chips+'</div>';
+  }
+  return '<div style="padding:10px 12px"><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px">'+hdr+cells+'</div></div>';
+}
+
+// ── DAY VIEW ──────────────────────────────────────────────
+function renderCalDay(){
+  var d=new Date(calDaySelected);
+  var dow=d.getDay(); // Sun=0
+  var evts=getCalEvents().filter(function(e){return eventOnDay(e,calDaySelected,dow);})
+    .sort(function(a,b){return a.startTime.localeCompare(b.startTime);});
+  if(!evts.length) return '<div style="padding:24px;text-align:center;color:#9ca3af;font-size:14px">ไม่มีกิจกรรมวันนี้<br><span style="font-size:12px">กดที่วันในปฏิทินเพื่อเพิ่ม</span></div>';
+  var cards=evts.map(function(e){
+    var tp=CAL_TYPES[e.type]||CAL_TYPES.other;
+    return '<div onclick="editCalEvent(\''+e.id+'\')" style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid #f3f4f6;cursor:pointer;background:'+tp.bg+'20">'+
+      '<div style="text-align:center;min-width:50px;background:'+tp.bg+';border:1px solid '+tp.bd+';border-radius:8px;padding:4px">'+
+        '<div style="font-size:11px;font-weight:700;color:'+tp.tx+'">'+e.startTime.slice(0,5)+'</div>'+
+        '<div style="font-size:9px;color:'+tp.tx+';opacity:.7">'+e.endTime.slice(0,5)+'</div>'+
+      '</div>'+
+      '<div style="flex:1">'+
+        '<div style="font-size:14px;font-weight:700;color:#1f2937">'+e.title+'</div>'+
+        '<div style="font-size:11px;color:#6b7280">'+tp.icon+' '+tp.label+'</div>'+
+      '</div>'+
+    '</div>';
+  }).join("");
+  return '<div>'+cards+'</div>';
+}
+
+// ── WEEK VIEW ─────────────────────────────────────────────
+function renderCalWeek(){
   var dates=getWeekDates(calWeekOffset);
   var evts=getCalEvents();
   var totalH=CAL_END-CAL_START;
   var hours=[];
   for(var h=CAL_START;h<=CAL_END;h++) hours.push(h);
-  var label=dates[0].toLocaleDateString("th-TH",{day:"numeric",month:"short"})+" – "+
-    dates[6].toLocaleDateString("th-TH",{day:"numeric",month:"short",year:"2-digit"});
 
   // Header row
   var header='<div style="display:flex;align-items:center;padding:10px 14px;background:#fffbeb;border-bottom:1px solid #fde68a;gap:6px;flex-wrap:wrap">'+
@@ -800,37 +906,33 @@ function renderCalTop(){
     '</div>';
   });
 
-  // Legend
-  var legend='<div style="display:flex;flex-wrap:wrap;gap:5px;padding:8px 12px;background:#f9fafb;border-top:1px solid #f3f4f6">'+
+  return '<div style="overflow-x:auto"><div style="min-width:600px">'+ruler+rows+'</div></div>';
+}
+
+function buildCalLegend(){
+  return '<div style="display:flex;flex-wrap:wrap;gap:5px;padding:8px 12px;background:#f9fafb;border-top:1px solid #f3f4f6">'+
     Object.entries(CAL_TYPES).map(function(kv){
       return '<span style="font-size:10px;padding:2px 7px;border-radius:20px;background:'+kv[1].bg+';color:'+kv[1].tx+';border:1px solid '+kv[1].bd+'">'+kv[1].icon+' '+kv[1].label+'</span>';
     }).join("")+'</div>';
+}
 
-  // Analysis panel
-  var analysisHtml="";
-  if(calAnalysisResult){
-    analysisHtml='<div style="padding:12px;border-top:1px solid #e5e7eb">'+
-      '<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:12px;margin-bottom:10px">'+
-        '<div style="font-size:13px;font-weight:700;color:#1e40af;margin-bottom:6px">🔍 Tangmo + Dr.Aim วิเคราะห์</div>'+
-        '<div style="font-size:12px;color:#374151;line-height:1.6;white-space:pre-wrap">'+calAnalysisResult+'</div>'+
-      '</div>'+
-      (calAnalysisTasks.length?
-        '<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:12px">'+
-          '<div style="font-size:12px;font-weight:700;color:#92400e;margin-bottom:8px">📋 Tasks ที่แนะนำ ('+calAnalysisTasks.length+' รายการ)</div>'+
-          calAnalysisTasks.map(function(t){
-            return '<div style="display:flex;align-items:center;gap:6px;font-size:12px;padding:3px 0">'+
-              '<span>'+(t.icon||"📌")+'</span>'+
-              '<span style="font-weight:500">'+t.title+'</span>'+
-              '<span style="color:#9ca3af;font-size:11px;margin-left:auto">'+t.due+'</span>'+
-            '</div>';
-          }).join("")+
-          '<button onclick="addAnalysisTasks()" style="width:100%;margin-top:8px;background:#fbbf24;color:#fff;border:none;padding:7px;border-radius:10px;font-weight:600;cursor:pointer;font-size:12px">✅ เพิ่ม Tasks ทั้งหมดเลย</button>'+
-        '</div>':'')+'</div>';
-  }
-
-  return header+ruler+
-    '<div style="overflow-x:auto"><div style="min-width:600px">'+rows+'</div></div>'+
-    legend+analysisHtml;
+function buildCalAnalysis(){
+  if(!calAnalysisResult) return "";
+  return '<div style="padding:12px;border-top:1px solid #e5e7eb">'+
+    '<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:12px;margin-bottom:10px">'+
+      '<div style="font-size:13px;font-weight:700;color:#1e40af;margin-bottom:6px">🔍 Tangmo + Dr.Aim วิเคราะห์</div>'+
+      '<div style="font-size:12px;color:#374151;line-height:1.6;white-space:pre-wrap">'+calAnalysisResult+'</div>'+
+    '</div>'+
+    (calAnalysisTasks.length?
+      '<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:12px">'+
+        '<div style="font-size:12px;font-weight:700;color:#92400e;margin-bottom:8px">📋 Tasks ที่แนะนำ ('+calAnalysisTasks.length+' รายการ)</div>'+
+        calAnalysisTasks.map(function(t){
+          return '<div style="display:flex;align-items:center;gap:6px;font-size:12px;padding:3px 0">'+
+            '<span>'+(t.icon||"📌")+'</span><span style="font-weight:500">'+t.title+'</span>'+
+            '<span style="color:#9ca3af;font-size:11px;margin-left:auto">'+t.due+'</span></div>';
+        }).join("")+
+        '<button onclick="addAnalysisTasks()" style="width:100%;margin-top:8px;background:#fbbf24;color:#fff;border:none;padding:7px;border-radius:10px;font-weight:600;cursor:pointer;font-size:12px">✅ เพิ่ม Tasks ทั้งหมดเลย</button>'+
+      '</div>':'')+'</div>';
 }
 
 function refreshCalTop(){
