@@ -834,18 +834,6 @@ function renderCalWeek(){
   var hours=[];
   for(var h=CAL_START;h<=CAL_END;h++) hours.push(h);
 
-  // Header row
-  var header='<div style="display:flex;align-items:center;padding:10px 14px;background:#fffbeb;border-bottom:1px solid #fde68a;gap:6px;flex-wrap:wrap">'+
-    '<button onclick="calWeekOffset--;refreshCalTop()" style="color:#d97706;background:#fef3c7;border:1px solid #fde68a;padding:5px 11px;border-radius:8px;font-weight:600;cursor:pointer;font-size:12px">← ก่อน</button>'+
-    '<div style="flex:1;text-align:center;min-width:120px">'+
-      '<span style="font-weight:700;font-size:13px;color:#374151">'+label+'</span>'+
-      '<button onclick="calWeekOffset=0;refreshCalTop()" style="font-size:10px;color:#d97706;background:none;border:none;cursor:pointer;text-decoration:underline;margin-left:6px">วันนี้</button>'+
-    '</div>'+
-    '<button onclick="calWeekOffset++;refreshCalTop()" style="color:#d97706;background:#fef3c7;border:1px solid #fde68a;padding:5px 11px;border-radius:8px;font-weight:600;cursor:pointer;font-size:12px">ถัดไป →</button>'+
-    '<button onclick="openAddEvent(TODAY,\'08:00\',1)" style="background:#fbbf24;color:#fff;border:none;padding:5px 11px;border-radius:8px;font-weight:600;cursor:pointer;font-size:12px">+ เพิ่ม</button>'+
-    '<button id="cal-analyze-btn" onclick="analyzeSchedule()" style="background:#2563eb;color:#fff;border:none;padding:5px 11px;border-radius:8px;font-weight:600;cursor:pointer;font-size:12px">🔍 ทีมวิเคราะห์</button>'+
-  '</div>';
-
   // Time ruler
   var ruler='<div style="display:flex;margin-left:56px;position:relative;height:18px;overflow:hidden">';
   hours.forEach(function(h){
