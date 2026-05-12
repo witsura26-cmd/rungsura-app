@@ -294,15 +294,15 @@ function saveScheduleEdit(){
 
 // ── CALENDAR ──────────────────────────────────────────────
 var calWeekOffset=0;
-var CAL_HOURS=["06","07","08","09","10","11","12","13","14","15","16","17","18","19","20","21"];
-var CAL_DAYS=["จ","อ","พ","พฤ","ศ","ส","อา"];
+var CAL_START=6, CAL_END=22; // 06:00–22:00
+var CAL_DAYS_TH=["จ","อ","พ","พฤ","ศ","ส","อา"];
 var CAL_TYPES={
-  school:  {icon:"🏫",label:"โรงเรียน",       bg:"bg-blue-100",   tx:"text-blue-800",   bd:"border-blue-300"},
-  piano:   {icon:"🎹",label:"เปียโน",           bg:"bg-violet-100", tx:"text-violet-800", bd:"border-violet-300"},
-  singing: {icon:"🎤",label:"ร้องเพลง",        bg:"bg-rose-100",   tx:"text-rose-800",   bd:"border-rose-300"},
-  pages:   {icon:"📱",label:"Pages/Influencer", bg:"bg-orange-100", tx:"text-orange-800", bd:"border-orange-300"},
-  learning:{icon:"📚",label:"เรียนเสริม",      bg:"bg-amber-100",  tx:"text-amber-800",  bd:"border-amber-300"},
-  other:   {icon:"🎯",label:"กิจกรรม",         bg:"bg-green-100",  tx:"text-green-800",  bd:"border-green-300"},
+  school:  {icon:"🏫",label:"โรงเรียน",        bg:"#dbeafe",tx:"#1e40af",bd:"#93c5fd"},
+  piano:   {icon:"🎹",label:"เปียโน",            bg:"#ede9fe",tx:"#5b21b6",bd:"#c4b5fd"},
+  singing: {icon:"🎤",label:"ร้องเพลง",         bg:"#ffe4e6",tx:"#9f1239",bd:"#fca5a5"},
+  pages:   {icon:"📱",label:"Pages/Influencer",  bg:"#ffedd5",tx:"#9a3412",bd:"#fdba74"},
+  learning:{icon:"📚",label:"เรียนเสริม",       bg:"#fef3c7",tx:"#92400e",bd:"#fcd34d"},
+  other:   {icon:"🎯",label:"กิจกรรม",          bg:"#dcfce7",tx:"#166534",bd:"#86efac"},
 };
 function getCalEvents(){return JSON.parse(localStorage.getItem("walnut_events")||"[]");}
 function saveCalEvents(e){localStorage.setItem("walnut_events",JSON.stringify(e));}
@@ -324,102 +324,228 @@ function openCalendar(){
 }
 function closeCalendar(){document.getElementById("cal-modal").classList.add("hidden");}
 
+function timeToFrac(t){ // "HH:MM" → fraction of CAL range
+  var h=parseInt(t.slice(0,2)),m=parseInt(t.slice(3,5));
+  return Math.max(0,Math.min(1,(h+m/60-CAL_START)/(CAL_END-CAL_START)));
+}
+function fracToTime(f){ // fraction → "HH:MM"
+  var total=CAL_START+f*(CAL_END-CAL_START);
+  var h=Math.floor(total);
+  var m=Math.round((total-h)*60/30)*30;
+  if(m>=60){h++;m=0;}
+  return String(h).padStart(2,"0")+":"+String(m).padStart(2,"0");
+}
+function eventOnDay(e,dateStr,dow){
+  if(e.days&&e.days.includes(dow)) return true;
+  if(e.recurring&&e.recurringDay===dow) return true; // backward compat
+  if(e.date===dateStr) return true;
+  return false;
+}
+
 function renderCalendar(){
   var dates=getWeekDates(calWeekOffset);
-  var d0=dates[0],d6=dates[6];
-  var fmt={day:"numeric",month:"short"};
-  var label=d0.toLocaleDateString("th-TH",fmt)+" – "+d6.toLocaleDateString("th-TH",{day:"numeric",month:"short",year:"2-digit"});
-  var events=getCalEvents();
+  var evts=getCalEvents();
+  var totalH=CAL_END-CAL_START;
+  var hours=[];
+  for(var h=CAL_START;h<=CAL_END;h++) hours.push(h);
 
-  function getEventsForSlot(dateStr,dow,h){
-    return events.filter(function(e){
-      var onDay=e.recurring?(e.recurringDay===dow):(e.date===dateStr);
-      return onDay&&e.startTime&&e.startTime.slice(0,2)===h;
-    });
-  }
+  // Week label
+  var label=dates[0].toLocaleDateString("th-TH",{day:"numeric",month:"short"})+" – "+
+    dates[6].toLocaleDateString("th-TH",{day:"numeric",month:"short",year:"2-digit"});
 
-  var html='<div class="flex items-center justify-between px-4 py-3 bg-amber-50 border-b rounded-t-2xl">'+
-    '<button onclick="calWeekOffset--;renderCalendar()" class="text-amber-600 hover:bg-amber-100 px-3 py-1.5 rounded-lg text-sm font-semibold">← ก่อน</button>'+
-    '<span class="font-bold text-sm text-gray-800">'+label+'</span>'+
-    '<button onclick="calWeekOffset++;renderCalendar()" class="text-amber-600 hover:bg-amber-100 px-3 py-1.5 rounded-lg text-sm font-semibold">ถัดไป →</button>'+
-  '</div>'+
-  '<div class="overflow-x-auto"><table class="w-full text-xs border-collapse" style="min-width:560px">'+
-  '<tr class="bg-gray-50 border-b">';
-  html+='<th class="w-12 px-2 py-2 text-gray-400 font-semibold border-r">เวลา</th>';
-  dates.forEach(function(d,i){
-    var isToday=dStr(d)===TODAY;
-    html+='<th class="px-1 py-2 text-center '+(isToday?"bg-amber-100":"")+'">'+
-      '<div class="font-bold '+(isToday?"text-amber-700":"text-gray-600")+'">'+CAL_DAYS[i]+'</div>'+
-      '<div class="text-gray-400 font-normal">'+d.getDate()+'/'+('0'+(d.getMonth()+1)).slice(-2)+'</div>'+
-    '</th>';
+  // Time ruler
+  var ruler='<div style="display:flex;margin-left:56px;position:relative;height:20px;overflow:hidden">';
+  hours.forEach(function(h){
+    var pct=((h-CAL_START)/totalH*100).toFixed(2);
+    ruler+='<div style="position:absolute;left:'+pct+'%;transform:translateX(-50%);font-size:10px;color:#9ca3af;white-space:nowrap">'+String(h).padStart(2,"0")+'</div>';
   });
-  html+='</tr>';
+  ruler+='</div>';
 
-  CAL_HOURS.forEach(function(h){
-    html+='<tr class="border-b">';
-    html+='<td class="px-2 py-1 text-gray-400 border-r text-center font-medium bg-gray-50">'+h+'</td>';
-    dates.forEach(function(d,di){
-      var dow=(di+1)%7; // 0=Sun..6=Sat, di=0→Mon=1
-      var dateStr=dStr(d);
-      var slotEvts=getEventsForSlot(dateStr,dow,h);
-      html+='<td class="px-0.5 py-0.5 align-top cursor-pointer hover:bg-amber-50 transition" '+
-        'onclick="openAddEvent(\''+dateStr+'\',\''+h+':00\','+dow+')" style="min-height:28px">';
-      slotEvts.forEach(function(e){
-        var tp=CAL_TYPES[e.type]||CAL_TYPES.other;
-        html+='<div class="'+tp.bg+' '+tp.tx+' border '+tp.bd+' rounded px-1 py-0.5 mb-0.5 text-xs leading-tight cursor-pointer" '+
-          'onclick="event.stopPropagation();deleteCalEvent(\''+e.id+'\')">'+
-          tp.icon+' '+e.title+'<span class="opacity-60 ml-0.5">'+e.startTime.slice(0,5)+'</span>'+
-        '</div>';
-      });
-      html+='</td>';
+  // Day rows
+  var rows="";
+  dates.forEach(function(d,di){
+    var dow=(di+1)%7;
+    var dateStr=dStr(d);
+    var isToday=dateStr===TODAY;
+    var dayEvts=evts.filter(function(e){return eventOnDay(e,dateStr,dow);})
+      .sort(function(a,b){return a.startTime.localeCompare(b.startTime);});
+
+    // Track vertical lanes for overlap
+    var lanes=[];
+    var evtLanes=dayEvts.map(function(e){
+      var s=timeToFrac(e.startTime||"06:00");
+      var en=timeToFrac(e.endTime||"07:00");
+      for(var lane=0;lane<20;lane++){
+        if(!lanes[lane]||lanes[lane]<=s){lanes[lane]=en;return lane;}
+      }
+      return 0;
     });
-    html+='</tr>';
-  });
-  html+='</table></div>'+
-  '<div class="p-3 border-t bg-gray-50 rounded-b-2xl flex flex-wrap gap-2 text-xs">'+
-    Object.entries(CAL_TYPES).map(function(kv){
-      return '<span class="'+kv[1].bg+' '+kv[1].tx+' border '+kv[1].bd+' px-2 py-0.5 rounded-full">'+kv[1].icon+' '+kv[1].label+'</span>';
-    }).join("")+
-  '</div>';
+    var nLanes=Math.max(1,lanes.length);
+    var rowH=Math.max(44,nLanes*26);
 
-  document.getElementById("cal-content").innerHTML=html;
+    // Grid lines
+    var gridLines='';
+    hours.forEach(function(h){
+      var pct=((h-CAL_START)/totalH*100).toFixed(2);
+      gridLines+='<div style="position:absolute;left:'+pct+'%;top:0;bottom:0;width:1px;background:#f3f4f6;pointer-events:none"></div>';
+    });
+    // Half-hour lines
+    hours.forEach(function(h){
+      var pct=((h-CAL_START+0.5)/totalH*100).toFixed(2);
+      gridLines+='<div style="position:absolute;left:'+pct+'%;top:0;bottom:0;width:1px;background:#fafafa;pointer-events:none"></div>';
+    });
+
+    // Event bars
+    var bars=dayEvts.map(function(e,i){
+      var tp=CAL_TYPES[e.type]||CAL_TYPES.other;
+      var sf=timeToFrac(e.startTime||"06:00");
+      var ef=timeToFrac(e.endTime||"07:00");
+      var w=Math.max(0.5,ef-sf)*100;
+      var lane=evtLanes[i]||0;
+      var top=lane*26+4;
+      var ht=22;
+      return '<div onclick="event.stopPropagation();editCalEvent(\''+e.id+'\')" '+
+        'style="position:absolute;left:'+(sf*100).toFixed(2)+'%;width:'+w.toFixed(2)+'%;top:'+top+'px;height:'+ht+'px;'+
+        'background:'+tp.bg+';color:'+tp.tx+';border:1px solid '+tp.bd+';border-radius:6px;'+
+        'padding:2px 6px;box-sizing:border-box;cursor:pointer;overflow:hidden;white-space:nowrap;'+
+        'display:flex;align-items:center;gap:3px;font-size:11px;font-weight:600;z-index:2;">'+
+        '<span>'+tp.icon+'</span>'+
+        '<span style="overflow:hidden;text-overflow:ellipsis">'+e.title+'</span>'+
+        '<span style="opacity:.55;font-size:10px;margin-left:auto;shrink:0">'+
+          (e.startTime||"").slice(0,5)+'-'+(e.endTime||"").slice(0,5)+
+        '</span>'+
+      '</div>';
+    }).join("");
+
+    rows+='<div style="display:flex;border-bottom:1px solid #f3f4f6;'+(isToday?"background:#fffbeb":"")+'">'+
+      '<div style="width:56px;min-width:56px;padding:0 6px;display:flex;flex-direction:column;justify-content:center;border-right:1px solid #f3f4f6;font-size:12px">'+
+        '<div style="font-weight:700;color:'+(isToday?"#b45309":"#374151")+'">'+CAL_DAYS_TH[di]+'</div>'+
+        '<div style="color:#9ca3af;font-size:10px">'+d.getDate()+'/'+(d.getMonth()+1)+'</div>'+
+      '</div>'+
+      '<div style="flex:1;position:relative;height:'+rowH+'px;cursor:crosshair;min-width:0" '+
+        'onclick="handleCalRowClick(event,\''+dateStr+'\','+dow+')">'+
+        gridLines+bars+
+      '</div>'+
+    '</div>';
+  });
+
+  // Legend
+  var legend='<div style="display:flex;flex-wrap:wrap;gap:6px;padding:10px 12px;background:#f9fafb;border-top:1px solid #f3f4f6;border-radius:0 0 16px 16px">';
+  Object.entries(CAL_TYPES).forEach(function(kv){
+    legend+='<span style="font-size:11px;padding:2px 8px;border-radius:20px;background:'+kv[1].bg+';color:'+kv[1].tx+';border:1px solid '+kv[1].bd+'">'+kv[1].icon+' '+kv[1].label+'</span>';
+  });
+  legend+='</div>';
+
+  document.getElementById("cal-content").innerHTML=
+    '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:#fffbeb;border-bottom:1px solid #fde68a;border-radius:16px 16px 0 0">'+
+      '<button onclick="calWeekOffset--;renderCalendar()" style="color:#d97706;background:#fef3c7;border:none;padding:6px 12px;border-radius:8px;font-weight:600;cursor:pointer;font-size:13px">← ก่อน</button>'+
+      '<div style="text-align:center">'+
+        '<div style="font-weight:700;font-size:14px;color:#374151">'+label+'</div>'+
+        '<button onclick="calWeekOffset=0;renderCalendar()" style="font-size:11px;color:#d97706;background:none;border:none;cursor:pointer;text-decoration:underline">สัปดาห์นี้</button>'+
+      '</div>'+
+      '<button onclick="calWeekOffset++;renderCalendar()" style="color:#d97706;background:#fef3c7;border:none;padding:6px 12px;border-radius:8px;font-weight:600;cursor:pointer;font-size:13px">ถัดไป →</button>'+
+    '</div>'+
+    ruler+
+    '<div style="overflow-x:auto"><div style="min-width:600px">'+rows+'</div></div>'+
+    legend;
 }
 
-function openAddEvent(dateStr,time,dow){
-  document.getElementById("ev-date").value=dateStr;
-  document.getElementById("ev-start").value=time;
-  var endH=String(parseInt(time.slice(0,2))+1).padStart(2,"0");
-  document.getElementById("ev-end").value=endH+":00";
+function handleCalRowClick(ev,dateStr,dow){
+  var rect=ev.currentTarget.getBoundingClientRect();
+  var f=Math.max(0,Math.min(1,(ev.clientX-rect.left)/rect.width));
+  var time=fracToTime(f);
+  openAddEventForm(dateStr,time,dow,null);
+}
+
+function openAddEventForm(dateStr,time,dow,editId){
+  var m=document.getElementById("add-event-modal");
+  m.dataset.editId=editId||"";
   document.getElementById("ev-title").value="";
   document.getElementById("ev-type").value="school";
-  document.getElementById("ev-recurring").checked=false;
-  document.getElementById("add-event-modal").classList.remove("hidden");
+  document.getElementById("ev-start").value=time||"08:00";
+  var endH=String(parseInt((time||"08:00").slice(0,2))+1).padStart(2,"0");
+  document.getElementById("ev-end").value=endH+":00";
+  // Day checkboxes: pre-check the clicked day
+  [0,1,2,3,4,5,6].forEach(function(d){
+    var cb=document.getElementById("ev-day-"+d);
+    if(cb) cb.checked=(d===dow&&dow!==undefined);
+  });
+  document.getElementById("ev-date").value=dateStr||TODAY;
+  document.getElementById("ev-delete-btn").classList.add("hidden");
+  document.getElementById("ev-modal-title").textContent=editId?"✏️ แก้ไขกิจกรรม":"➕ เพิ่มกิจกรรม";
+  m.classList.remove("hidden");
+  setTimeout(function(){document.getElementById("ev-title").focus();},50);
 }
-function saveNewEvent(){
+
+function editCalEvent(id){
+  var evts=getCalEvents();
+  var e=evts.find(function(x){return x.id===id;});
+  if(!e)return;
+  var m=document.getElementById("add-event-modal");
+  m.dataset.editId=id;
+  document.getElementById("ev-title").value=e.title||"";
+  document.getElementById("ev-type").value=e.type||"other";
+  document.getElementById("ev-start").value=e.startTime||"08:00";
+  document.getElementById("ev-end").value=e.endTime||"09:00";
+  document.getElementById("ev-date").value=e.date||TODAY;
+  var activeDays=e.days||(e.recurring&&e.recurringDay!==undefined?[e.recurringDay]:[]);
+  [0,1,2,3,4,5,6].forEach(function(d){
+    var cb=document.getElementById("ev-day-"+d);
+    if(cb) cb.checked=activeDays.includes(d);
+  });
+  document.getElementById("ev-delete-btn").classList.remove("hidden");
+  document.getElementById("ev-modal-title").textContent="✏️ แก้ไขกิจกรรม";
+  m.classList.remove("hidden");
+  setTimeout(function(){document.getElementById("ev-title").focus();},50);
+}
+
+function selectQuickDays(arr){
+  [0,1,2,3,4,5,6].forEach(function(d){
+    var cb=document.getElementById("ev-day-"+d);
+    if(cb) cb.checked=arr.includes(d);
+  });
+}
+
+function saveCalEvent(){
   var title=document.getElementById("ev-title").value.trim();
-  if(!title){alert("ใส่ชื่อกิจกรรมด้วยนะ");return;}
-  var recurring=document.getElementById("ev-recurring").checked;
-  var dateStr=document.getElementById("ev-date").value;
-  var d=new Date(dateStr+"T12:00:00");
+  if(!title){document.getElementById("ev-title").focus();return;}
+  var editId=document.getElementById("add-event-modal").dataset.editId||"";
+  var evts=getCalEvents();
+  var selectedDays=[];
+  [0,1,2,3,4,5,6].forEach(function(d){
+    var cb=document.getElementById("ev-day-"+d);
+    if(cb&&cb.checked) selectedDays.push(d);
+  });
   var evt={
-    id:"ev_"+Date.now(),
+    id:editId||("ev_"+Date.now()),
     title:title,
     type:document.getElementById("ev-type").value,
     startTime:document.getElementById("ev-start").value,
     endTime:document.getElementById("ev-end").value,
-    recurring:recurring,
   };
-  if(recurring) evt.recurringDay=d.getDay();
-  else evt.date=dateStr;
-  var evts=getCalEvents();evts.push(evt);saveCalEvents(evts);
+  if(selectedDays.length>0) evt.days=selectedDays;
+  else evt.date=document.getElementById("ev-date").value;
+  if(editId){
+    var idx=evts.findIndex(function(e){return e.id===editId;});
+    if(idx!==-1) evts[idx]=evt; else evts.push(evt);
+  } else {
+    evts.push(evt);
+  }
+  saveCalEvents(evts);
   document.getElementById("add-event-modal").classList.add("hidden");
   renderCalendar();
 }
-function deleteCalEvent(id){
+
+function deleteCalEvent(){
+  var id=document.getElementById("add-event-modal").dataset.editId;
+  if(!id) return;
   var evts=getCalEvents();
   var e=evts.find(function(x){return x.id===id;});
-  if(!e)return;
-  if(!confirm("ลบ: "+e.title+(e.recurring?" (ซ้ำทุกสัปดาห์)":"")+"\nต้องการลบใช่มั้ย?"))return;
+  if(!e||!confirm("ลบ: "+e.title+"?")) return;
   saveCalEvents(evts.filter(function(x){return x.id!==id;}));
+  document.getElementById("add-event-modal").classList.add("hidden");
   renderCalendar();
 }
+
+// keep old name for backward compat
+function openAddEvent(dateStr,time,dow){ openAddEventForm(dateStr,time,dow,null); }

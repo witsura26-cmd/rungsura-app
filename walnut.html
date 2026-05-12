@@ -182,15 +182,20 @@
   </div>
 </div>
 
-<!-- ADD EVENT MODAL -->
-<div id="add-event-modal" class="fixed inset-0 z-[60] hidden flex items-center justify-center bg-black/40">
-  <div class="bg-white rounded-2xl p-6 w-80 shadow-2xl">
-    <h3 class="font-bold mb-4">✏️ เพิ่มกิจกรรม</h3>
+<!-- ADD/EDIT EVENT MODAL -->
+<div id="add-event-modal" class="fixed inset-0 z-[60] hidden flex items-center justify-center bg-black/40" data-edit-id="">
+  <div class="bg-white rounded-2xl p-5 w-96 shadow-2xl max-h-[90vh] overflow-y-auto">
+    <div class="flex items-center justify-between mb-4">
+      <h3 id="ev-modal-title" class="font-bold text-base">➕ เพิ่มกิจกรรม</h3>
+      <button onclick="document.getElementById('add-event-modal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600 text-xl leading-none">✕</button>
+    </div>
     <div class="space-y-3">
+      <!-- Title -->
       <div>
-        <label class="text-xs text-gray-500 block mb-1">ชื่อกิจกรรม</label>
-        <input id="ev-title" type="text" placeholder="เช่น เรียนเปียโน" class="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-amber-400">
+        <label class="text-xs text-gray-500 block mb-1">ชื่อกิจกรรม *</label>
+        <input id="ev-title" type="text" placeholder="เช่น อาหารกลางวัน, เรียนเปียโน" class="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-amber-400" onkeydown="if(event.key==='Enter')saveCalEvent()">
       </div>
+      <!-- Type -->
       <div>
         <label class="text-xs text-gray-500 block mb-1">ประเภท</label>
         <select id="ev-type" class="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-amber-400">
@@ -202,32 +207,46 @@
           <option value="other">🎯 กิจกรรมอื่น</option>
         </select>
       </div>
-      <div class="grid grid-cols-2 gap-3">
-        <div>
-          <label class="text-xs text-gray-500 block mb-1">วันที่</label>
-          <input id="ev-date" type="date" class="w-full border rounded-xl px-2 py-2 text-xs focus:outline-none focus:border-amber-400">
-        </div>
-        <div class="flex flex-col justify-end pb-2">
-          <label class="flex items-center gap-2 cursor-pointer">
-            <input id="ev-recurring" type="checkbox" class="w-4 h-4 accent-amber-400">
-            <span class="text-xs text-gray-600">ซ้ำทุกสัปดาห์</span>
-          </label>
-        </div>
-      </div>
-      <div class="grid grid-cols-2 gap-3">
+      <!-- Time -->
+      <div class="grid grid-cols-2 gap-2">
         <div>
           <label class="text-xs text-gray-500 block mb-1">เวลาเริ่ม</label>
-          <input id="ev-start" type="time" class="w-full border rounded-xl px-2 py-2 text-xs focus:outline-none focus:border-amber-400">
+          <input id="ev-start" type="time" class="w-full border rounded-xl px-2 py-2 text-sm focus:outline-none focus:border-amber-400">
         </div>
         <div>
           <label class="text-xs text-gray-500 block mb-1">เวลาสิ้นสุด</label>
-          <input id="ev-end" type="time" class="w-full border rounded-xl px-2 py-2 text-xs focus:outline-none focus:border-amber-400">
+          <input id="ev-end" type="time" class="w-full border rounded-xl px-2 py-2 text-sm focus:outline-none focus:border-amber-400">
         </div>
       </div>
+      <!-- Day selection -->
+      <div>
+        <label class="text-xs text-gray-500 block mb-1">วันที่เกิดซ้ำ (ติ๊กหลายวันได้)</label>
+        <div class="flex gap-1 mb-2 flex-wrap">
+          <button type="button" onclick="selectQuickDays([1,2,3,4,5])" class="text-xs bg-blue-50 text-blue-700 border border-blue-200 px-2 py-1 rounded-lg hover:bg-blue-100">จ–ศ</button>
+          <button type="button" onclick="selectQuickDays([6,0])" class="text-xs bg-purple-50 text-purple-700 border border-purple-200 px-2 py-1 rounded-lg hover:bg-purple-100">ส–อา</button>
+          <button type="button" onclick="selectQuickDays([1,2,3,4,5,6,0])" class="text-xs bg-amber-50 text-amber-700 border border-amber-200 px-2 py-1 rounded-lg hover:bg-amber-100">ทุกวัน</button>
+          <button type="button" onclick="selectQuickDays([])" class="text-xs bg-gray-50 text-gray-500 border border-gray-200 px-2 py-1 rounded-lg hover:bg-gray-100">ล้าง</button>
+        </div>
+        <div class="grid grid-cols-7 gap-1">
+          <label class="flex flex-col items-center gap-1 cursor-pointer p-1.5 rounded-lg hover:bg-amber-50"><input id="ev-day-1" type="checkbox" class="accent-amber-400 w-4 h-4"><span class="text-xs font-semibold text-gray-600">จ</span></label>
+          <label class="flex flex-col items-center gap-1 cursor-pointer p-1.5 rounded-lg hover:bg-amber-50"><input id="ev-day-2" type="checkbox" class="accent-amber-400 w-4 h-4"><span class="text-xs font-semibold text-gray-600">อ</span></label>
+          <label class="flex flex-col items-center gap-1 cursor-pointer p-1.5 rounded-lg hover:bg-amber-50"><input id="ev-day-3" type="checkbox" class="accent-amber-400 w-4 h-4"><span class="text-xs font-semibold text-gray-600">พ</span></label>
+          <label class="flex flex-col items-center gap-1 cursor-pointer p-1.5 rounded-lg hover:bg-amber-50"><input id="ev-day-4" type="checkbox" class="accent-amber-400 w-4 h-4"><span class="text-xs font-semibold text-gray-600">พฤ</span></label>
+          <label class="flex flex-col items-center gap-1 cursor-pointer p-1.5 rounded-lg hover:bg-amber-50"><input id="ev-day-5" type="checkbox" class="accent-amber-400 w-4 h-4"><span class="text-xs font-semibold text-gray-600">ศ</span></label>
+          <label class="flex flex-col items-center gap-1 cursor-pointer p-1.5 rounded-lg hover:bg-amber-50"><input id="ev-day-6" type="checkbox" class="accent-amber-400 w-4 h-4"><span class="text-xs font-semibold text-gray-600">ส</span></label>
+          <label class="flex flex-col items-center gap-1 cursor-pointer p-1.5 rounded-lg hover:bg-amber-50"><input id="ev-day-0" type="checkbox" class="accent-amber-400 w-4 h-4"><span class="text-xs font-semibold text-gray-600">อา</span></label>
+        </div>
+        <div class="mt-2 text-xs text-gray-400">ถ้าไม่ติ๊กวัน → ใช้วันที่ด้านล่าง (เฉพาะครั้ง)</div>
+      </div>
+      <!-- Specific date fallback -->
+      <div>
+        <label class="text-xs text-gray-500 block mb-1">วันที่เฉพาะ (ถ้าไม่เลือกวันซ้ำ)</label>
+        <input id="ev-date" type="date" class="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-amber-400">
+      </div>
     </div>
-    <div class="flex gap-2 mt-5">
-      <button onclick="saveNewEvent()" class="flex-1 bg-amber-400 hover:bg-amber-500 text-white py-2.5 rounded-xl font-semibold">บันทึก</button>
-      <button onclick="document.getElementById('add-event-modal').classList.add('hidden')" class="px-4 py-2.5 rounded-xl border text-gray-600">ยกเลิก</button>
+    <div class="flex gap-2 mt-4">
+      <button onclick="saveCalEvent()" class="flex-1 bg-amber-400 hover:bg-amber-500 text-white py-2.5 rounded-xl font-semibold">💾 บันทึก</button>
+      <button id="ev-delete-btn" onclick="deleteCalEvent()" class="hidden bg-red-100 hover:bg-red-200 text-red-600 px-4 py-2.5 rounded-xl font-semibold text-sm">🗑 ลบ</button>
     </div>
   </div>
 </div>
