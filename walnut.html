@@ -121,7 +121,11 @@
       <div><label class="text-xs font-semibold text-gray-500 block mb-1">Supabase Anon Key</label>
         <input id="s-key" type="password" placeholder="eyJ..." class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-400"></div>
     </div>
-    <div class="flex gap-2 mt-5">
+    <div id="api-test-result" class="hidden mt-3 text-sm rounded-xl p-3"></div>
+    <div class="flex gap-2 mt-3">
+      <button onclick="testApiConnection()" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-2.5 rounded-xl font-semibold">🔌 ทดสอบการเชื่อมต่อ</button>
+    </div>
+    <div class="flex gap-2 mt-2">
       <button onclick="saveSettings()" class="flex-1 bg-amber-400 hover:bg-amber-500 text-white py-2.5 rounded-xl font-semibold">บันทึกและ Reload</button>
       <button onclick="document.getElementById('settings-modal').classList.add('hidden')" class="px-5 py-2.5 rounded-xl border text-gray-600">ยกเลิก</button>
     </div>
@@ -416,14 +420,42 @@ async function sendTeacher(){
     const r=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},
       body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:1024,system:currentTeacher.prompt,messages:teacherHistory})});
     const d=await r.json();
-    const reply=d.content?.[0]?.text||"เกิดข้อผิดพลาด";
     document.getElementById(lid)?.remove();
+    if(d.error){
+      addTMsg("assistant","❌ "+d.error);
+      return;
+    }
+    const reply=d.content?.[0]?.text||"ไม่ได้รับข้อความตอบกลับ (status "+r.status+")";
     teacherHistory.push({role:"assistant",content:reply}); addTMsg("assistant",reply);
-  }catch(e){document.getElementById(lid)?.remove();addTMsg("assistant","❌ "+e.message);}
+  }catch(e){document.getElementById(lid)?.remove();addTMsg("assistant","❌ Network error: "+e.message);}
 }
 function toggleChat(){chatOpen=!chatOpen;openTeacher("tangmo");}
 
 // ── SETTINGS ──────────────────────────────────────────────
+async function testApiConnection(){
+  const el=document.getElementById("api-test-result");
+  el.className="mt-3 text-sm rounded-xl p-3 bg-gray-50 text-gray-500";
+  el.textContent="⏳ กำลังทดสอบ..."; el.classList.remove("hidden");
+  try{
+    const r=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:20,
+        messages:[{role:"user",content:"ตอบว่า OK เท่านั้น"}]})});
+    const d=await r.json();
+    if(d.error){
+      el.className="mt-3 text-sm rounded-xl p-3 bg-red-50 text-red-700";
+      el.innerHTML="❌ <strong>Error:</strong> "+d.error;
+    } else if(d.content?.[0]?.text){
+      el.className="mt-3 text-sm rounded-xl p-3 bg-green-50 text-green-700";
+      el.innerHTML="✅ <strong>เชื่อมต่อสำเร็จ!</strong> API ทำงานได้ปกติ";
+    } else {
+      el.className="mt-3 text-sm rounded-xl p-3 bg-yellow-50 text-yellow-700";
+      el.innerHTML="⚠️ Response ผิดปกติ: "+JSON.stringify(d).slice(0,100);
+    }
+  }catch(e){
+    el.className="mt-3 text-sm rounded-xl p-3 bg-red-50 text-red-700";
+    el.innerHTML="❌ <strong>Network Error:</strong> "+e.message+"<br><span class='text-xs'>อาจเป็นเพราะเปิดจาก file:// หรือ localhost โดยไม่มี proxy</span>";
+  }
+}
 function openSettings(){
   document.getElementById("s-claude").value=CFG.claude;
   document.getElementById("s-url").value=CFG.sbUrl;
