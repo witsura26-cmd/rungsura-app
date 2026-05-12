@@ -721,7 +721,7 @@ function renderCalendarTab(){
 // ── CALENDAR TOP AREA — multi-view (Month / Week / Day) ────
 var calView="week"; // "month"|"week"|"day"
 var calMonthOffset=0;
-var calDaySelected=TODAY;
+var calDaySelected=new Date().toISOString().slice(0,10);
 
 function renderCalTop(){
   return buildCalHeader()+buildCalBody()+buildCalLegend()+buildCalAnalysis();
