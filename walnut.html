@@ -58,7 +58,7 @@
 <!-- CHAT BUTTON -->
 <button onclick="toggleChat()" id="chat-btn" class="fixed bottom-6 right-6 w-14 h-14 bg-pink-400 hover:bg-pink-500 text-white rounded-full shadow-xl flex items-center justify-center text-2xl z-40 hover:scale-105 transition-all">💬</button>
 
-<!-- TEACHER CHAT -->
+<!-- TEACHER CHAT PANEL -->
 <div id="t-panel" class="fixed right-0 top-0 h-full w-96 bg-white shadow-2xl border-l z-50 flex flex-col chat-panel translate-x-full">
   <div id="t-header" class="p-4 border-b flex items-center justify-between bg-pink-50">
     <div class="flex items-center gap-3">
@@ -90,7 +90,7 @@
       <h3 class="font-bold mb-1">📖 บทเรียน</h3>
       <div id="hw-title" class="text-sm font-semibold text-amber-700 mb-2"></div>
       <div id="hw-goal" class="text-xs text-gray-500 bg-amber-50 rounded-xl p-3 mb-4"></div>
-      <div id="hw-content" class="text-sm text-gray-700 leading-relaxed whitespace-pre-line"></div>
+      <div id="hw-content" class="leading-relaxed"></div>
     </div>
     <div class="bg-white rounded-2xl border border-gray-100 p-5 mb-5">
       <h3 class="font-bold mb-4">✏️ ส่วนที่ 1: เลือกตอบ (15 ข้อ)</h3>
@@ -109,7 +109,7 @@
   </div>
 </div>
 
-<!-- SETTINGS -->
+<!-- SETTINGS MODAL -->
 <div id="settings-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/30">
   <div class="bg-white rounded-2xl shadow-2xl w-[480px] p-6">
     <h2 class="font-bold mb-4">⚙️ ตั้งค่า API Keys</h2>
@@ -123,7 +123,7 @@
     </div>
     <div class="flex gap-2 mt-5">
       <button onclick="saveSettings()" class="flex-1 bg-amber-400 hover:bg-amber-500 text-white py-2.5 rounded-xl font-semibold">บันทึกและ Reload</button>
-      <button onclick="document.getElementById(&quot;settings-modal&quot;).classList.add(&quot;hidden&quot;)" class="px-5 py-2.5 rounded-xl border text-gray-600">ยกเลิก</button>
+      <button onclick="document.getElementById('settings-modal').classList.add('hidden')" class="px-5 py-2.5 rounded-xl border text-gray-600">ยกเลิก</button>
     </div>
   </div>
 </div>
@@ -163,8 +163,14 @@
   </div>
 </div>
 
+<!-- DATA + LOGIC (separate files for easy editing) -->
+<script src="/walnut-data.js"></script>
+<script src="/walnut-tasks.js"></script>
+<script src="/walnut-hw.js"></script>
+
+<!-- COORDINATOR (config, state, page shell, teacher chat, settings) -->
 <script>
-// ── CONFIG ──────────────────────────────────────────────
+// ── CONFIG & STATE ────────────────────────────────────────
 const CFG = {
   get claude(){ return localStorage.getItem("rs_claude")||""; },
   get sbUrl() { return localStorage.getItem("rs_sb_url")||""; },
@@ -177,7 +183,7 @@ let currentHwLesson=null, hwMcqAnswers=[], hwWrittenAnswers=[];
 let activeTab="tasks";
 let taskFilter="all";
 
-// ── SUPABASE ─────────────────────────────────────────────
+// ── SUPABASE ──────────────────────────────────────────────
 function initSb(){
   if(!CFG.sbUrl||!CFG.sbKey){setStatus("ยังไม่ตั้งค่า ⚙️",false);return false;}
   try{sb=supabase.createClient(CFG.sbUrl,CFG.sbKey);setStatus("เชื่อมต่อแล้ว ✅",true);return true;}
@@ -190,341 +196,7 @@ function setStatus(t,ok){
 function getHwState(id){return JSON.parse(localStorage.getItem("hw_"+id)||"{}");}
 function saveHwState(id,s){localStorage.setItem("hw_"+id,JSON.stringify(s));}
 
-// ── TEAM DATA ────────────────────────────────────────────
-const TEAM = [
-  {id:"tangmo", name:"Tangmo", role:"หัวหน้าแผนก", icon:"🌸", bg:"bg-pink-50", border:"border-pink-200", badge:"bg-pink-100 text-pink-700",
-   desc:"รับ brief ประสานทีม สรุปรายงาน",
-   prompt:"คุณคือ Tangmo หัวหน้าแผนก Walnut Learning ของ RungSura อบอุ่น มีระเบียบ รักเด็ก วอลนัท 8 ขวบ ป.4 ร้องเพลง 3 ปี อยู่วง Last Minute Band เปียโนเกือบ 2 ปี ตอบภาษาไทย"},
-  {id:"dr-aim", name:"Dr.Aim", role:"นักวิเคราะห์วิชาการ", icon:"📊", bg:"bg-blue-50", border:"border-blue-200", badge:"bg-blue-100 text-blue-700",
-   desc:"วิเคราะห์ผลเทส หา learning gap",
-   prompt:"คุณคือ Dr.Aim นักวิเคราะห์วิชาการเด็ก เฉียบ ข้อมูลแน่น พูดตรงจุด เชี่ยวชาญพัฒนาการ ป.3-5 วอลนัทสูตรคูณท่องได้แต่ใช้ปัญหาไม่เป็น ตอบภาษาไทย"},
-  {id:"ploy", name:"Ploy", role:"นักพัฒนาศักยภาพ", icon:"🌱", bg:"bg-green-50", border:"border-green-200", badge:"bg-green-100 text-green-700",
-   desc:"ประเมิน mood วอลนัท ป้องกัน burnout",
-   prompt:"คุณคือ Ploy นักพัฒนาศักยภาพเด็ก อ่อนโยน เข้าใจจิตใจเด็ก วอลนัทต้องการกำลังใจไม่ใช่ความกดดัน ตอบภาษาไทย นุ่มนวล"},
-  {id:"kru-nim", name:"ครูนิ่ม", role:"ครูภาษาไทย", icon:"✍️", bg:"bg-yellow-50", border:"border-yellow-200", badge:"bg-yellow-100 text-yellow-700",
-   desc:"เนี้ยบทุกคำ เน้นอ่านจับใจความ",
-   prompt:"คุณคือครูนิ่ม ครูภาษาไทยที่เนี้ยบที่สุด สอนวอลนัท ป.4 เน้นอ่านจับใจความ มาตราตัวสะกด ตอบภาษาไทยสละสลวย"},
-  {id:"kru-o", name:"ครูโอ๋", role:"ครูคณิตศาสตร์", icon:"🎮", bg:"bg-orange-50", border:"border-orange-200", badge:"bg-orange-100 text-orange-700",
-   desc:"ใจดี ทริคเยอะ สอนผ่านเกม",
-   prompt:"คุณคือครูโอ๋ ครูเลขที่ขี้เล่น ใจดี มีทริค เลขคือเกม วอลนัทสูตรคูณท่องได้แต่ใช้โจทย์ปัญหาไม่เป็น ตอบภาษาไทยสนุก"},
-  {id:"kru-kai", name:"ครูไก่", role:"ครูวิทยาศาสตร์", icon:"🔭", bg:"bg-cyan-50", border:"border-cyan-200", badge:"bg-cyan-100 text-cyan-700",
-   desc:"ความรู้กว้าง เปิดโลก ทดลองบ้านได้",
-   prompt:"คุณคือครูไก่ ครูวิทย์ที่ตื่นเต้นกับทุกอย่าง ชอบตั้งคำถาม สอนผ่านเรื่องเล่าและทดลอง ตอบภาษาไทยสนุก"},
-  {id:"kru-mint", name:"ครูมิ้นท์", role:"ครูร้องเพลง", icon:"🎤", bg:"bg-rose-50", border:"border-rose-200", badge:"bg-rose-100 text-rose-700",
-   desc:"passionate ทุกสาย อยากให้วอลนัทเป็นศิลปิน",
-   prompt:"คุณคือครูมิ้นท์ ครูร้องเพลง passionate มาก วอลนัทร้องเพลง 3 ปี อยู่วง Last Minute Band กำลังพัฒนา chest voice เพลง: L.O.V.E รักคือ Golden บรรยากาศ กำลังเพิ่ม Bad Romance ตอบภาษาไทย"},
-  {id:"kru-big", name:"ครูบิ๊ก", role:"ครูเปียโน", icon:"🎹", bg:"bg-violet-50", border:"border-violet-200", badge:"bg-violet-100 text-violet-700",
-   desc:"แม่นทฤษฎี เข้าใจเด็ก",
-   prompt:"คุณคือครูบิ๊ก ครูเปียโนที่แม่นทฤษฎี ใจเย็น วอลนัทเรียนเปียโนเกือบ 2 ปี interval 5th อ่านโน้ตยังไม่แม่น ตอบภาษาไทย"},
-  {id:"kru-jen", name:"ครูเจน", role:"ครูภาษาอังกฤษ", icon:"🇬🇧", bg:"bg-indigo-50", border:"border-indigo-200", badge:"bg-indigo-100 text-indigo-700",
-   desc:"สนุกกับภาษา Communication first ไม่กลัวผิด",
-   prompt:"คุณคือครูเจน ครูภาษาอังกฤษที่สนุกและ passionate สอนวอลนัท 8 ขวบ ป.4 เน้น am/is/are simple present daily vocabulary ตอบภาษาไทย-อังกฤษผสม ให้กำลังใจสูงมาก ไม่กลัวผิด"},
-];
-
-// ── LESSON DATA ──────────────────────────────────────────
-const LESSONS = [
-  {id:"thai-w1",subject:"ภาษาไทย",teacher:"ครูนิ่ม",teacherId:"kru-nim",icon:"✍️",
-   bg:"bg-yellow-50",border:"border-yellow-200",badge:"bg-yellow-100 text-yellow-700",
-   week:1,title:"มาตราตัวสะกด แม่กง กน กม + การอ่านจับใจความ",
-   goal:"วอลนัทแยกมาตราตัวสะกด 3 แม่ได้ถูกต้อง และอ่านจับใจความจากเรื่องสั้นได้",
-   plan:[{w:1,t:"มาตราตัวสะกด กง กน กม + อ่านจับใจความ"},{w:2,t:"มาตราตัวสะกด กก กด กบ + คำที่มักเขียนผิด"},{w:3,t:"ชนิดของคำ + เขียนประโยค"},{w:4,t:"ทบทวน + สอบปลายเดือน"}],
-   reading:`วันแรกของวอลนัทใน ป.4
-
-วอลนัทตื่นเช้ามาด้วยความตื่นเต้น เพราะวันนี้คือวันแรกที่เธอขึ้นชั้น ป.4 ที่โรงเรียนไทยคริสเตียน พระโขนง เธอแต่งตัวเรียบร้อย หิ้วกระเป๋าใบโปรด แล้วรีบลงมากินข้าวเช้ากับพ่อ
-
-"วันนี้ตื่นเต้นมั้ยลูก?" พ่อถามพลางยิ้มให้
-"ตื่นเต้นมากเลยค่ะพ่อ" วอลนัทตอบ "หนูอยากรู้ว่า ป.4 จะมีวิชาอะไรบ้าง"
-พ่อพยักหน้า "ไม่ว่าจะยากแค่ไหน พ่อเชื่อว่าลูกทำได้"
-
-เมื่อถึงโรงเรียน ห้องเรียนใหม่มีหน้าต่างใหญ่มองเห็นต้นไม้เขียวขจี ครูประจำชั้นชื่อครูสมหวัง ยืนยิ้มรับที่หน้าห้อง
-
-"สวัสดีนักเรียนทุกคน" ครูกล่าว "ภาษาไทยของเราสวยงามมาก ถ้าเราเข้าใจกฎ เราก็สื่อสารได้ถูกต้อง"
-
-ระหว่างพักกลางวัน วอลนัทเล่าว่าชอบร้องเพลงและเล่นเปียโน เพื่อนๆ ต่างทึ่ง
-"เดี๋ยวร้องให้ฟังนะ แต่ต้องซ้อมก่อน" เธอยิ้มตอบ
-
-"พ่อคะ หนูจะพยายามเรียนให้เก่งขึ้นค่ะ" เธอบอกก่อนนอน
-พ่อโอบกอด "พ่อภูมิใจในตัวลูกเสมอ"
-
----
-ความรู้เรื่องมาตราตัวสะกด
-
-แม่กง ออกเสียง "ง": วาง กาง ของ วิ่ง สิ่ง
-แม่กน ออกเสียง "น": กิน คน นอน วัน
-แม่กม ออกเสียง "ม": ยิ้ม ลิ้ม ชม นาม`,
-   mcq:[
-     {q:"วอลนัทกำลังขึ้นชั้นอะไร?",c:["ก. ป.2","ข. ป.3","ค. ป.4","ง. ป.5"],a:2},
-     {q:"ครูประจำชั้นชื่อว่าอะไร?",c:["ก. ครูสมใจ","ข. ครูสมหวัง","ค. ครูสมศรี","ง. ครูสมชาย"],a:1},
-     {q:"วอลนัทชอบทำกิจกรรมอะไร?",c:["ก. วาดรูปและทำอาหาร","ข. ว่ายน้ำและวิ่ง","ค. ร้องเพลงและเปียโน","ง. อ่านและนอน"],a:2},
-     {q:"วอลนัทพูดกับพ่อว่าอะไรก่อนนอน?",c:["ก. อยากกินไอศกรีม","ข. จะพยายามเรียนให้เก่ง","ค. อยากได้ของขวัญ","ง. โรงเรียนไม่ดี"],a:1},
-     {q:"พ่อตอบวอลนัทว่าอย่างไร?",c:["ก. เรียนให้เก่งกว่านี้","ข. ต้องได้เกรด A","ค. ภูมิใจในตัวลูกเสมอ","ง. ไม่พูดอะไร"],a:2},
-     {q:"คำว่า 'ยิ้ม' ใช้มาตราตัวสะกดแม่ใด?",c:["ก. แม่กน","ข. แม่กง","ค. แม่กม","ง. แม่กก"],a:2},
-     {q:"คำว่า 'วิ่ง' ใช้มาตราตัวสะกดแม่ใด?",c:["ก. แม่กน","ข. แม่กง","ค. แม่กม","ง. แม่กด"],a:1},
-     {q:"คำว่า 'กิน' ใช้มาตราตัวสะกดแม่ใด?",c:["ก. แม่กน","ข. แม่กง","ค. แม่กม","ง. แม่กก"],a:0},
-     {q:"คำใดต่อไปนี้ใช้แม่กม?",c:["ก. นอน","ข. วาง","ค. ลิ้ม","ง. กาง"],a:2},
-     {q:"คำใดต่อไปนี้ใช้แม่กน?",c:["ก. กาง","ข. วิ่ง","ค. ชม","ง. คน"],a:3},
-     {q:"'ทึ่ง' หมายความว่าอะไร?",c:["ก. โกรธ","ข. เศร้า","ค. ประหลาดใจและชื่นชม","ง. กลัว"],a:2},
-     {q:"'อบอุ่น' หมายความว่าอะไร?",c:["ก. ร้อนมาก","ข. รู้สึกดีและปลอดภัย","ค. เย็นมาก","ง. ป่วย"],a:1},
-     {q:"ใครเป็นผู้กระทำในประโยค 'วอลนัทฟังด้วยความสนใจ'?",c:["ก. ครู","ข. เพื่อน","ค. วอลนัท","ง. พ่อ"],a:2},
-     {q:"'เรียบร้อย' เป็นชนิดของคำอะไร?",c:["ก. นาม","ข. กริยา","ค. วิเศษณ์","ง. สันธาน"],a:2},
-     {q:"'แต่งตัวเรียบร้อย' มีคำกริยาคือคำใด?",c:["ก. เธอ","ข. แต่งตัว","ค. เรียบร้อย","ง. ทั้งหมด"],a:1},
-   ],
-   written:[
-     {q:"สรุปเรื่องที่อ่านมาเป็น 2-3 ประโยค"},
-     {q:"เขียนประโยค 1 ประโยค โดยใช้คำที่มีแม่กน"},
-     {q:"หาคำที่มีแม่กม 3 คำจากบทเรียน แล้วเขียนประโยคใหม่ 1 ประโยค"},
-     {q:"พ่อของวอลนัทเป็นคนอย่างไร? อธิบายจากพฤติกรรมในเรื่อง"},
-     {q:"ถ้าคุณเป็นวอลนัท คุณจะตั้งใจเรียนวิชาอะไรมากที่สุด เพราะอะไร?"},
-   ]},
-  {id:"math-w1",subject:"คณิตศาสตร์",teacher:"ครูโอ๋",teacherId:"kru-o",icon:"🎮",
-   bg:"bg-orange-50",border:"border-orange-200",badge:"bg-orange-100 text-orange-700",
-   week:1,title:"สูตรคูณในโจทย์ปัญหาชีวิตจริง",
-   goal:"วอลนัทนำสูตรคูณแม่ 6-11 ไปใช้แก้โจทย์ปัญหาได้ถูกต้อง",
-   plan:[{w:1,t:"สูตรคูณในโจทย์ปัญหา แม่ 6-11"},{w:2,t:"บวกลบเลข 5 หลัก + ประมาณค่า"},{w:3,t:"คูณ 2 หลัก × 1 หลัก"},{w:4,t:"ทบทวน + สอบ"}],
-   reading:`บทที่ 1: สูตรคูณในโลกดนตรีและกาแฟ
-
-คณิตศาสตร์อยู่รอบตัวเราตลอดเวลา!
-
-วิธีแก้โจทย์ปัญหาการคูณ 4 ขั้นตอน:
-1. อ่านโจทย์ให้เข้าใจ
-2. ระบุสิ่งที่ต้องนับ
-3. คูณตัวเลข
-4. ตรวจสอบว่าสมเหตุสมผล
-
-ตัวอย่าง 1: วอลนัทซ้อมเพลง 6 เพลง เพลงละ 7 รอบ = 6×7 = 42 รอบ
-ตัวอย่าง 2: ร้านกาแฟขายวันละ 8 แก้ว ใน 9 วัน = 8×9 = 72 แก้ว
-ตัวอย่าง 3: วง 4 คน แต่ละคนจำ 11 ท่อน = 4×11 = 44 ท่อน
-
-เคล็ดลับ: สูตรที่มักสับสน แม่ 6 7 8 9 ฝึกทุกวัน!`,
-   mcq:[
-     {q:"6 × 7 = ?",c:["ก. 36","ข. 42","ค. 48","ง. 54"],a:1},
-     {q:"8 × 9 = ?",c:["ก. 63","ข. 72","ค. 81","ง. 64"],a:1},
-     {q:"9 × 9 = ?",c:["ก. 72","ข. 81","ค. 90","ง. 99"],a:1},
-     {q:"7 × 8 = ?",c:["ก. 54","ข. 56","ค. 63","ง. 48"],a:1},
-     {q:"11 × 6 = ?",c:["ก. 55","ข. 66","ค. 77","ง. 88"],a:1},
-     {q:"ซ้อมเพลง 7 เพลง เพลงละ 8 รอบ ซ้อมกี่รอบ?",c:["ก. 48","ข. 54","ค. 56","ง. 63"],a:2},
-     {q:"ขายกาแฟ 9 แก้วต่อชั่วโมง ใน 8 ชั่วโมงขายกี่แก้ว?",c:["ก. 63","ข. 72","ค. 81","ง. 56"],a:1},
-     {q:"วง 6 คน แต่ละคนซ้อม 9 เพลง ทั้งวงซ้อมกี่เพลง?",c:["ก. 45","ข. 54","ค. 63","ง. 56"],a:1},
-     {q:"โน้ต 1 ห้องมี 4 จังหวะ ถ้ามี 11 ห้อง มีกี่จังหวะ?",c:["ก. 40","ข. 44","ค. 48","ง. 54"],a:1},
-     {q:"ฝึกเปียโน 7 วัน วันละ 6 นาที รวมกี่นาที?",c:["ก. 36","ข. 42","ค. 48","ง. 54"],a:1},
-     {q:"6 × ___ = 54",c:["ก. 7","ข. 8","ค. 9","ง. 6"],a:2},
-     {q:"___ × 8 = 64",c:["ก. 6","ข. 7","ค. 8","ง. 9"],a:2},
-     {q:"ข้อใดคำนวณผิด?",c:["ก. 7×7=49","ข. 8×6=48","ค. 9×8=63","ง. 6×9=54"],a:2},
-     {q:"ข้อใดมีค่ามากที่สุด?",c:["ก. 8×7=56","ข. 9×6=54","ค. 7×9=63","ง. 6×11=66"],a:3},
-     {q:"ซื้อโน้ตราคา 9 บาท ซื้อ 8 แผ่น จ่ายกี่บาท?",c:["ก. 63","ข. 72","ค. 81","ง. 56"],a:1},
-   ],
-   written:[
-     {q:"ร้านกาแฟขายวันละ 11 แก้ว ใน 6 วัน ขายกี่แก้ว? แสดงวิธีทำ"},
-     {q:"วง 8 คน แต่ละคนจำเนื้อร้อง 7 ท่อน ทั้งวงจำกี่ท่อน? แสดงวิธีทำ"},
-     {q:"คอนเสิร์ต 9 รอบ รอบละ 8 คน มีผู้ชมกี่คน? แสดงวิธีทำ"},
-     {q:"อธิบาย 4 ขั้นตอนการแก้โจทย์ปัญหาการคูณด้วยคำพูดตัวเอง"},
-     {q:"แต่งโจทย์ปัญหาการคูณเกี่ยวกับดนตรี 1 ข้อ พร้อมเฉลย"},
-   ]},
-  {id:"sci-w1",subject:"วิทยาศาสตร์",teacher:"ครูไก่",teacherId:"kru-kai",icon:"🔭",
-   bg:"bg-cyan-50",border:"border-cyan-200",badge:"bg-cyan-100 text-cyan-700",
-   week:1,title:"ระบบกล้ามเนื้อและกระดูก",
-   goal:"อธิบายหน้าที่ของกระดูกและกล้ามเนื้อ 3 ประเภทได้",
-   plan:[{w:1,t:"กล้ามเนื้อและกระดูก"},{w:2,t:"ระบบย่อยอาหาร"},{w:3,t:"พืชและการสังเคราะห์แสง"},{w:4,t:"ทบทวน + สอบ"}],
-   reading:`ร่างกายที่น่าทึ่ง — กล้ามเนื้อและกระดูก
-
-เวลาวอลนัทร้องเพลง กล้ามเนื้อหลายมัดทำงานพร้อมกัน!
-
-ข้อเท็จจริง:
-• ร่างกายมีกระดูก 206 ชิ้น
-• มีกล้ามเนื้อประมาณ 600 มัด
-
-กระดูกทำอะไร?
-1. ค้ำจุนร่างกาย
-2. ปกป้องอวัยวะสำคัญ (สมอง ปอด หัวใจ)
-3. เป็นที่ยึดกล้ามเนื้อ
-4. สร้างเม็ดเลือดในไขกระดูก
-
-กล้ามเนื้อ 3 ประเภท:
-1. โครงร่าง — ควบคุมได้ตามใจ เช่น แขน ขา
-2. หัวใจ — ทำงานอัตโนมัติตลอดเวลา
-3. เรียบ — ในอวัยวะภายใน เช่น กระเพาะ
-
-ทดลองที่บ้าน: กำมือแน่นๆ วางมืออีกข้างบนแขนด้านใน รู้สึกสั่น = กล้ามเนื้อทำงาน!`,
-   mcq:[
-     {q:"ร่างกายมีกระดูกกี่ชิ้น?",c:["ก. 100","ข. 206","ค. 300","ง. 500"],a:1},
-     {q:"ร่างกายมีกล้ามเนื้อประมาณกี่มัด?",c:["ก. 200","ข. 400","ค. 600","ง. 1000"],a:2},
-     {q:"กระดูกไม่ได้ทำหน้าที่ข้อใด?",c:["ก. ค้ำจุนร่างกาย","ข. ย่อยอาหาร","ค. ปกป้องอวัยวะ","ง. สร้างเม็ดเลือด"],a:1},
-     {q:"กล้ามเนื้อเคลื่อนไหวได้โดยวิธีใด?",c:["ก. ยืดตัวอย่างเดียว","ข. หดตัวอย่างเดียว","ค. หดและยืดตัว","ง. พองตัว"],a:2},
-     {q:"กล้ามเนื้อโครงร่างต่างจากหัวใจอย่างไร?",c:["ก. ขนาดใหญ่กว่า","ข. ควบคุมได้ตามใจ","ค. สีต่างกัน","ง. ตำแหน่งต่างกัน"],a:1},
-     {q:"เวลาร้องเพลงกล้ามเนื้อส่วนใดทำงาน?",c:["ก. ขาเท่านั้น","ข. กะบังลมและหน้าอก","ค. หัวใจเท่านั้น","ง. แขน"],a:1},
-     {q:"ระบบกล้ามเนื้อและกระดูกทำงานอย่างไร?",c:["ก. ทำงานแยกกัน","ข. ทำงานร่วมกัน","ค. กระดูกสำคัญกว่า","ง. กล้ามเนื้อสำคัญกว่า"],a:1},
-     {q:"กล้ามเนื้อหัวใจมีลักษณะพิเศษอย่างไร?",c:["ก. ควบคุมได้ตามใจ","ข. ทำงานเฉพาะตอนออกกำลัง","ค. ทำงานอัตโนมัติตลอดเวลา","ง. หยุดได้เอง"],a:2},
-     {q:"กล้ามเนื้อเรียบอยู่ที่ไหน?",c:["ก. แขนและขา","ข. หน้าอก","ค. กระเพาะอาหาร","ง. สมอง"],a:2},
-     {q:"เมื่อกำมือจะรู้สึกอะไรที่แขน?",c:["ก. อ่อนลง","ข. แข็งขึ้น","ค. ร้อนขึ้น","ง. เย็นลง"],a:1},
-     {q:"กระดูกสันหลังทำหน้าที่อะไร?",c:["ก. ย่อยอาหาร","ข. ค้ำจุนร่างกาย","ค. สร้างเสียง","ง. มองเห็น"],a:1},
-     {q:"ไขกระดูกทำหน้าที่อะไร?",c:["ก. ทำกระดูกแข็ง","ข. สร้างเม็ดเลือด","ค. เก็บไขมัน","ง. ทำกระดูกงอ"],a:1},
-     {q:"นักกีฬาออกกำลังสม่ำเสมอเพราะอะไร?",c:["ก. กล้ามเนื้อแข็งแรง","ข. กระดูกงอได้","ค. ลดจำนวนกระดูก","ง. ลดกล้ามเนื้อ"],a:0},
-     {q:"ถ้ากระดูกขาหักจะเกิดอะไร?",c:["ก. เดินได้ปกติ","ข. เคลื่อนไหวลำบาก","ค. กล้ามเนื้อแข็ง","ง. ร่างกายเบา"],a:1},
-     {q:"ข้อใดคือกล้ามเนื้อโครงร่าง?",c:["ก. กล้ามเนื้อหัวใจ","ข. กล้ามเนื้อกระเพาะ","ค. กล้ามเนื้อแขน","ง. กล้ามเนื้อลำไส้"],a:2},
-   ],
-   written:[
-     {q:"อธิบายหน้าที่ของกระดูก 3 ข้อ ด้วยคำพูดตัวเอง"},
-     {q:"กล้ามเนื้อ 3 ประเภทแตกต่างกันอย่างไร? อธิบายสั้นๆ"},
-     {q:"ทดลองที่บ้าน: กำมือ 10 ครั้ง แล้วบันทึกผลที่รู้สึก"},
-     {q:"ทำไมต้องกินอาหารที่มีแคลเซียม? คิดจากความเข้าใจตัวเอง"},
-     {q:"ถ้าไม่มีกล้ามเนื้อเลย ทำอะไรไม่ได้บ้าง? ยกตัวอย่าง 3 อย่าง"},
-   ]},
-  {id:"sing-w1",subject:"ร้องเพลง",teacher:"ครูมิ้นท์",teacherId:"kru-mint",icon:"🎤",
-   bg:"bg-rose-50",border:"border-rose-200",badge:"bg-rose-100 text-rose-700",
-   week:1,title:"Chest Voice — พัฒนาเสียงต่ำ",
-   goal:"ใช้ chest voice ร้องเสียงต่ำได้นิ่งขึ้น รู้สึกถึงการสั่นสะเทือนที่หน้าอก",
-   plan:[{w:1,t:"Chest Voice — เสียงต่ำให้นิ่ง"},{w:2,t:"Breath Control + Sustained Notes"},{w:3,t:"Song Analysis + Bad Romance"},{w:4,t:"Performance Practice"}],
-   reading:`Chest Voice — พลังเสียงจากภายใน
-
-Chest Voice เกิดจากสายเสียงสั่นสะเทือนอย่างเต็มที่ เสียงหนา ทรงพลัง ก้องกังวาน
-
-ทดสอบ: วางมือบนหน้าอก ร้องเสียงต่ำๆ ช้าๆ รู้สึกสั่น = Chest Voice ✅
-
-Warm-Up ประจำสัปดาห์ (10 นาที/วัน):
-1. Lip Trill 2 นาที — เป่าลมให้ริมฝีปากสั่น
-2. Humming 3 นาที — ฮัมเพลง "รักคือ" ปากปิด
-3. Ma-Me-Mi-Mo-Mu 3 นาที — ร้องจากต่ำขึ้นสูง
-4. Scale 2 นาที — Do Re Mi Fa Sol
-
-เพลงฝึก: "รักคือ" — Monotone
-วิธีฝึก: ร้องช้ากว่าต้นฉบับ 2 เท่า วางมือที่หน้าอก สังเกตการสั่น
-
-เคล็ดลับครูมิ้นท์: "อย่าออกแรงมาก ยิ่งเกร็งเสียงยิ่งแย่ ปล่อยตัวสบายๆ"`,
-   mcq:[
-     {q:"Chest Voice เกิดจากอะไร?",c:["ก. สายเสียงสั่นเต็มที่","ข. ลมหายใจเท่านั้น","ค. กล้ามเนื้อคอเกร็ง","ง. การกลืนน้ำลาย"],a:0},
-     {q:"ทดสอบ Chest Voice โดยวิธีใด?",c:["ก. วางมือบนหัว","ข. วางมือบนหน้าอกแล้วร้องต่ำ","ค. มองกระจก","ง. วางมือบนคอ"],a:1},
-     {q:"Lip Trill ทำอย่างไร?",c:["ก. ขยับลิ้นเร็ว","ข. เป่าลมให้ริมฝีปากสั่น","ค. กัดริมฝีปาก","ง. เม้มปาก"],a:1},
-     {q:"Lip Trill ช่วยอะไร?",c:["ก. ผ่อนคลายกล้ามเนื้อคอ","ข. เพิ่มความดัน","ค. ทำเสียงแหบ","ง. ลดระดับเสียง"],a:0},
-     {q:"Humming คืออะไร?",c:["ก. ร้องเสียงดัง","ข. ฮัมปากปิด","ค. ร้องโดยไม่หายใจ","ง. ร้องเร็วมาก"],a:1},
-     {q:"ทำไมต้องร้องช้ากว่าปกติตอนฝึก?",c:["ก. ประหยัดพลัง","ข. ได้ยินเสียงตัวเองชัด","ค. เสียงจะดัง","ง. ทำให้ง่วง"],a:1},
-     {q:"เพลงที่ครูแนะนำฝึก Chest Voice?",c:["ก. Golden","ข. บรรยากาศ","ค. รักคือ","ง. L.O.V.E"],a:2},
-     {q:"ก่อนร้องเพลงต้องทำอะไรก่อน?",c:["ก. ดื่มกาแฟ","ข. Warm-up","ค. นอนหลับ","ง. วิ่ง"],a:1},
-     {q:"Warm-up ใช้เวลากี่นาที?",c:["ก. 5","ข. 10","ค. 20","ง. 30"],a:1},
-     {q:"รู้สึก 'คอแน่น' ขณะร้องหมายความว่าอะไร?",c:["ก. ถูกแล้ว","ข. ใช้ chest voice ผิด","ค. เสียงดี","ง. หายใจถูก"],a:1},
-     {q:"เพลง 'รักคือ' เหมาะฝึก chest voice เพราะ?",c:["ก. เร็วมาก","ข. มีเสียงต่ำในระดับ chest","ค. ง่ายที่สุด","ง. สั้นที่สุด"],a:1},
-     {q:"เสียงแหบควรทำอย่างไร?",c:["ก. ร้องดังขึ้น","ข. พักเสียงดื่มน้ำ","ค. ร้องต่อ","ง. ร้องสูงขึ้น"],a:1},
-     {q:"ทำไม warm-up จึงสำคัญ?",c:["ก. ฟันขาว","ข. อุ่นกล้ามเนื้อป้องกันบาดเจ็บ","ค. ทำให้ง่วง","ง. ไม่มีประโยชน์"],a:1},
-     {q:"เคล็ดลับครูมิ้นท์คือ?",c:["ก. ออกแรงมาก","ข. เกร็งคอ","ค. ปล่อยตัวสบายๆ","ง. ร้องดังสุด"],a:2},
-     {q:"Chest voice ต่างจาก Head voice อย่างไร?",c:["ก. เหมือนกัน","ข. Chest หนากว่า Head เบากว่า","ค. Head ดีกว่า","ง. Chest ใช้เสียงสูง"],a:1},
-   ],
-   written:[
-     {q:"อธิบาย Chest Voice คืออะไร และทำไมสำคัญ (2-3 ประโยค)"},
-     {q:"บันทึกผลการฝึก Warm-up วันนี้: ทำอะไรบ้าง รู้สึกอย่างไร?"},
-     {q:"หลังร้องเพลง 'รักคือ' ช้าๆ เสียงอยู่ที่ไหน (อก คอ หัว)?"},
-     {q:"ความต่างระหว่าง Chest Voice กับ Head Voice ตามความเข้าใจตัวเอง"},
-     {q:"ตั้งเป้าหมาย: อยากพัฒนาเสียงด้านไหนมากที่สุดเดือนนี้ เพราะอะไร?"},
-   ]},
-  {id:"piano-w1",subject:"เปียโน",teacher:"ครูบิ๊ก",teacherId:"kru-big",icon:"🎹",
-   bg:"bg-violet-50",border:"border-violet-200",badge:"bg-violet-100 text-violet-700",
-   week:1,title:"Note Reading — Treble Clef + Interval 5th",
-   goal:"อ่านโน้ต Treble Clef ได้ถูกต้อง ≥80% และเล่น interval 5th ได้ทุก key",
-   plan:[{w:1,t:"Treble Clef + Interval 5th"},{w:2,t:"Bass Clef + มือซ้าย"},{w:3,t:"สองมือ + เพลงสั้น"},{w:4,t:"Note Reading Test"}],
-   reading:`Note Reading — Treble Clef ฉบับสมบูรณ์
-
-การอ่านโน้ตคือทักษะสำคัญที่สุด เหมือนการอ่านหนังสือ ถ้าอ่านแม่นเล่นได้ทุกเพลง!
-
-บรรทัด 5 เส้น (จากล่างขึ้นบน):
-เส้น 1 = E, เส้น 2 = G, เส้น 3 = B, เส้น 4 = D, เส้น 5 = F
-จำ: "Every Good Boy Does Fine" (E G B D F)
-
-ช่องระหว่างเส้น (จากล่างขึ้นบน):
-ช่อง 1 = F, ช่อง 2 = A, ช่อง 3 = C, ช่อง 4 = E
-จำ: FACE
-
-Interval 5th:
-ห่างกัน 5 ขั้น เช่น C→G, D→A, E→B
-เสียง: กว้างๆ สดใส โล่ง
-
-ตำแหน่งบนเปียโน:
-C = ซ้ายของปุ่มดำ 2 ปุ่ม
-D = กลางปุ่มดำ 2 ปุ่ม
-E = ขวาของปุ่มดำ 2 ปุ่ม`,
-   mcq:[
-     {q:"เส้นที่ 1 ของ Treble Clef คือโน้ตอะไร?",c:["ก. C","ข. D","ค. E","ง. F"],a:2},
-     {q:"เส้นที่ 2 คือโน้ตอะไร?",c:["ก. F","ข. G","ค. A","ง. B"],a:1},
-     {q:"เส้นที่ 3 คือโน้ตอะไร?",c:["ก. A","ข. B","ค. C","ง. D"],a:1},
-     {q:"เส้นที่ 4 คือโน้ตอะไร?",c:["ก. B","ข. C","ค. D","ง. E"],a:2},
-     {q:"เส้นที่ 5 คือโน้ตอะไร?",c:["ก. D","ข. E","ค. F","ง. G"],a:2},
-     {q:"ช่องที่ 1 คือโน้ตอะไร?",c:["ก. D","ข. E","ค. F","ง. G"],a:2},
-     {q:"ช่องที่ 2 คือโน้ตอะไร?",c:["ก. A","ข. B","ค. C","ง. D"],a:0},
-     {q:"ช่องที่ 3 คือโน้ตอะไร?",c:["ก. B","ข. C","ค. D","ง. E"],a:1},
-     {q:"'Every Good Boy Does Fine' แต่ละตัวย่อมาจากโน้ตอะไร?",c:["ก. E G B D F","ข. E G C D F","ค. A G B D F","ง. E G B C F"],a:0},
-     {q:"'FACE' หมายถึงอะไร?",c:["ก. โน้ตบนเส้น","ข. โน้ตในช่อง","ค. โน้ต Bass Clef","ง. ชื่อเพลง"],a:1},
-     {q:"Interval 5th หมายถึงอะไร?",c:["ก. ห่าง 3 ขั้น","ข. ห่าง 4 ขั้น","ค. ห่าง 5 ขั้น","ง. ห่าง 6 ขั้น"],a:2},
-     {q:"C→G เป็น Interval อะไร?",c:["ก. 3rd","ข. 4th","ค. 5th","ง. 6th"],a:2},
-     {q:"โน้ต C อยู่ที่ไหนบนเปียโน?",c:["ก. ขวาปุ่มดำ 3 ปุ่ม","ข. ซ้ายปุ่มดำ 2 ปุ่ม","ค. กลางปุ่มดำ 2 ปุ่ม","ง. ขวาปุ่มดำ 2 ปุ่ม"],a:1},
-     {q:"ทำไมการอ่านโน้ตสำคัญ?",c:["ก. เล่นเร็วขึ้น","ข. เล่นได้ทุกเพลง","ค. นิ้วแข็งแรง","ง. เปียโนสวย"],a:1},
-     {q:"เสียง Interval 5th มีลักษณะอย่างไร?",c:["ก. แหลมเจ็บ","ข. กว้างสดใสโล่ง","ค. เศร้าและเบา","ง. ดังน่ากลัว"],a:1},
-   ],
-   written:[
-     {q:"เขียนชื่อโน้ตบนเส้น 5 เส้น จากล่างขึ้นบน พร้อมวลีจำ"},
-     {q:"เขียนชื่อโน้ตในช่อง จากล่างขึ้นบน อธิบายว่าจำด้วยวิธีใด"},
-     {q:"วาดบรรทัด 5 เส้น ระบุตำแหน่งโน้ต G, E, C"},
-     {q:"ฝึก Interval 5th: C→G วันนี้ทำได้กี่ครั้งถูกจาก 10 ครั้ง? บันทึกผล"},
-     {q:"Interval 5th ฟังแล้วรู้สึกอย่างไร เปรียบกับโน้ตเดี่ยวๆ"},
-   ]},
-  {id:"eng-w1",subject:"ภาษาอังกฤษ",teacher:"ครูเจน",teacherId:"kru-jen",icon:"🇬🇧",
-   bg:"bg-indigo-50",border:"border-indigo-200",badge:"bg-indigo-100 text-indigo-700",
-   week:1,title:"Be Verbs (am / is / are) + Daily Vocabulary",
-   goal:"วอลนัทใช้ am/is/are ถูกต้อง และรู้คำศัพท์ชีวิตประจำวัน 10 คำ",
-   plan:[{w:1,t:"Be Verbs + Daily Vocab"},{w:2,t:"Simple Present + Family"},{w:3,t:"Colors Numbers Body"},{w:4,t:"Review + Test"}],
-   reading:`Walnut's English Class
-
-Walnut is in Grade 4. She is 8 years old.
-Her school is Thai Christian School in Phrakhanong.
-
-Today is English class. Teacher Jane is very happy.
-"Good morning, students!" said Teacher Jane.
-"Good morning, Teacher Jane!" said the class.
-
-"Today we learn Be Verbs!" Teacher Jane said.
-  • I AM a student.
-  • Walnut IS a singer.
-  • We ARE friends.
-
-Vocabulary List:
-  happy     = มีความสุข
-  proud     = ภูมิใจ
-  singer    = นักร้อง
-  school    = โรงเรียน
-  student   = นักเรียน
-  teacher   = ครู
-  morning   = ตอนเช้า
-  friend    = เพื่อน
-  family    = ครอบครัว
-  music     = ดนตรี
-
-Grammar Rules:
-  I          → AM    (I am Walnut.)
-  He/She/It  → IS    (She is kind.)
-  You/We/They→ ARE   (We are students.)`,
-   mcq:[
-     {q:'I ___ happy.',c:['ก. am','ข. is','ค. are','ง. be'],a:0},
-     {q:'She ___ a teacher.',c:['ก. am','ข. is','ค. are','ง. be'],a:1},
-     {q:'We ___ students.',c:['ก. am','ข. is','ค. are','ง. be'],a:2},
-     {q:'He ___ my friend.',c:['ก. am','ข. is','ค. are','ง. be'],a:1},
-     {q:'They ___ in Grade 4.',c:['ก. am','ข. is','ค. are','ง. be'],a:2},
-     {q:'"happy" แปลว่า?',c:['ก. ภูมิใจ','ข. มีความสุข','ค. เศร้า','ง. โกรธ'],a:1},
-     {q:'"proud" แปลว่า?',c:['ก. ดีใจ','ข. กลัว','ค. ภูมิใจ','ง. ตื่นเต้น'],a:2},
-     {q:'"singer" แปลว่า?',c:['ก. นักดนตรี','ข. นักเต้น','ค. นักร้อง','ง. ครู'],a:2},
-     {q:'"school" แปลว่า?',c:['ก. บ้าน','ข. โรงเรียน','ค. ร้านค้า','ง. สวน'],a:1},
-     {q:'"friend" แปลว่า?',c:['ก. พี่น้อง','ข. ครู','ค. เพื่อน','ง. พ่อแม่'],a:2},
-     {q:'วอลนัทเรียนชั้นอะไร?',c:['ก. ป.3','ข. ป.4','ค. ป.5','ง. ป.6'],a:1},
-     {q:'ครูเจนสอนวิชาอะไร?',c:['ก. Math','ข. Thai','ค. English','ง. Science'],a:2},
-     {q:'ประโยคใดถูกต้อง?',c:['ก. I is happy','ข. She am a singer','ค. We are friends','ง. He are tall'],a:2},
-     {q:'"I AM" ใช้กับใคร?',c:['ก. เขา','ข. เธอ','ค. ฉัน','ง. พวกเรา'],a:2},
-     {q:'"teacher" แปลว่า?',c:['ก. นักเรียน','ข. ครู','ค. พ่อแม่','ง. เพื่อน'],a:1},
-   ],
-   written:[
-     {q:'เติม am/is/are: "I ___ Walnut. I ___ 8 years old. She ___ my teacher."'},
-     {q:'เขียน 2 ประโยคภาษาอังกฤษแนะนำตัวเอง (ชื่อ อายุ สิ่งที่ชอบ)'},
-     {q:'เลือก 3 คำศัพท์จากบทเรียนที่ชอบ แล้วเขียนประโยคใช้คำนั้น 1 ประโยค/คำ'},
-     {q:'"Walnut IS a singer." — ทำไมต้องใช้ IS? อธิบายกฎ am/is/are สั้นๆ'},
-     {q:'เขียน 1 ประโยคภาษาอังกฤษเกี่ยวกับครอบครัวของคุณ ใช้ am/is/are'},
-   ]},
-];
-
-// ── MAIN RENDER ──────────────────────────────────────────
+// ── PAGE SHELL ────────────────────────────────────────────
 function renderPage(){
   const tabs=[
     {id:"tasks",   label:"แผน & Tasks", icon:"📋"},
@@ -551,7 +223,6 @@ function renderPage(){
     </div>
     <div id="tab-area">${renderTab()}</div>`;
 }
-
 function switchTab(t){
   activeTab=t;
   document.querySelectorAll(".walnut-tab").forEach(el=>{
@@ -559,19 +230,17 @@ function switchTab(t){
   });
   document.getElementById("tab-area").innerHTML=renderTab();
 }
-
 function renderTab(){
+  if(activeTab==="tasks")   return renderTasks();
   if(activeTab==="lessons") return renderLessons();
   if(activeTab==="report")  return renderReport();
   if(activeTab==="kru")     return renderTeam();
-  if(activeTab==="tasks")   return renderTasks();
   return "";
 }
 
-// ── LESSONS TAB ──────────────────────────────────────────
+// ── LESSONS TAB ───────────────────────────────────────────
 function renderLessons(){
   const done=LESSONS.filter(l=>getHwState(l.id).submitted).length;
-  const nextWed=getNextDay(3), nextSat=getNextDay(6);
   return `
     <div class="bg-white rounded-b-2xl border border-t-0 border-gray-100 p-5">
       <div class="flex items-center justify-between mb-5">
@@ -613,8 +282,8 @@ function renderLessons(){
             </div>
             <div class="flex gap-2 mt-3">
               <button onclick="openHw('${l.id}')"
-                class="${st.submitted?"bg-gray-100 text-gray-600":"bg-amber-400 hover:bg-amber-500 text-white"} flex-1 py-2 rounded-xl text-sm font-semibold transition-colors">
-                ${st.submitted?"📋 ดูผลการบ้าน":"✏️ ทำการบ้าน (15+5 ข้อ)"}
+                class="${st.submitted?"bg-blue-100 text-blue-700 hover:bg-blue-200":"bg-amber-400 hover:bg-amber-500 text-white"} flex-1 py-2 rounded-xl text-sm font-semibold transition-colors">
+                ${st.submitted?"📊 ดูผลและ Dr.Aim วิเคราะห์":"✏️ ทำการบ้าน (15+5 ข้อ)"}
               </button>
               <button onclick="openTeacher('${l.teacherId}')"
                 class="px-4 py-2 rounded-xl text-sm border ${l.badge} font-medium hover:opacity-80">💬</button>
@@ -625,7 +294,7 @@ function renderLessons(){
     </div>`;
 }
 
-// ── REPORT TAB ───────────────────────────────────────────
+// ── REPORT TAB ────────────────────────────────────────────
 function renderReport(){
   const scores=LESSONS.map(l=>{const s=getHwState(l.id);return{...l,score:s.score??null,submitted:!!s.submitted};});
   const done=scores.filter(s=>s.submitted).length;
@@ -653,10 +322,13 @@ function renderReport(){
       </div>
       <div class="space-y-2 mb-5">
         ${scores.map(s=>`
-          <div class="${s.bg} border rounded-xl p-3 flex items-center gap-3">
+          <div class="${s.bg} border rounded-xl p-3 flex items-center gap-3 cursor-pointer hover:shadow-sm" onclick="openHw('${s.id}')">
             <div class="text-lg">${s.icon}</div>
             <div class="flex-1"><div class="text-sm font-medium text-gray-800">${s.subject}</div><div class="text-xs text-gray-400">${s.teacher}</div></div>
-            ${s.submitted?`<div class="text-right"><div class="font-bold text-sm">${s.score}/20</div><div class="text-xs ${s.score>=16?"text-green-500":s.score>=12?"text-amber-500":"text-red-400"}">${s.score>=16?"ดีมาก 🌟":s.score>=12?"ดี 👍":"ต้องพัฒนา 💪"}</div></div>`:`<span class="status-badge bg-gray-100 text-gray-400">ยังไม่ส่ง</span>`}
+            ${s.submitted?`<div class="text-right">
+              <div class="font-bold text-sm">${s.score}/20</div>
+              <div class="text-xs ${s.score>=16?"text-green-500":s.score>=12?"text-amber-500":"text-red-400"}">${s.score>=16?"ดีมาก 🌟":s.score>=12?"ดี 👍":"ต้องพัฒนา 💪"}</div>
+            </div>`:`<span class="status-badge bg-gray-100 text-gray-400">ยังไม่ส่ง</span>`}
           </div>`).join("")}
       </div>
       <div class="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-4">
@@ -674,12 +346,13 @@ function renderReport(){
     </div>`;
 }
 
-// ── TEAM TAB ─────────────────────────────────────────────
+// ── TEAM TAB ──────────────────────────────────────────────
+// หลัก [0-2], วิชาการ [3-6] (รวมครูเจน), ดนตรี [7-8]
 function renderTeam(){
   const groups=[
-    {label:"ทีมหลัก",members:TEAM.slice(0,3)},
-    {label:"ทีมครูวิชาการ",members:TEAM.slice(3,6)},
-    {label:"ทีมครูดนตรี",members:TEAM.slice(6)},
+    {label:"ทีมหลัก",       members:TEAM.slice(0,3)},
+    {label:"ทีมครูวิชาการ", members:TEAM.slice(3,7)},
+    {label:"ทีมครูดนตรี",   members:TEAM.slice(7)},
   ];
   return `<div class="bg-white rounded-b-2xl border border-t-0 border-gray-100 p-5 space-y-5">
     <p class="text-sm text-gray-400">กดการ์ดเพื่อคุยกับแต่ละคนได้เลยครับ</p>
@@ -700,280 +373,17 @@ function renderTeam(){
   </div>`;
 }
 
-// ── LOCAL TASK STORAGE ───────────────────────────────────
-const DEFAULT_SCHEDULE={
-  mon:["ภาษาไทย","คณิตศาสตร์","วิทยาศาสตร์","สังคม","ดนตรี"],
-  tue:["ภาษาอังกฤษ","คณิตศาสตร์","ภาษาไทย","ศิลปะ","พลศึกษา"],
-  wed:["คณิตศาสตร์","วิทยาศาสตร์","ภาษาอังกฤษ","ภาษาไทย","สุขศึกษา"],
-  thu:["ภาษาไทย","สังคม","คณิตศาสตร์","วิทยาศาสตร์","ภาษาอังกฤษ"],
-  fri:["คณิตศาสตร์","ภาษาไทย","ภาษาอังกฤษ","ดนตรี","พลศึกษา"],
-};
-function getSchedule(){return JSON.parse(localStorage.getItem("walnut_sch")||JSON.stringify(DEFAULT_SCHEDULE));}
-function saveSchedule(s){localStorage.setItem("walnut_sch",JSON.stringify(s));}
-function getLocalTasks(){return JSON.parse(localStorage.getItem("walnut_tasks")||"[]");}
-function saveLocalTasks(ts){localStorage.setItem("walnut_tasks",JSON.stringify(ts));}
-function getFriday(){const d=new Date();const diff=(5-d.getDay()+7)%7||7;d.setDate(d.getDate()+diff);return d.toISOString().slice(0,10);}
-function getSaturday(){const d=new Date();const diff=(6-d.getDay()+7)%7||7;d.setDate(d.getDate()+diff);return d.toISOString().slice(0,10);}
-
-function syncLessonTasks(){
-  let ts=getLocalTasks();let changed=false;
-  LESSONS.forEach(l=>{
-    const music=l.id.startsWith("sing")||l.id.startsWith("piano");
-    const due=music?getSaturday():getFriday();
-    const existing=ts.find(t=>t.lessonId===l.id);
-    const hwDone=getHwState(l.id).submitted;
-    if(!existing){
-      ts.push({id:"lt-"+l.id,lessonId:l.id,title:"📝 การบ้าน"+l.subject,subject:l.subject,icon:l.icon,badge:l.badge,type:"lesson",status:hwDone?"done":"pending",due});
-      changed=true;
-    } else if(hwDone&&existing.status!=="done"){
-      existing.status="done";changed=true;
-    }
-  });
-  if(changed)saveLocalTasks(ts);
-}
-
-function toggleLocalTask(id){
-  const ts=getLocalTasks();
-  const t=ts.find(x=>x.id===id);
-  if(t){t.status=t.status==="done"?"pending":"done";saveLocalTasks(ts);}
-  switchTab("tasks");
-}
-function deleteLocalTask(id){
-  const ts=getLocalTasks().filter(t=>t.id!==id);
-  saveLocalTasks(ts);switchTab("tasks");
-}
-function openAddTask(){
-  const title=prompt("ชื่อ Task:");if(!title)return;
-  const due=prompt("วันครบกำหนด (YYYY-MM-DD):",getFriday())||getFriday();
-  const ts=getLocalTasks();
-  ts.push({id:"m-"+Date.now(),title,subject:"ทั่วไป",icon:"📌",badge:"bg-gray-100 text-gray-600",type:"manual",status:"pending",due});
-  saveLocalTasks(ts);switchTab("tasks");
-}
-function setTaskFilter(f,btn){
-  taskFilter=f;
-  document.querySelectorAll(".task-f").forEach(el=>{
-    el.className="task-f px-3 py-1.5 rounded-lg text-xs font-medium transition-colors "+(el.dataset.f===f?"bg-amber-400 text-white":"bg-gray-100 text-gray-500 hover:bg-amber-50");
-  });
-  const all=getLocalTasks();
-  const shown=f==="done"?all.filter(t=>t.status==="done"):f==="pending"?all.filter(t=>t.status!=="done"):all;
-  document.getElementById("task-list-inner").innerHTML=renderTaskList(shown);
-}
-
-function renderTaskList(ts){
-  if(!ts.length) return '<div class="text-center text-gray-300 py-8 text-sm">ไม่มี Task ในหมวดนี้</div>';
-  const groups={overdue:[],today:[],week:[],done:[]};
-  ts.forEach(t=>{
-    if(t.status==="done")groups.done.push(t);
-    else if(t.due<TODAY)groups.overdue.push(t);
-    else if(t.due===TODAY)groups.today.push(t);
-    else groups.week.push(t);
-  });
-  const renderGroup=(label,color,items)=>{
-    if(!items.length)return "";
-    return '<div class="mb-4"><div class="text-xs font-bold '+color+' mb-2">'+label+'</div>'+
-      items.map(t=>'<div class="flex items-center gap-3 p-3 rounded-xl border border-transparent hover:bg-amber-50 transition-colors mb-1">'+
-        '<button onclick="toggleLocalTask(\''+t.id+'\')" class="w-6 h-6 rounded-full border-2 flex-shrink-0 flex items-center justify-center text-xs font-bold transition-colors '+(t.status==="done"?"bg-green-400 border-green-400 text-white":"border-gray-300 hover:border-amber-400 text-transparent")+'" >✓</button>'+
-        '<span class="text-lg">'+t.icon+'</span>'+
-        '<div class="flex-1 min-w-0">'+
-          '<div class="text-sm font-medium '+(t.status==="done"?"line-through text-gray-300":"text-gray-800")+' truncate">'+t.title+'</div>'+
-          '<div class="flex items-center gap-2 mt-0.5"><span class="status-badge '+t.badge+'">'+t.subject+'</span><span class="text-xs text-gray-400">'+t.due+'</span></div>'+
-        '</div>'+
-        (t.type==="manual"?'<button onclick="deleteLocalTask(\''+t.id+'\')" class="text-gray-300 hover:text-red-400 text-lg transition-colors ml-1">×</button>':'')+
-      '</div>').join("")+
-    '</div>';
-  };
-  return renderGroup("⚠️ ค้างจากที่แล้ว","text-red-400",groups.overdue)+
-         renderGroup("📌 วันนี้","text-amber-600",groups.today)+
-         renderGroup("📅 สัปดาห์นี้","text-gray-500",groups.week)+
-         renderGroup("✅ เสร็จแล้ว","text-green-500",groups.done);
-}
-
-// ── TASKS TAB ────────────────────────────────────────────
-function renderTasks(){
-  syncLessonTasks();
-  const all=getLocalTasks();
-  const shown=taskFilter==="done"?all.filter(t=>t.status==="done"):taskFilter==="pending"?all.filter(t=>t.status!=="done"):all;
-  const doneLessons=LESSONS.filter(l=>getHwState(l.id).submitted).length;
-  const allDone=doneLessons===LESSONS.length;
-  const sch=getSchedule();
-  const dayKeys=["mon","tue","wed","thu","fri"];
-  const dayNames={mon:"จ.",tue:"อ.",wed:"พ.",thu:"พฤ.",fri:"ศ."};
-
-  const scheduleRows=(()=>{
-    let rows="";
-    for(let p=0;p<5;p++){
-      rows+="<tr>";
-      dayKeys.forEach(d=>{
-        const sub=sch[d][p]||"";
-        const color=sub.includes("คณิต")?"bg-orange-50 text-orange-700":
-          sub.includes("ไทย")?"bg-yellow-50 text-yellow-700":
-          sub.includes("อังกฤษ")?"bg-indigo-50 text-indigo-700":
-          sub.includes("วิทย์")?"bg-cyan-50 text-cyan-700":
-          sub.includes("ดนตรี")?"bg-rose-50 text-rose-700":"bg-gray-50 text-gray-500";
-        rows+='<td class="px-0.5 py-0.5"><div class="'+color+' rounded px-1 py-0.5 text-center text-xs truncate">'+sub+'</div></td>';
-      });
-      rows+="</tr>";
-    }
-    return rows;
-  })();
-
-  return '<div class="bg-white rounded-b-2xl border border-t-0 border-gray-100 p-5 space-y-4">'+
-    // Progress
-    '<div class="bg-amber-50 border border-amber-200 rounded-2xl p-4">'+
-      '<div class="flex items-center justify-between mb-2">'+
-        '<span class="text-sm font-bold text-amber-800">ความคืบหน้าสัปดาห์นี้</span>'+
-        '<span class="text-sm font-bold text-amber-600">'+doneLessons+'/'+LESSONS.length+' วิชา</span>'+
-      '</div>'+
-      '<div class="bg-amber-100 rounded-full h-3"><div class="bg-amber-400 h-3 rounded-full transition-all" style="width:'+Math.round(doneLessons/LESSONS.length*100)+'%"></div></div>'+
-      (allDone?'<div class="mt-3 flex items-center justify-between"><span class="text-green-600 font-semibold text-sm">🎉 ครบทุกวิชาแล้ว!</span><button onclick="openCreativeSurvey()" class="bg-pink-400 hover:bg-pink-500 text-white px-4 py-2 rounded-xl text-sm font-semibold">ตอบแบบสอบถามพัฒนาการ →</button></div>':'')+
-    '</div>'+
-    // Team analysis
-    '<div class="border border-blue-100 rounded-2xl p-4 bg-blue-50">'+
-      '<div class="flex items-center justify-between mb-3">'+
-        '<div class="flex items-center gap-2"><span class="text-lg">📊</span><span class="font-bold text-sm text-blue-800">Dr.Aim + Tangmo — วิเคราะห์แผนสัปดาห์นี้</span></div>'+
-        '<button onclick="openTeacher(\'dr-aim\')" class="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700">คุย Dr.Aim</button>'+
-      '</div>'+
-      '<div class="space-y-2 text-sm">'+
-        '<div class="flex gap-2"><span class="text-red-500 shrink-0">🔴</span><span><strong>Priority 1 — คณิต:</strong> เรียนทุกวัน → ฝึกโจทย์ปัญหา 20 นาทีหลังเลิกโรงเรียน</span></div>'+
-        '<div class="flex gap-2"><span class="text-yellow-500 shrink-0">🟡</span><span><strong>Priority 2 — ไทย+อังกฤษ:</strong> สลับกัน วันคู่ทำไทย วันคี่ทำอังกฤษ 15 นาที</span></div>'+
-        '<div class="flex gap-2"><span class="text-cyan-500 shrink-0">🔵</span><span><strong>วิทย์:</strong> อาทิตย์ละ 2 ครั้ง ทำ experiment เสริมที่บ้าน</span></div>'+
-        '<div class="flex gap-2"><span class="text-green-500 shrink-0">🟢</span><span><strong>ดนตรี:</strong> ซ้อมทุกเย็น เปียโน 15 นาที + ร้องเพลง warm-up 10 นาที</span></div>'+
-      '</div>'+
-    '</div>'+
-    // Schedule
-    '<div class="border border-gray-100 rounded-2xl p-4">'+
-      '<div class="flex items-center justify-between mb-3">'+
-        '<div class="flex items-center gap-2"><span>🏫</span><span class="font-bold text-sm text-gray-800">ตารางเรียนโรงเรียน</span></div>'+
-        '<button onclick="openScheduleEdit()" class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 px-3 py-1.5 rounded-lg">✏️ แก้ไข</button>'+
-      '</div>'+
-      '<div class="overflow-x-auto"><table class="w-full text-xs">'+
-        '<tr>'+dayKeys.map(d=>'<th class="pb-1 text-gray-400 font-semibold text-center">'+dayNames[d]+'</th>').join('')+'</tr>'+
-        scheduleRows+
-      '</table></div>'+
-    '</div>'+
-    // Tasks
-    '<div>'+
-      '<div class="flex items-center justify-between mb-3">'+
-        '<div class="flex gap-1.5">'+
-          ['all','pending','done'].map(f=>'<button onclick="setTaskFilter(\''+f+'\',this)" data-f="'+f+'" class="task-f px-3 py-1.5 rounded-lg text-xs font-medium transition-colors '+(taskFilter===f?'bg-amber-400 text-white':'bg-gray-100 text-gray-500')+'">'+
-            (f==='all'?'ทั้งหมด':f==='pending'?'รอทำ':'เสร็จ')+'</button>').join('')+
-        '</div>'+
-        '<button onclick="openAddTask()" class="bg-amber-400 hover:bg-amber-500 text-white px-4 py-2 rounded-xl text-sm font-semibold">+ เพิ่ม Task</button>'+
-      '</div>'+
-      '<div id="task-list-inner">'+renderTaskList(shown)+'</div>'+
-    '</div>'+
-  '</div>';
-}
-
-// ── HOMEWORK ─────────────────────────────────────────────
-function openHw(id){
-  const l=LESSONS.find(x=>x.id===id);if(!l)return;
-  currentHwLesson=l;
-  const st=getHwState(id);
-  hwMcqAnswers=st.mcqAnswers||new Array(l.mcq.length).fill(null);
-  hwWrittenAnswers=st.writtenAnswers||new Array(l.written.length).fill("");
-  document.getElementById("hw-hdr").className=`rounded-2xl p-5 mb-5 flex items-center justify-between ${l.bg} border ${l.border}`;
-  document.getElementById("hw-icon").textContent=l.icon;
-  document.getElementById("hw-subj").textContent=l.subject;
-  document.getElementById("hw-tch").textContent=l.teacher+" · "+l.week+"  พ.ค. 2026";
-  document.getElementById("hw-title").textContent=l.title;
-  document.getElementById("hw-goal").textContent="🎯 "+l.goal;
-  document.getElementById("hw-content").innerHTML=getLessonVisual(l.id)+'<div class="whitespace-pre-line text-sm text-gray-700 leading-relaxed">'+l.reading.replace(/</g,"&lt;").replace(/>/g,"&gt;")+'</div>';
-  document.getElementById("hw-mcq").innerHTML=l.mcq.map((q,i)=>`
-    <div class="border border-gray-100 rounded-xl p-4 bg-gray-50">
-      <div class="text-sm font-medium text-gray-800 mb-3">${i+1}. ${q.q}</div>
-      <div class="space-y-2">
-        ${q.c.map((c,ci)=>`
-          <button onclick="selMcq(${i},${ci})" data-q="${i}" data-c="${ci}"
-            class="mcq-btn w-full text-left px-4 py-2.5 rounded-lg text-sm border ${hwMcqAnswers[i]===ci?"bg-amber-400 border-amber-400 text-white font-semibold":"bg-white border-gray-200 hover:border-amber-300 text-gray-700"}">
-            ${c}
-          </button>`).join("")}
-      </div>
-    </div>`).join("");
-  document.getElementById("hw-written").innerHTML=l.written.map((q,i)=>`
-    <div class="border border-gray-100 rounded-xl p-4 bg-gray-50">
-      <div class="text-sm font-medium text-gray-800 mb-2">${i+1}. ${q.q}</div>
-      <textarea rows="3" placeholder="เขียนคำตอบที่นี่..." data-wi="${i}"
-        onchange="hwWrittenAnswers[${i}]=this.value"
-        class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-400 resize-none bg-white"
-      >${hwWrittenAnswers[i]||""}</textarea>
-    </div>`).join("");
-  if(st.submitted&&st.feedback){
-    showHwResult(st);
-    const btn=document.getElementById("hw-submit");
-    btn.textContent="✅ ส่งแล้ว"; btn.disabled=true; btn.className="w-full bg-green-400 text-white py-3 rounded-2xl font-bold cursor-not-allowed";
-  } else {
-    document.getElementById("hw-result").classList.add("hidden");
-    const btn=document.getElementById("hw-submit");
-    btn.textContent="ส่งการบ้าน →"; btn.disabled=false; btn.className="w-full bg-amber-400 hover:bg-amber-500 text-white py-3 rounded-2xl font-bold";
-  }
-  document.getElementById("hw-modal").classList.remove("hidden");
-  window.scrollTo(0,0);
-}
-function closeHw(){document.getElementById("hw-modal").classList.add("hidden");currentHwLesson=null;}
-function selMcq(qi,ci){
-  hwMcqAnswers[qi]=ci;
-  document.querySelectorAll(`[data-q="${qi}"]`).forEach(btn=>{
-    const sel=+btn.dataset.c===ci;
-    btn.className="mcq-btn w-full text-left px-4 py-2.5 rounded-lg text-sm border transition-colors "+(sel?"bg-amber-400 border-amber-400 text-white font-semibold":"bg-white border-gray-200 hover:border-amber-300 text-gray-700");
-  });
-}
-function showHwResult(st){
-  const pct=Math.round((st.score/20)*100);
-  const em=pct>=80?"🏆":pct>=60?"😊":"💪";
-  document.getElementById("hw-result").innerHTML=`
-    <div class="text-center mb-4"><div class="text-4xl mb-2">${em}</div>
-      <div class="text-2xl font-bold">${st.score}/20 คะแนน</div><div class="text-sm text-gray-400">${pct}%</div></div>
-    <div class="grid grid-cols-2 gap-3 mb-4">
-      <div class="bg-amber-50 rounded-xl p-3 text-center"><div class="text-lg font-bold text-amber-600">${st.mcqScore}/15</div><div class="text-xs text-gray-500">เลือกตอบ</div></div>
-      <div class="bg-blue-50 rounded-xl p-3 text-center"><div class="text-lg font-bold text-blue-600">${st.writtenScore}/5</div><div class="text-xs text-gray-500">เขียนตอบ</div></div>
-    </div>
-    ${st.feedback?`<div class="bg-gray-50 rounded-xl p-4 text-sm text-gray-700 leading-relaxed whitespace-pre-line"><div class="font-semibold mb-1">💬 ความเห็นจากครู:</div>${st.feedback}</div>`:""}`;
-  document.getElementById("hw-result").classList.remove("hidden");
-}
-async function submitHw(){
-  if(!currentHwLesson)return;
-  const l=currentHwLesson;
-  document.querySelectorAll("[data-wi]").forEach(el=>{hwWrittenAnswers[+el.dataset.wi]=el.value;});
-  const btn=document.getElementById("hw-submit");
-  btn.textContent="กำลังตรวจ..."; btn.disabled=true;
-  let mcqScore=0;
-  l.mcq.forEach((q,i)=>{if(hwMcqAnswers[i]===q.a)mcqScore++;});
-  let writtenScore=0, feedback="";
-  if(CFG.claude){
-    try{
-      const wtext=l.written.map((q,i)=>`ข้อ${i+1}: ${q.q}\nคำตอบ: ${hwWrittenAnswers[i]||"(ไม่ได้ตอบ)"}`).join("\n\n");
-      const res=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:500,
-          system:`คุณคือ${l.teacher} ครูของวอลนัท (8 ขวบ ป.4) กำลังตรวจการบ้านเขียนตอบ 5 ข้อ ให้คะแนน 0-1 ต่อข้อ ตอบเป็น JSON: {"scores":[0,1,0,1,1],"feedback":"ความเห็น 2-3 ประโยค ภาษาไทย อบอุ่น"}`,
-          messages:[{role:"user",content:`วิชา ${l.subject} หัวข้อ ${l.title}
-
-${wtext}`}]})});
-      const data=await res.json();
-      const text=data.content?.[0]?.text||"{}";
-      const match=text.match(/\{[\s\S]*\}/);
-      if(match){const p=JSON.parse(match[0]);writtenScore=(p.scores||[]).reduce((a,b)=>a+b,0);feedback=p.feedback||"";}
-    }catch(e){writtenScore=2;feedback="ขอบคุณที่ส่งการบ้านนะคะ";}
-  } else {writtenScore=2;feedback="ใส่ Claude API Key เพื่อรับการตรวจแบบละเอียดนะคะ";}
-  const total=mcqScore+writtenScore;
-  const st={submitted:true,mcqAnswers:hwMcqAnswers,writtenAnswers:hwWrittenAnswers,mcqScore,writtenScore,score:total,feedback,submittedAt:new Date().toISOString()};
-  saveHwState(l.id,st);
-  showHwResult(st);
-  btn.textContent="✅ ส่งแล้ว"; btn.disabled=true; btn.className="w-full bg-green-400 text-white py-3 rounded-2xl font-bold cursor-not-allowed";
-  document.getElementById("hw-result").scrollIntoView({behavior:"smooth"});
-}
-
-// ── TEACHER CHAT ─────────────────────────────────────────
+// ── TEACHER CHAT ──────────────────────────────────────────
 function openTeacher(id){
   const m=TEAM.find(x=>x.id===id);if(!m)return;
   currentTeacher=m; teacherHistory=[];
-  document.getElementById("t-header").className=`p-4 border-b flex items-center justify-between ${m.bg}`;
+  document.getElementById("t-header").className="p-4 border-b flex items-center justify-between "+m.bg;
   document.getElementById("t-icon").textContent=m.icon;
-  document.getElementById("t-icon").className=`w-10 h-10 rounded-xl flex items-center justify-center text-xl ${m.bg} border ${m.border}`;
+  document.getElementById("t-icon").className="w-10 h-10 rounded-xl flex items-center justify-center text-xl "+m.bg+" border "+m.border;
   document.getElementById("t-name").textContent=m.name;
   document.getElementById("t-role").textContent=m.role;
-  document.getElementById("t-msgs").innerHTML=`
-    <div class="flex gap-2"><div class="${m.bg} w-7 h-7 rounded-full flex items-center justify-center text-base mt-0.5">${m.icon}</div>
+  document.getElementById("t-msgs").innerHTML=
+    `<div class="flex gap-2"><div class="${m.bg} w-7 h-7 rounded-full flex items-center justify-center text-base mt-0.5">${m.icon}</div>
     <div class="${m.bg} rounded-2xl rounded-tl-none px-4 py-3 text-sm max-w-xs">สวัสดีครับ! ${m.name} พร้อมช่วยเลยค่ะ 😊</div></div>`;
   document.getElementById("t-panel").classList.remove("translate-x-full");
   document.getElementById("t-overlay").classList.remove("hidden");
@@ -1011,14 +421,9 @@ async function sendTeacher(){
     teacherHistory.push({role:"assistant",content:reply}); addTMsg("assistant",reply);
   }catch(e){document.getElementById(lid)?.remove();addTMsg("assistant","❌ "+e.message);}
 }
+function toggleChat(){chatOpen=!chatOpen;openTeacher("tangmo");}
 
-// ── CHAT (main) ──────────────────────────────────────────
-function toggleChat(){
-  chatOpen=!chatOpen;
-  openTeacher("tangmo");
-}
-
-// ── SETTINGS ─────────────────────────────────────────────
+// ── SETTINGS ──────────────────────────────────────────────
 function openSettings(){
   document.getElementById("s-claude").value=CFG.claude;
   document.getElementById("s-url").value=CFG.sbUrl;
@@ -1032,170 +437,16 @@ function saveSettings(){
   location.reload();
 }
 
-// ── CREATIVE SURVEY ──────────────────────────────────────
-function openCreativeSurvey(){
-  const saved=JSON.parse(localStorage.getItem("walnut_survey_w1")||"{}");
-  if(saved.submitted){
-    document.getElementById("sq1").value=saved.answers[0]||"";
-    document.getElementById("sq2").value=saved.answers[1]||"";
-    document.getElementById("sq3").value=saved.answers[2]||"";
-    document.getElementById("sq4").value=saved.answers[3]||"";
-    document.getElementById("sq5").value=saved.answers[4]||"";
-    if(saved.feedback){
-      const r=document.getElementById("survey-result");
-      r.classList.remove("hidden");
-      r.innerHTML='<div class="text-xs font-bold text-pink-700 mb-2">🌸 Tangmo วิเคราะห์</div><div class="text-sm text-gray-700 whitespace-pre-wrap">'+saved.feedback+'</div>';
-    }
-    const btn=document.getElementById("survey-btn");
-    btn.textContent="ส่งแล้ว ✅";btn.disabled=true;btn.className="w-full mt-5 bg-green-400 text-white py-3 rounded-2xl font-bold cursor-not-allowed";
-  }
-  document.getElementById("survey-modal").classList.remove("hidden");
-}
-async function submitCreativeSurvey(){
-  const answers=[
-    document.getElementById("sq1").value.trim(),
-    document.getElementById("sq2").value.trim(),
-    document.getElementById("sq3").value.trim(),
-    document.getElementById("sq4").value.trim(),
-    document.getElementById("sq5").value.trim(),
-  ];
-  const btn=document.getElementById("survey-btn");
-  btn.textContent="Tangmo กำลังวิเคราะห์...";btn.disabled=true;
-  let feedback="(ไม่ได้เชื่อมต่อ Claude — บันทึกคำตอบแล้ว)";
-  if(CFG.claude){
-    try{
-      const qs=["ไอเดียใหม่สัปดาห์นี้","เพลงที่อยากแต่ง","สิ่งที่สนุกที่สุด","อยากเรียนรู้เพิ่ม","สิ่งที่จินตนาการ"];
-      const body=qs.map((q,i)=>"คำถาม: "+q+"\nคำตอบวอลนัท: "+(answers[i]||"(ไม่ได้ตอบ)")).join("\n\n");
-      const res=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:600,
-          system:"คุณคือ Tangmo หัวหน้าแผนก Walnut Learning วิเคราะห์คำตอบแบบสอบถามพัฒนาการจินตนาการและความคิดสร้างสรรค์ของวอลนัท (8 ขวบ) ตอบภาษาไทย อบอุ่น 3-4 ย่อหน้า เน้น insight ที่น่าสนใจ + แนะนำกิจกรรมเสริม",
-          messages:[{role:"user",content:body}]})});
-      const d=await res.json();
-      feedback=d.content?.[0]?.text||feedback;
-    }catch(e){feedback="เกิดข้อผิดพลาด: "+e.message;}
-  }
-  localStorage.setItem("walnut_survey_w1",JSON.stringify({submitted:true,answers,feedback}));
-  const r=document.getElementById("survey-result");
-  r.classList.remove("hidden");
-  r.innerHTML='<div class="text-xs font-bold text-pink-700 mb-2">🌸 Tangmo วิเคราะห์</div><div class="text-sm text-gray-700 whitespace-pre-wrap">'+feedback+'</div>';
-  btn.textContent="ส่งแล้ว ✅";btn.className="w-full mt-5 bg-green-400 text-white py-3 rounded-2xl font-bold cursor-not-allowed";
-}
-
-// ── SCHEDULE EDIT ─────────────────────────────────────────
-function openScheduleEdit(){
-  const sch=getSchedule();
-  const days=["mon","tue","wed","thu","fri"];
-  const dayLabels={mon:"วันจันทร์",tue:"วันอังคาร",wed:"วันพุธ",thu:"วันพฤหัส",fri:"วันศุกร์"};
-  const grid=document.getElementById("sch-edit-grid");
-  grid.innerHTML=days.map(d=>
-    '<div><div class="text-xs font-bold text-gray-600 mb-1">'+dayLabels[d]+'</div>'+
-    '<div class="grid grid-cols-5 gap-1">'+
-    [0,1,2,3,4].map(p=>
-      '<input type="text" data-day="'+d+'" data-p="'+p+'" value="'+((sch[d]&&sch[d][p])||"")+
-      '" placeholder="คาบ '+(p+1)+'" class="border rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:border-amber-400">'
-    ).join('')+
-    '</div></div>'
-  ).join('');
-  document.getElementById("sch-modal").classList.remove("hidden");
-}
-function saveScheduleEdit(){
-  const sch={mon:[],tue:[],wed:[],thu:[],fri:[]};
-  document.querySelectorAll("#sch-edit-grid input").forEach(inp=>{
-    sch[inp.dataset.day][parseInt(inp.dataset.p)]=inp.value.trim();
-  });
-  saveSchedule(sch);
-  document.getElementById("sch-modal").classList.add("hidden");
-  switchTab("tasks");
-}
-
-// ── LESSON VISUAL ─────────────────────────────────────────
-function getLessonVisual(id){
-  if(id.startsWith("thai")) return (
-    '<div class="bg-gradient-to-r from-yellow-50 to-amber-50 rounded-2xl p-4 mb-4 border border-yellow-100">'+
-    '<div class="text-xs font-bold text-amber-700 mb-3">📚 ตารางมาตราตัวสะกด</div>'+
-    '<div class="grid grid-cols-3 gap-2">'+
-    [["แม่กง","วาง กาง วิ่ง สิ่ง","🔔"],["แม่กน","กิน คน นอน วัน","📝"],["แม่กม","ยิ้ม ชม ลิ้ม นาม","💜"]].map(function(m){
-      return '<div class="bg-white rounded-xl p-3 text-center shadow-sm"><div class="font-bold text-amber-600 mb-1">'+m[0]+' '+m[2]+'</div>'+
-        m[1].split(" ").map(function(w){return '<span class="inline-block bg-amber-50 text-amber-800 px-2 py-0.5 rounded-lg text-xs m-0.5">'+w+'</span>';}).join("")+
-      '</div>';
-    }).join("")+
-    '</div></div>');
-  if(id.startsWith("math")) return (
-    '<div class="bg-gradient-to-r from-orange-50 to-yellow-50 rounded-2xl p-4 mb-4 border border-orange-100">'+
-    '<div class="text-xs font-bold text-orange-700 mb-3">🎮 ตารางสูตรคูณ แม่ 6–9</div>'+
-    '<div class="grid grid-cols-4 gap-1 text-xs text-center">'+
-    [6,7,8,9].map(function(a){
-      return '<div><div class="font-bold text-orange-600 bg-orange-100 rounded-t-lg py-1">×'+a+'</div>'+
-        [6,7,8,9,10,11].map(function(b){
-          return '<div class="'+(a===b?"bg-amber-200 font-bold":"bg-white")+' border-b py-1 rounded">'+a+'×'+b+'='+a*b+'</div>';
-        }).join("")+
-      '</div>';
-    }).join("")+
-    '</div></div>');
-  if(id.startsWith("sci")) return (
-    '<div class="bg-gradient-to-r from-cyan-50 to-blue-50 rounded-2xl p-4 mb-4 border border-cyan-100">'+
-    '<div class="text-xs font-bold text-cyan-700 mb-3">🔬 แผนภาพร่างกาย</div>'+
-    '<div class="flex items-start gap-4">'+
-    '<div class="text-center text-4xl leading-tight">🧠<br>🫁🫀<br>💪<br>🦷<br>🦵</div>'+
-    '<div class="flex-1 space-y-1.5 text-xs">'+
-    [["🧠 สมอง","สั่งการร่างกาย","bg-purple-50 text-purple-700"],
-     ["🫀 หัวใจ","กล้ามเนื้อหัวใจ — ทำงาน 24/7","bg-red-50 text-red-700"],
-     ["💪 กล้ามเนื้อโครงร่าง","ควบคุมได้ตามใจ","bg-orange-50 text-orange-700"],
-     ["🦴 กระดูก 206 ชิ้น","ค้ำจุน + ปกป้องอวัยวะ","bg-cyan-50 text-cyan-700"]].map(function(r){
-      return '<div class="'+r[2]+' rounded-lg px-2 py-1"><strong>'+r[0]+'</strong> — '+r[1]+'</div>';
-    }).join("")+
-    '</div></div></div>');
-  if(id.startsWith("sing")) return (
-    '<div class="bg-gradient-to-r from-rose-50 to-pink-50 rounded-2xl p-4 mb-4 border border-rose-100">'+
-    '<div class="text-xs font-bold text-rose-700 mb-3">🎤 Warm-Up Routine (10 นาที)</div>'+
-    '<div class="flex gap-2 items-center flex-wrap">'+
-    [["Lip Trill","2 นาที","🌬️","bg-rose-100"],["Humming","3 นาที","🎵","bg-pink-100"],["Ma-Me-Mi","3 นาที","🗣️","bg-fuchsia-100"],["Scale","2 นาที","🎼","bg-purple-100"]].map(function(s){
-      return '<div class="'+s[3]+' rounded-xl p-2.5 text-center flex-1 min-w-0"><div class="text-xl">'+s[2]+'</div><div class="font-bold text-xs mt-1">'+s[0]+'</div><div class="text-xs text-gray-500">'+s[1]+'</div></div>';
-    }).join('<div class="text-gray-300 text-lg">→</div>')+
-    '</div></div>');
-  if(id.startsWith("piano")) return (
-    '<div class="bg-gradient-to-r from-violet-50 to-purple-50 rounded-2xl p-4 mb-4 border border-violet-100">'+
-    '<div class="text-xs font-bold text-violet-700 mb-3">🎹 คีย์บอร์ด Treble Clef</div>'+
-    '<div class="flex gap-0.5 items-end justify-center mb-3">'+
-    ["C","D","E","F","G","A","B","C"].map(function(n){
-      return '<div class="flex flex-col items-center"><div class="w-8 h-16 bg-white border-2 border-gray-200 rounded-b-lg flex items-end justify-center pb-1 text-xs font-bold text-violet-600">'+n+'</div></div>';
-    }).join("")+
-    '</div>'+
-    '<div class="text-xs text-gray-600 text-center">เส้น: <strong>E G B D F</strong> ("Every Good Boy Does Fine") · ช่อง: <strong>F A C E</strong></div>'+
-    '</div>');
-  if(id.startsWith("eng")) return (
-    '<div class="bg-gradient-to-r from-indigo-50 to-blue-50 rounded-2xl p-4 mb-4 border border-indigo-100">'+
-    '<div class="text-xs font-bold text-indigo-700 mb-3">🇬🇧 Vocabulary Flashcards</div>'+
-    '<div class="grid grid-cols-3 gap-2">'+
-    [["happy","มีความสุข","😊"],["proud","ภูมิใจ","🏆"],["singer","นักร้อง","🎤"],
-     ["school","โรงเรียน","🏫"],["friend","เพื่อน","🤝"],["music","ดนตรี","🎵"]].map(function(v){
-      return '<div class="bg-white rounded-xl p-2.5 text-center shadow-sm border border-indigo-50">'+
-        '<div class="text-xl">'+v[2]+'</div>'+
-        '<div class="font-bold text-indigo-600 text-xs mt-1">'+v[0]+'</div>'+
-        '<div class="text-gray-500 text-xs">'+v[1]+'</div>'+
-      '</div>';
-    }).join("")+
-    '</div></div>');
-  return "";
-}
-
-// ── UTILS ────────────────────────────────────────────────
+// ── UTILS ─────────────────────────────────────────────────
 function getNextDay(dow){
   const d=new Date();const diff=(dow-d.getDay()+7)%7||7;
   d.setDate(d.getDate()+diff);
   return d.toLocaleDateString("th-TH",{day:"numeric",month:"short"});
 }
 
-// ── INIT ─────────────────────────────────────────────────
+// ── INIT ──────────────────────────────────────────────────
 async function init(){
-  if(CFG.sbUrl&&CFG.sbKey){
-    try{
-      sb=supabase.createClient(CFG.sbUrl,CFG.sbKey);
-      setStatus("เชื่อมต่อแล้ว ✅",true);
-      const{data,error}=await sb.from("tasks").select("*").eq("dept",3).order("due");
-      if(!error)tasks=data;
-    }catch(e){setStatus("เชื่อมไม่ได้ ❌",false);}
-  } else {setStatus("ยังไม่ตั้งค่า ⚙️",false);}
+  initSb();
   renderPage();
 }
 init();
