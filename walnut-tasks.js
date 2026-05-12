@@ -58,10 +58,15 @@ function setTaskFilter(f,btn){
 // ── TASK LIST RENDER ──────────────────────────────────────
 function renderTaskList(ts){
   if(!ts.length) return '<div class="text-center text-gray-300 py-8 text-sm">ไม่มี Task ในหมวดนี้</div>';
-  var groups={overdue:[],today:[],week:[],done:[]};
+  var groups={overdue:[],today:[],week:[],needsRetake:[],done:[]};
   ts.forEach(function(t){
-    if(t.status==="done") groups.done.push(t);
-    else if(t.due<TODAY) groups.overdue.push(t);
+    if(t.status==="done"){
+      // check if needs retake
+      var hw=t.lessonId?getHwState(t.lessonId):null;
+      var hwPct=hw&&hw.submitted?Math.round((hw.score||0)/20*100):100;
+      if(hw&&hw.submitted&&hwPct<RETAKE_THRESHOLD) groups.needsRetake.push(t);
+      else groups.done.push(t);
+    } else if(t.due<TODAY) groups.overdue.push(t);
     else if(t.due===TODAY) groups.today.push(t);
     else groups.week.push(t);
   });
@@ -72,23 +77,37 @@ function renderTaskList(ts){
       items.map(function(t){
         var hw=t.lessonId?getHwState(t.lessonId):null;
         var hwSubmitted=hw&&hw.submitted;
+        var hwPct=hwSubmitted?Math.round((hw.score||0)/20*100):0;
+        var needsRetake=hwSubmitted&&hwPct<RETAKE_THRESHOLD;
+        var retakeCount=hw&&hw.retakeCount?hw.retakeCount:0;
         var actionBtn="";
         if(t.type==="lesson"){
           if(hwSubmitted){
-            actionBtn='<button onclick="openHw(\''+t.lessonId+'\')" class="shrink-0 bg-blue-100 text-blue-700 hover:bg-blue-200 px-3 py-1.5 rounded-lg text-xs font-semibold transition">'+
-              '📊 ดูผล '+(hw.score||0)+'/20</button>';
+            if(needsRetake){
+              actionBtn='<div class="flex flex-col items-end gap-1 shrink-0">'+
+                '<button onclick="openHw(\''+t.lessonId+'\')" class="bg-blue-100 text-blue-700 hover:bg-blue-200 px-2 py-1 rounded-lg text-xs font-semibold">📊 ดูผล '+(hw.score||0)+'/20</button>'+
+                '<button onclick="retakeHw(\''+t.lessonId+'\')" class="bg-red-400 hover:bg-red-500 text-white px-2 py-1 rounded-lg text-xs font-bold">🔄 ทำใหม่</button>'+
+                (retakeCount?'<div class="text-xs text-gray-400 text-right">ทำมา '+retakeCount+'×</div>':'')+
+              '</div>';
+            } else {
+              actionBtn='<button onclick="openHw(\''+t.lessonId+'\')" class="shrink-0 bg-blue-100 text-blue-700 hover:bg-blue-200 px-3 py-1.5 rounded-lg text-xs font-semibold">'+
+                '📊 ดูผล '+(hw.score||0)+'/20'+(retakeCount?' (×'+retakeCount+')'  :'')+
+              '</button>';
+            }
           } else {
             actionBtn='<button onclick="openHw(\''+t.lessonId+'\')" class="shrink-0 bg-amber-400 hover:bg-amber-500 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition">'+
               '📝 ทำเลย</button>';
           }
         }
-        return '<div class="flex items-center gap-3 p-3 rounded-xl border border-transparent hover:bg-amber-50 transition-colors mb-1">'+
+        var cardBg=needsRetake?"border-red-200 bg-red-50":"border-transparent hover:bg-amber-50";
+        return '<div class="flex items-center gap-3 p-3 rounded-xl border '+cardBg+' transition-colors mb-1">'+
           '<button onclick="toggleLocalTask(\''+t.id+'\')" '+
             'class="w-6 h-6 rounded-full border-2 flex-shrink-0 flex items-center justify-center text-xs font-bold transition-colors '+
-            (t.status==="done"?"bg-green-400 border-green-400 text-white":"border-gray-300 hover:border-amber-400 text-transparent")+'">✓</button>'+
+            (t.status==="done"?(needsRetake?"bg-red-200 border-red-300 text-red-600":"bg-green-400 border-green-400 text-white"):"border-gray-300 hover:border-amber-400 text-transparent")+'">'+
+            (t.status==="done"?(needsRetake?"!":"✓"):"✓")+'</button>'+
           '<span class="text-base">'+t.icon+'</span>'+
           '<div class="flex-1 min-w-0">'+
-            '<div class="text-sm font-medium '+(t.status==="done"?"line-through text-gray-300":"text-gray-800")+' truncate">'+t.title+'</div>'+
+            '<div class="text-sm font-medium '+(t.status==="done"&&!needsRetake?"line-through text-gray-300":"text-gray-800")+' truncate">'+t.title+'</div>'+
             '<div class="flex items-center gap-2 mt-0.5">'+
               '<span class="status-badge '+t.badge+'">'+t.subject+'</span>'+
               '<span class="text-xs text-gray-400">'+t.due+'</span>'+
@@ -104,6 +123,7 @@ function renderTaskList(ts){
   return renderGroup("⚠️ ค้างจากที่แล้ว","text-red-400",groups.overdue)+
          renderGroup("📌 วันนี้","text-amber-600",groups.today)+
          renderGroup("📅 สัปดาห์นี้","text-gray-500",groups.week)+
+         renderGroup("🔄 ต้องทำใหม่ (คะแนนต่ำกว่า "+RETAKE_THRESHOLD+"%)","text-red-500",groups.needsRetake)+
          renderGroup("✅ เสร็จแล้ว","text-green-500",groups.done);
 }
 
@@ -168,7 +188,10 @@ function renderTasks(){
     '<div class="border border-gray-100 rounded-2xl p-4">'+
       '<div class="flex items-center justify-between mb-3">'+
         '<div class="flex items-center gap-2"><span>🏫</span><span class="font-bold text-sm text-gray-800">ตารางเรียนโรงเรียน</span></div>'+
-        '<button onclick="openScheduleEdit()" class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 px-3 py-1.5 rounded-lg">✏️ แก้ไข</button>'+
+        '<div class="flex gap-2">'+
+          '<button onclick="openCalendar()" class="text-xs bg-amber-400 hover:bg-amber-500 text-white px-3 py-1.5 rounded-lg font-semibold">📅 ปฏิทินเต็ม</button>'+
+          '<button onclick="openScheduleEdit()" class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 px-3 py-1.5 rounded-lg">✏️ แก้ไข</button>'+
+        '</div>'+
       '</div>'+
       '<div class="overflow-x-auto"><table class="w-full text-xs">'+
         '<tr>'+dayKeys.map(function(d){return '<th class="pb-1 text-gray-400 font-semibold text-center">'+dayNames[d]+'</th>';}).join('')+'</tr>'+
@@ -267,4 +290,136 @@ function saveScheduleEdit(){
   saveSchedule(sch);
   document.getElementById("sch-modal").classList.add("hidden");
   switchTab("tasks");
+}
+
+// ── CALENDAR ──────────────────────────────────────────────
+var calWeekOffset=0;
+var CAL_HOURS=["06","07","08","09","10","11","12","13","14","15","16","17","18","19","20","21"];
+var CAL_DAYS=["จ","อ","พ","พฤ","ศ","ส","อา"];
+var CAL_TYPES={
+  school:  {icon:"🏫",label:"โรงเรียน",       bg:"bg-blue-100",   tx:"text-blue-800",   bd:"border-blue-300"},
+  piano:   {icon:"🎹",label:"เปียโน",           bg:"bg-violet-100", tx:"text-violet-800", bd:"border-violet-300"},
+  singing: {icon:"🎤",label:"ร้องเพลง",        bg:"bg-rose-100",   tx:"text-rose-800",   bd:"border-rose-300"},
+  pages:   {icon:"📱",label:"Pages/Influencer", bg:"bg-orange-100", tx:"text-orange-800", bd:"border-orange-300"},
+  learning:{icon:"📚",label:"เรียนเสริม",      bg:"bg-amber-100",  tx:"text-amber-800",  bd:"border-amber-300"},
+  other:   {icon:"🎯",label:"กิจกรรม",         bg:"bg-green-100",  tx:"text-green-800",  bd:"border-green-300"},
+};
+function getCalEvents(){return JSON.parse(localStorage.getItem("walnut_events")||"[]");}
+function saveCalEvents(e){localStorage.setItem("walnut_events",JSON.stringify(e));}
+
+function getWeekDates(offset){
+  var d=new Date();d.setHours(0,0,0,0);
+  var day=d.getDay();var diff=day===0?-6:1-day;
+  d.setDate(d.getDate()+diff+offset*7);
+  var dates=[];
+  for(var i=0;i<7;i++){var dd=new Date(d);dd.setDate(d.getDate()+i);dates.push(dd);}
+  return dates;
+}
+function dStr(d){return d.toISOString().slice(0,10);}
+
+function openCalendar(){
+  calWeekOffset=0;
+  document.getElementById("cal-modal").classList.remove("hidden");
+  renderCalendar();
+}
+function closeCalendar(){document.getElementById("cal-modal").classList.add("hidden");}
+
+function renderCalendar(){
+  var dates=getWeekDates(calWeekOffset);
+  var d0=dates[0],d6=dates[6];
+  var fmt={day:"numeric",month:"short"};
+  var label=d0.toLocaleDateString("th-TH",fmt)+" – "+d6.toLocaleDateString("th-TH",{day:"numeric",month:"short",year:"2-digit"});
+  var events=getCalEvents();
+
+  function getEventsForSlot(dateStr,dow,h){
+    return events.filter(function(e){
+      var onDay=e.recurring?(e.recurringDay===dow):(e.date===dateStr);
+      return onDay&&e.startTime&&e.startTime.slice(0,2)===h;
+    });
+  }
+
+  var html='<div class="flex items-center justify-between px-4 py-3 bg-amber-50 border-b rounded-t-2xl">'+
+    '<button onclick="calWeekOffset--;renderCalendar()" class="text-amber-600 hover:bg-amber-100 px-3 py-1.5 rounded-lg text-sm font-semibold">← ก่อน</button>'+
+    '<span class="font-bold text-sm text-gray-800">'+label+'</span>'+
+    '<button onclick="calWeekOffset++;renderCalendar()" class="text-amber-600 hover:bg-amber-100 px-3 py-1.5 rounded-lg text-sm font-semibold">ถัดไป →</button>'+
+  '</div>'+
+  '<div class="overflow-x-auto"><table class="w-full text-xs border-collapse" style="min-width:560px">'+
+  '<tr class="bg-gray-50 border-b">';
+  html+='<th class="w-12 px-2 py-2 text-gray-400 font-semibold border-r">เวลา</th>';
+  dates.forEach(function(d,i){
+    var isToday=dStr(d)===TODAY;
+    html+='<th class="px-1 py-2 text-center '+(isToday?"bg-amber-100":"")+'">'+
+      '<div class="font-bold '+(isToday?"text-amber-700":"text-gray-600")+'">'+CAL_DAYS[i]+'</div>'+
+      '<div class="text-gray-400 font-normal">'+d.getDate()+'/'+('0'+(d.getMonth()+1)).slice(-2)+'</div>'+
+    '</th>';
+  });
+  html+='</tr>';
+
+  CAL_HOURS.forEach(function(h){
+    html+='<tr class="border-b">';
+    html+='<td class="px-2 py-1 text-gray-400 border-r text-center font-medium bg-gray-50">'+h+'</td>';
+    dates.forEach(function(d,di){
+      var dow=(di+1)%7; // 0=Sun..6=Sat, di=0→Mon=1
+      var dateStr=dStr(d);
+      var slotEvts=getEventsForSlot(dateStr,dow,h);
+      html+='<td class="px-0.5 py-0.5 align-top cursor-pointer hover:bg-amber-50 transition" '+
+        'onclick="openAddEvent(\''+dateStr+'\',\''+h+':00\','+dow+')" style="min-height:28px">';
+      slotEvts.forEach(function(e){
+        var tp=CAL_TYPES[e.type]||CAL_TYPES.other;
+        html+='<div class="'+tp.bg+' '+tp.tx+' border '+tp.bd+' rounded px-1 py-0.5 mb-0.5 text-xs leading-tight cursor-pointer" '+
+          'onclick="event.stopPropagation();deleteCalEvent(\''+e.id+'\')">'+
+          tp.icon+' '+e.title+'<span class="opacity-60 ml-0.5">'+e.startTime.slice(0,5)+'</span>'+
+        '</div>';
+      });
+      html+='</td>';
+    });
+    html+='</tr>';
+  });
+  html+='</table></div>'+
+  '<div class="p-3 border-t bg-gray-50 rounded-b-2xl flex flex-wrap gap-2 text-xs">'+
+    Object.entries(CAL_TYPES).map(function(kv){
+      return '<span class="'+kv[1].bg+' '+kv[1].tx+' border '+kv[1].bd+' px-2 py-0.5 rounded-full">'+kv[1].icon+' '+kv[1].label+'</span>';
+    }).join("")+
+  '</div>';
+
+  document.getElementById("cal-content").innerHTML=html;
+}
+
+function openAddEvent(dateStr,time,dow){
+  document.getElementById("ev-date").value=dateStr;
+  document.getElementById("ev-start").value=time;
+  var endH=String(parseInt(time.slice(0,2))+1).padStart(2,"0");
+  document.getElementById("ev-end").value=endH+":00";
+  document.getElementById("ev-title").value="";
+  document.getElementById("ev-type").value="school";
+  document.getElementById("ev-recurring").checked=false;
+  document.getElementById("add-event-modal").classList.remove("hidden");
+}
+function saveNewEvent(){
+  var title=document.getElementById("ev-title").value.trim();
+  if(!title){alert("ใส่ชื่อกิจกรรมด้วยนะ");return;}
+  var recurring=document.getElementById("ev-recurring").checked;
+  var dateStr=document.getElementById("ev-date").value;
+  var d=new Date(dateStr+"T12:00:00");
+  var evt={
+    id:"ev_"+Date.now(),
+    title:title,
+    type:document.getElementById("ev-type").value,
+    startTime:document.getElementById("ev-start").value,
+    endTime:document.getElementById("ev-end").value,
+    recurring:recurring,
+  };
+  if(recurring) evt.recurringDay=d.getDay();
+  else evt.date=dateStr;
+  var evts=getCalEvents();evts.push(evt);saveCalEvents(evts);
+  document.getElementById("add-event-modal").classList.add("hidden");
+  renderCalendar();
+}
+function deleteCalEvent(id){
+  var evts=getCalEvents();
+  var e=evts.find(function(x){return x.id===id;});
+  if(!e)return;
+  if(!confirm("ลบ: "+e.title+(e.recurring?" (ซ้ำทุกสัปดาห์)":"")+"\nต้องการลบใช่มั้ย?"))return;
+  saveCalEvents(evts.filter(function(x){return x.id!==id;}));
+  renderCalendar();
 }

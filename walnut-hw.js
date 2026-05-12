@@ -163,7 +163,7 @@ async function loadMcqExplain(lessonId, qi){
 }
 
 // ── RESULT DISPLAY ────────────────────────────────────────
-var RETAKE_THRESHOLD = 60; // % ต่ำกว่านี้ → แนะนำทำใหม่
+// RETAKE_THRESHOLD defined in walnut-data.js
 
 function showHwResult(st){
   var l=currentHwLesson||LESSONS.find(function(x){return x.id===st.lessonId;});
@@ -258,16 +258,27 @@ function showHwResult(st){
         '<button onclick="retakeHw(\''+st.lessonId+'\')" class="bg-red-500 hover:bg-red-600 text-white px-6 py-2.5 rounded-xl font-bold text-sm">🔄 ทำใหม่</button>'+
       '</div>':'')+'</div>';
 
+  var retakeCountBadge=st.retakeCount?(' · ทำมาแล้ว <strong>'+st.retakeCount+'</strong> ครั้ง'):'';
   resEl.innerHTML=
     '<div class="bg-white rounded-2xl border border-gray-100 p-5">'+
     // Score header
-    '<div class="text-center mb-4">'+
+    '<div class="text-center mb-3">'+
       '<div class="text-5xl mb-2">'+em+'</div>'+
       '<div class="text-3xl font-bold">'+total+'/20 <span class="text-lg text-gray-400">('+pct+'%)</span></div>'+
-      (needRetake?
-        '<div class="mt-1 text-xs text-red-500 font-semibold">ต่ำกว่า '+RETAKE_THRESHOLD+'% — ควรทำใหม่</div>':
-        '<div class="mt-1 text-xs text-green-500 font-semibold">ผ่านเกณฑ์ 60% แล้ว!</div>')+
     '</div>'+
+    // Retake banner — ขึ้นก่อน tabs เลย
+    (needRetake?
+      '<div class="bg-red-50 border-2 border-red-300 rounded-2xl p-4 mb-4 flex items-center justify-between gap-3">'+
+        '<div>'+
+          '<div class="text-red-700 font-bold text-sm">⚠️ คะแนนต่ำกว่า '+RETAKE_THRESHOLD+'%</div>'+
+          '<div class="text-xs text-red-500 mt-0.5">แนะนำให้ทำใหม่'+retakeCountBadge+'</div>'+
+        '</div>'+
+        '<button onclick="retakeHw(\''+st.lessonId+'\')" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2.5 rounded-xl font-bold text-sm shrink-0">🔄 ทำใหม่</button>'+
+      '</div>':
+      '<div class="bg-green-50 border border-green-200 rounded-xl p-3 mb-4 flex items-center justify-between">'+
+        '<div class="text-green-700 font-semibold text-sm">✅ ผ่านเกณฑ์ 60% ยินดีด้วยนะ 🎉</div>'+
+        (st.retakeCount?'<div class="text-xs text-gray-400">ทำมา '+st.retakeCount+' ครั้ง</div>':'')+
+      '</div>')+
     '<div class="grid grid-cols-3 gap-2 mb-4">'+
       '<div class="bg-amber-50 rounded-xl p-2 text-center"><div class="text-base font-bold text-amber-600">'+st.mcqScore+'/15</div><div class="text-xs text-gray-500">MCQ</div></div>'+
       '<div class="bg-blue-50 rounded-xl p-2 text-center"><div class="text-base font-bold text-blue-600">'+writtenRaw+'/50</div><div class="text-xs text-gray-500">ข้อเขียน</div></div>'+
@@ -307,10 +318,18 @@ function switchResTab(t){
 
 // ── RETAKE ────────────────────────────────────────────────
 function retakeHw(lessonId){
-  if(!confirm("ยืนยันทำใหม่? คะแนนเดิมจะถูกลบ\n\n(ทำใหม่ = ฝึกได้อีกรอบ ไม่ใช่เรื่องแย่ 💪)")) return;
+  if(!confirm("ยืนยันทำใหม่? คะแนนเดิมจะถูกลบ\n(ทำใหม่ = ฝึกได้อีกรอบ ไม่ใช่เรื่องแย่ 💪)")) return;
+  var hw=getHwState(lessonId);
+  var newCount=(hw.retakeCount||0)+1;
   localStorage.removeItem("hw_"+lessonId);
+  saveHwState(lessonId,{retakeCount:newCount}); // เก็บ count ไว้
+  // คืน task กลับ pending zone
+  var ts=getLocalTasks();
+  var t=ts.find(function(x){return x.lessonId===lessonId;});
+  if(t){t.status="pending";saveLocalTasks(ts);}
   closeHw();
-  setTimeout(function(){openHw(lessonId);},100);
+  // ไปหน้า tasks เพื่อเห็น task ที่ย้ายกลับมา
+  if(typeof switchTab==="function") switchTab("tasks");
 }
 
 // ── SUBMIT HOMEWORK ───────────────────────────────────────
