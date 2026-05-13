@@ -623,8 +623,10 @@ async function doSync(manual){
       var lv=lv_str?JSON.parse(lv_str):null;
       var cAt=cv.submittedAt||""; var lAt=(lv&&lv.submittedAt)||"";
       if(!lv||!lv.submitted||cAt>lAt){
-        safeSetItem(k,JSON.stringify(cv));
-        changed=true;
+        var ok=safeSetItem(k,JSON.stringify(cv));
+        var verify=localStorage.getItem(k);
+        if(!verify){ alert("❌ ไม่สามารถบันทึก "+k+" ลง localStorage ได้!\n(storage เต็มหรือบล็อก)"); }
+        else { changed=true; }
       }
     });
 
