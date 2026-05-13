@@ -616,14 +616,14 @@ function setSyncStatus(msg,ok){
 }
 
 async function doSync(manual){
-  setSyncStatus("⏳ กำลัง sync...","");
+  setSyncStatus("⏳ sync...","");
   try{
-    // 1. ดึง hw states จาก cloud
-    var ctrl=typeof AbortController!=="undefined"?new AbortController():null;
-    if(ctrl) setTimeout(function(){ctrl.abort();},5000);
-    var r=await fetch("/api/sync",ctrl?{signal:ctrl.signal}:{});
+    var r=await fetch("/api/sync");
+    if(!r.ok) throw new Error("HTTP "+r.status);
     var d=await r.json();
     var cloud=d.data||{};
+    var cloudKeys=Object.keys(cloud).filter(function(k){return k.startsWith("hw_");});
+    setSyncStatus("⏳ พบ "+cloudKeys.length+" รายการ...","");
     var changed=false;
 
     // 2. merge hw states: เก็บ version ที่ submitted และ submittedAt ใหม่กว่า
@@ -653,20 +653,14 @@ async function doSync(manual){
       body:JSON.stringify(mergedPush)});
 
     if(changed){
-      syncLessonTasks(); // อัพเดต task status ใน localStorage
-      if(manual){
-        // กดปุ่มเอง → re-render Tasks tab ให้เลย
-        setSyncStatus("✅ sync แล้ว!",true);
-        switchTab("tasks");
-      } else {
-        setSyncStatus("✅ มีข้อมูลใหม่",true);
-      }
+      syncLessonTasks();
+      setSyncStatus("✅ sync "+cloudKeys.length+" วิชา!",true);
+      if(manual) switchTab("tasks");
     } else {
-      setSyncStatus("✅ ล่าสุดแล้ว",true);
+      setSyncStatus("✅ ล่าสุด ("+cloudKeys.length+")",true);
     }
   }catch(e){
     setSyncStatus("⚠️ "+e.message,false);
-    console.warn("Sync error:",e.message,e);
   }
 }
 
