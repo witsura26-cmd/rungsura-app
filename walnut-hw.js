@@ -483,6 +483,8 @@ async function submitHw(){
     submittedAt:new Date().toISOString()
   };
   saveHwState(l.id,st);
+  // sync ขึ้น cloud ทันทีหลังส่งการบ้าน
+  if(typeof saveToCloud==="function") saveToCloud();
 
   // hide submit bar, show result
   if(bar) bar.classList.add("hidden");

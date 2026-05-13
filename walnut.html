@@ -238,10 +238,18 @@
   </div>
 </div>
 
+<!-- sync banner -->
+<div id="sync-banner" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-white/80">
+  <div class="flex items-center gap-3 bg-white border border-amber-200 rounded-2xl px-6 py-4 shadow-lg">
+    <div class="w-5 h-5 border-2 border-amber-400 border-t-transparent rounded-full animate-spin"></div>
+    <span class="text-sm font-medium text-amber-700">กำลังโหลดข้อมูล...</span>
+  </div>
+</div>
+
 <!-- DATA + LOGIC (separate files for easy editing) -->
-<script src="/walnut-data.js?v=5"></script>
-<script src="/walnut-tasks.js?v=5"></script>
-<script src="/walnut-hw.js?v=5"></script>
+<script src="/walnut-data.js?v=6"></script>
+<script src="/walnut-tasks.js?v=6"></script>
+<script src="/walnut-hw.js?v=6"></script>
 
 <!-- COORDINATOR (config, state, page shell, teacher chat, settings) -->
 <script>
@@ -551,8 +559,45 @@ function getNextDay(dow){
 }
 
 // ── INIT ──────────────────────────────────────────────────
+// ── CLOUD SYNC ────────────────────────────────────────────
+var cloudSyncing=false;
+async function loadFromCloud(){
+  try{
+    var r=await fetch("/api/sync");
+    var d=await r.json();
+    if(!d.data) return;
+    // merge: cloud data overwrites local for hw states, tasks, events
+    var data=d.data;
+    Object.keys(data).forEach(function(k){
+      localStorage.setItem(k,typeof data[k]==="string"?data[k]:JSON.stringify(data[k]));
+    });
+  }catch(e){ console.warn("Cloud load failed:",e.message); }
+}
+async function saveToCloud(){
+  if(cloudSyncing) return;
+  cloudSyncing=true;
+  try{
+    // collect all walnut keys from localStorage
+    var data={};
+    for(var i=0;i<localStorage.length;i++){
+      var k=localStorage.key(i);
+      if(k&&(k.startsWith("hw_")||k.startsWith("walnut_")||k==="walnut_tasks"||k==="walnut_events")){
+        try{ data[k]=JSON.parse(localStorage.getItem(k)); }
+        catch(e){ data[k]=localStorage.getItem(k); }
+      }
+    }
+    await fetch("/api/sync",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});
+  }catch(e){ console.warn("Cloud save failed:",e.message); }
+  finally{ cloudSyncing=false; }
+}
+
 async function init(){
   initSb();
+  // โหลดข้อมูลจาก cloud ก่อน แล้วค่อย render
+  var banner=document.getElementById("sync-banner");
+  if(banner) banner.classList.remove("hidden");
+  await loadFromCloud();
+  if(banner) banner.classList.add("hidden");
   renderPage();
 }
 init();
