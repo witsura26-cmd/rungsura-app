@@ -10,24 +10,29 @@ export default async function handler(req, res) {
 
   const h = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
 
-  // GET — load data from Redis
+  // GET — load all walnut data from Redis
   if (req.method === 'GET') {
     try {
       const r = await fetch(`${url}/get/walnut:data`, { headers: h });
       const d = await r.json();
-      // d.result is a string we stored with JSON.stringify
       const value = d.result ? JSON.parse(d.result) : null;
       return res.status(200).json({ data: value });
     } catch (e) {
-      return res.status(200).json({ data: null }); // fail gracefully
+      return res.status(200).json({ data: null });
     }
   }
 
-  // POST — save data to Redis (store as JSON string)
+  // POST — save data to Redis (merges with existing, preserves keys not in body)
   if (req.method === 'POST') {
     try {
-      const payload = JSON.stringify(req.body); // stringify once → stored as string
-      // Upstash SET via pipeline: [["set","key","value"]]
+      // Read existing data first so we don't accidentally wipe keys
+      const existing = await fetch(`${url}/get/walnut:data`, { headers: h })
+        .then(r => r.json())
+        .then(d => d.result ? JSON.parse(d.result) : {})
+        .catch(() => ({}));
+      // Merge: incoming body wins for its keys, existing preserved for others
+      const merged = Object.assign({}, existing, req.body);
+      const payload = JSON.stringify(merged);
       await fetch(`${url}/pipeline`, {
         method: 'POST',
         headers: h,
