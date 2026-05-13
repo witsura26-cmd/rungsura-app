@@ -238,13 +238,6 @@
   </div>
 </div>
 
-<!-- sync banner -->
-<div id="sync-banner" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-white/80">
-  <div class="flex items-center gap-3 bg-white border border-amber-200 rounded-2xl px-6 py-4 shadow-lg">
-    <div class="w-5 h-5 border-2 border-amber-400 border-t-transparent rounded-full animate-spin"></div>
-    <span class="text-sm font-medium text-amber-700">กำลังโหลดข้อมูล...</span>
-  </div>
-</div>
 
 <!-- DATA + LOGIC (separate files for easy editing) -->
 <script src="/walnut-data.js?v=6"></script>
@@ -561,17 +554,42 @@ function getNextDay(dow){
 // ── INIT ──────────────────────────────────────────────────
 // ── CLOUD SYNC ────────────────────────────────────────────
 var cloudSyncing=false;
+var SYNC_PREFIXES=["hw_","walnut_","rs_claude","rs_sb"];
 
 function collectLocalData(){
   var data={};
   for(var i=0;i<localStorage.length;i++){
     var k=localStorage.key(i);
-    if(k&&(k.startsWith("hw_")||k.startsWith("walnut_"))){
+    if(!k) continue;
+    var keep=SYNC_PREFIXES.some(function(p){return k.startsWith(p);});
+    if(keep){
       try{ data[k]=JSON.parse(localStorage.getItem(k)); }
       catch(e){ data[k]=localStorage.getItem(k); }
     }
   }
   return data;
+}
+
+function applyCloudData(cloud){
+  var local=collectLocalData();
+  var merged=Object.assign({},local);
+  Object.keys(cloud).forEach(function(k){
+    var cv=cloud[k];
+    if(k.startsWith("hw_")){
+      var lv=local[k];
+      var cAt=(cv&&cv.submittedAt)||"";
+      var lAt=(lv&&lv.submittedAt)||"";
+      if(!lv||!lv.submitted||(cv&&cv.submitted&&cAt>lAt)) merged[k]=cv;
+    } else {
+      // settings & other: cloud ชนะ (เพื่อให้ทุกเครื่องได้ค่าเดียวกัน)
+      merged[k]=cv;
+    }
+  });
+  Object.keys(merged).forEach(function(k){
+    var v=merged[k];
+    localStorage.setItem(k,typeof v==="string"?v:JSON.stringify(v));
+  });
+  return merged;
 }
 
 async function saveToCloud(){
@@ -584,56 +602,29 @@ async function saveToCloud(){
   finally{ cloudSyncing=false; }
 }
 
-async function syncBothWays(){
-  // 1. ดึงข้อมูลจาก cloud
-  var cloud={};
-  try{
-    var r=await fetch("/api/sync");
-    var d=await r.json();
-    cloud=d.data||{};
-  }catch(e){ console.warn("Cloud load failed:",e.message); }
-
-  // 2. merge: hw_ ใช้ submittedAt เปรียบเทียบ, อื่นๆ cloud ชนะถ้ามี
-  var local=collectLocalData();
-  var merged=Object.assign({},local);
-  Object.keys(cloud).forEach(function(k){
-    var cv=cloud[k];
-    if(k.startsWith("hw_")){
-      var lv=local[k];
-      var cAt=(cv&&cv.submittedAt)||"";
-      var lAt=(lv&&lv.submittedAt)||"";
-      if(!lv||!lv.submitted||(cv&&cv.submitted&&cAt>lAt)) merged[k]=cv;
-    } else {
-      merged[k]=cv;
-    }
-  });
-
-  // 3. เขียน merged ลง localStorage
-  Object.keys(merged).forEach(function(k){
-    localStorage.setItem(k,typeof merged[k]==="string"?merged[k]:JSON.stringify(merged[k]));
-  });
-
-  // 4. push merged กลับขึ้น cloud (เผื่อ local มีข้อมูลใหม่กว่า)
-  try{
-    await fetch("/api/sync",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(merged)});
-  }catch(e){ console.warn("Cloud push failed:",e.message); }
+// Sync background — ไม่บล็อก UI
+function syncInBackground(){
+  var ctrl=typeof AbortController!=="undefined"?new AbortController():null;
+  var timer=setTimeout(function(){ if(ctrl) ctrl.abort(); },4000);
+  fetch("/api/sync",ctrl?{signal:ctrl.signal}:{})
+    .then(function(r){return r.json();})
+    .then(function(d){
+      clearTimeout(timer);
+      if(!d.data) return;
+      var merged=applyCloudData(d.data);
+      // push merged กลับขึ้น cloud
+      fetch("/api/sync",{method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify(merged)}).catch(function(){});
+      // re-render ถ้าได้ข้อมูลใหม่
+      if(typeof renderPage==="function") renderPage();
+    })
+    .catch(function(e){ clearTimeout(timer); console.warn("Sync skipped:",e.message); });
 }
 
 async function init(){
   initSb();
-  var banner=document.getElementById("sync-banner");
-  if(banner) banner.classList.remove("hidden");
-  // sync พร้อม timeout 5 วิ — ถ้าช้าเกิน ข้ามไปแสดงหน้าเลย
-  try{
-    await Promise.race([
-      syncBothWays(),
-      new Promise(function(_,rej){setTimeout(function(){rej(new Error("timeout"));},5000)})
-    ]);
-  }catch(e){ console.warn("Sync skipped:",e.message); }
-  finally{
-    if(banner) banner.classList.add("hidden");
-  }
-  renderPage();
+  renderPage(); // render ทันทีด้วย local data
+  syncInBackground(); // sync cloud ใน background ไม่บล็อก
 }
 init();
 </script>
