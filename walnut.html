@@ -567,40 +567,29 @@ function collectHwData(){
       try{
         var full=JSON.parse(localStorage.getItem(k));
         if(!full||!full.submitted) continue;
-        // เก็บเฉพาะข้อมูลสำคัญ — ไม่เอา AI eval text ยาวๆ (ลด size)
-        data[k]={
-          submitted:full.submitted,
-          lessonId:full.lessonId||k.replace("hw_",""),
-          score:full.score||0,
-          mcqScore:full.mcqScore||0,
-          writtenScore:full.writtenScore||0,
-          mcqAnswers:full.mcqAnswers||[],
-          writtenAnswers:full.writtenAnswers||[],
-          submittedAt:full.submittedAt||"",
-          retakeCount:full.retakeCount||0
-        };
+        data[k]=full; // เก็บทั้งหมดรวม AI eval
       }catch(e){}
     }
   }
   return data;
 }
 function safeSetItem(k,v){
-  try{ localStorage.setItem(k,v); return true; }
-  catch(e){
-    // localStorage เต็ม — ลบ AI eval text ออกจากทุก hw_ แล้วลองใหม่
-    for(var i=0;i<localStorage.length;i++){
-      var key=localStorage.key(i);
-      if(key&&key.startsWith("hw_")){
-        try{
-          var hw=JSON.parse(localStorage.getItem(key));
-          if(hw){delete hw.drAimEval;delete hw.ployEval;delete hw.writtenEvals;delete hw.writtenOverall;delete hw.mcqExplains;
-            localStorage.setItem(key,JSON.stringify(hw));}
-        }catch(e2){}
-      }
+  // ล้าง AI text เก่าจาก hw_ อื่นก่อน เผื่อ storage เต็ม
+  for(var i=0;i<localStorage.length;i++){
+    var key=localStorage.key(i);
+    if(key&&key.startsWith("hw_")&&key!==k){
+      try{
+        var hw=JSON.parse(localStorage.getItem(key));
+        if(hw&&hw.drAimEval){
+          delete hw.drAimEval;delete hw.ployEval;
+          delete hw.writtenEvals;delete hw.writtenOverall;delete hw.mcqExplains;
+          localStorage.setItem(key,JSON.stringify(hw));
+        }
+      }catch(e){}
     }
-    try{ localStorage.setItem(k,v); return true; }
-    catch(e2){ console.warn("localStorage full, cannot save",k); return false; }
   }
+  try{ localStorage.setItem(k,v); return true; }
+  catch(e){ console.warn("safeSetItem failed:",k,e.message); return false; }
 }
 
 async function saveToCloud(){
