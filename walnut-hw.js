@@ -322,7 +322,8 @@ function retakeHw(lessonId){
   var hw=getHwState(lessonId);
   var newCount=(hw.retakeCount||0)+1;
   localStorage.removeItem("hw_"+lessonId);
-  saveHwState(lessonId,{retakeCount:newCount}); // เก็บ count ไว้
+  saveHwState(lessonId,{retakeCount:newCount,retakedAt:new Date().toISOString()}); // เก็บ count + เวลา retake
+  if(typeof saveToCloud==="function") saveToCloud(); // push retake state ขึ้น cloud
   // คืน task กลับ pending zone
   var ts=getLocalTasks();
   var t=ts.find(function(x){return x.lessonId===lessonId;});

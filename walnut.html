@@ -566,8 +566,9 @@ function collectHwData(){
     if(k&&k.startsWith("hw_")){
       try{
         var full=JSON.parse(localStorage.getItem(k));
-        if(!full||!full.submitted) continue;
-        data[k]=full; // เก็บทั้งหมดรวม AI eval
+        if(!full) continue;
+        if(full.submitted) data[k]=full; // เก็บ submitted ปกติ
+        else if(full.retakeCount) data[k]={retakeCount:full.retakeCount,retakedAt:full.retakedAt||""}; // เก็บ retake state
       }catch(e){}
     }
   }
@@ -630,8 +631,12 @@ async function doSync(manual){
       var cv=cloud[k]; if(!cv||!cv.submitted) return;
       var lv_str=localStorage.getItem(k);
       var lv=lv_str?JSON.parse(lv_str):null;
+      // ถ้า local อยู่ใน retake state (กดทำใหม่แล้ว) — ห้าม overwrite!
+      if(lv&&!lv.submitted&&lv.retakeCount){
+        var retakedAt=lv.retakedAt||""; var submittedAt=cv.submittedAt||"";
+        if(retakedAt>=submittedAt) return; // retake หลัง submit → เคารพการ retake
+      }
       var cAt=cv.submittedAt||""; var lAt=(lv&&lv.submittedAt)||"";
-      // pull ถ้า: local ไม่มี, หรือ cloud ใหม่กว่า, หรือ cloud มี AI eval แต่ local ไม่มี
       var cloudHasMore=cv.drAimEval&&(!lv||!lv.drAimEval);
       if(!lv||!lv.submitted||cAt>lAt||cloudHasMore){
         if(safeSetItem(k,JSON.stringify(cv))) changed=true;
