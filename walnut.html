@@ -573,23 +573,37 @@ function collectHwData(){
   }
   return data;
 }
+function clearStorageSpace(){
+  // รอบ 1: ลบ AI eval text ออกจากทุก hw_ (ประหยัด space มากที่สุด)
+  var keys=[];
+  for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(k)keys.push(k);}
+  keys.forEach(function(key){
+    if(!key.startsWith("hw_")) return;
+    try{
+      var hw=JSON.parse(localStorage.getItem(key));
+      if(hw){
+        delete hw.drAimEval;delete hw.ployEval;delete hw.writtenEvals;
+        delete hw.writtenOverall;delete hw.mcqExplains;
+        localStorage.setItem(key,JSON.stringify(hw));
+      }
+    }catch(e){}
+  });
+  // ลบ survey feedback
+  try{
+    var s=JSON.parse(localStorage.getItem("walnut_survey_w1")||"{}");
+    if(s.feedback){delete s.feedback;localStorage.setItem("walnut_survey_w1",JSON.stringify(s));}
+  }catch(e){}
+}
 function safeSetItem(k,v){
-  // ล้าง AI text เก่าจาก hw_ อื่นก่อน เผื่อ storage เต็ม
-  for(var i=0;i<localStorage.length;i++){
-    var key=localStorage.key(i);
-    if(key&&key.startsWith("hw_")&&key!==k){
-      try{
-        var hw=JSON.parse(localStorage.getItem(key));
-        if(hw&&hw.drAimEval){
-          delete hw.drAimEval;delete hw.ployEval;
-          delete hw.writtenEvals;delete hw.writtenOverall;delete hw.mcqExplains;
-          localStorage.setItem(key,JSON.stringify(hw));
-        }
-      }catch(e){}
-    }
-  }
-  try{ localStorage.setItem(k,v); return true; }
-  catch(e){ console.warn("safeSetItem failed:",k,e.message); return false; }
+  try{ localStorage.setItem(k,v); return true; }catch(e){}
+  // รอบ 1: ล้าง AI text
+  clearStorageSpace();
+  try{ localStorage.setItem(k,v); return true; }catch(e){}
+  // รอบ 2: ลบ hw_ เก่าทิ้งเลย (ยกเว้นตัวที่กำลังจะเซฟ)
+  var keys=[];
+  for(var i=0;i<localStorage.length;i++){var key=localStorage.key(i);if(key&&key.startsWith("hw_")&&key!==k)keys.push(key);}
+  keys.forEach(function(key){localStorage.removeItem(key);});
+  try{ localStorage.setItem(k,v); return true; }catch(e){ return false; }
 }
 
 async function saveToCloud(){
@@ -623,10 +637,7 @@ async function doSync(manual){
       var lv=lv_str?JSON.parse(lv_str):null;
       var cAt=cv.submittedAt||""; var lAt=(lv&&lv.submittedAt)||"";
       if(!lv||!lv.submitted||cAt>lAt){
-        var ok=safeSetItem(k,JSON.stringify(cv));
-        var verify=localStorage.getItem(k);
-        if(!verify){ alert("❌ ไม่สามารถบันทึก "+k+" ลง localStorage ได้!\n(storage เต็มหรือบล็อก)"); }
-        else { changed=true; }
+        if(safeSetItem(k,JSON.stringify(cv))) changed=true;
       }
     });
 
