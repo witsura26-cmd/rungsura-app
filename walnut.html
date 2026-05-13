@@ -635,17 +635,10 @@ async function doSync(manual){
     setSyncStatus("⏳ พบ "+cloudKeys.length+" รายการ...","");
     var changed=false;
 
-    // 2a. pull walnut_events จาก cloud — merge by id
-    if(cloud.walnut_events&&Array.isArray(cloud.walnut_events)){
-      var localEvtRaw=localStorage.getItem("walnut_events");
-      var localEvts=localEvtRaw?JSON.parse(localEvtRaw):[];
-      var evtIds={}; localEvts.forEach(function(e){if(e.id)evtIds[e.id]=true;});
-      var added=false;
-      cloud.walnut_events.forEach(function(e){if(e.id&&!evtIds[e.id]){localEvts.push(e);added=true;}});
-      if(added){
-        try{localStorage.setItem("walnut_events",JSON.stringify(localEvts));}catch(e){}
-        changed=true;
-      }
+    // 2a. pull walnut_events จาก cloud — cloud คือ source of truth (มีทุก event จากทุกเครื่อง)
+    if(cloud.walnut_events&&Array.isArray(cloud.walnut_events)&&cloud.walnut_events.length>0){
+      safeSetItem("walnut_events",JSON.stringify(cloud.walnut_events));
+      changed=true;
     }
     // 2b. pull จาก cloud: รวม history array + hw states
     // — pull hw_hist_ (merge arrays, no duplicates by submittedAt)
