@@ -607,20 +607,29 @@ async function doSync(){
       }
     });
 
-    // 3. push local hw states ขึ้น cloud (เผื่อ device นี้มีข้อมูลใหม่กว่า)
+    // 3. push local hw states ขึ้น cloud
+    // — merge cloud กับ local ก่อน แล้วค่อย push (ป้องกัน overwrite iPad data)
+    var localHw=collectHwData();
+    var mergedPush=Object.assign({},cloud);
+    Object.keys(localHw).forEach(function(k){
+      var lv=localHw[k]; if(!lv||!lv.submitted) return;
+      var cv=mergedPush[k];
+      var lAt=lv.submittedAt||""; var cAt=(cv&&cv.submittedAt)||"";
+      if(!cv||!cv.submitted||lAt>cAt) mergedPush[k]=lv;
+    });
     await fetch("/api/sync",{method:"POST",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify(collectHwData())});
+      body:JSON.stringify(mergedPush)});
 
     if(changed){
-      syncLessonTasks(); // อัพเดต task statuses
-      setSyncStatus("✅ Sync แล้ว",true);
-      if(activeTab==="tasks") switchTab("tasks"); // re-render tasks tab
+      syncLessonTasks();
+      setSyncStatus("✅ ดึงข้อมูลใหม่แล้ว",true);
+      if(activeTab==="tasks") switchTab("tasks");
     } else {
-      setSyncStatus("✅ ข้อมูลล่าสุดแล้ว",true);
+      setSyncStatus("✅ ล่าสุดแล้ว",true);
     }
   }catch(e){
-    setSyncStatus("⚠️ Sync ไม่ได้",false);
-    console.warn("Sync error:",e.message);
+    setSyncStatus("⚠️ "+e.message,false);
+    console.warn("Sync error:",e.message,e);
   }
 }
 
