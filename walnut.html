@@ -576,12 +576,27 @@ function applyCloudData(cloud){
   Object.keys(cloud).forEach(function(k){
     var cv=cloud[k];
     if(k.startsWith("hw_")){
+      // hw: เก็บ version ที่ส่งแล้วและ submittedAt ใหม่กว่า
       var lv=local[k];
       var cAt=(cv&&cv.submittedAt)||"";
       var lAt=(lv&&lv.submittedAt)||"";
       if(!lv||!lv.submitted||(cv&&cv.submitted&&cAt>lAt)) merged[k]=cv;
+    } else if(k==="walnut_tasks"){
+      // tasks: merge by id ไม่เขียนทับ
+      var larr=Array.isArray(local[k])?local[k]:[];
+      var carr=Array.isArray(cv)?cv:[];
+      var ids={}; larr.forEach(function(t){ids[t.id]=true;});
+      carr.forEach(function(t){if(!ids[t.id]){larr.push(t);}});
+      merged[k]=larr;
+    } else if(k==="walnut_events"){
+      // events: merge by id
+      var larr=Array.isArray(local[k])?local[k]:[];
+      var carr=Array.isArray(cv)?cv:[];
+      var ids={}; larr.forEach(function(e){ids[e.id]=true;});
+      carr.forEach(function(e){if(!ids[e.id]){larr.push(e);}});
+      merged[k]=larr;
     } else {
-      // settings & other: cloud ชนะ (เพื่อให้ทุกเครื่องได้ค่าเดียวกัน)
+      // settings: cloud ชนะ
       merged[k]=cv;
     }
   });
@@ -602,7 +617,7 @@ async function saveToCloud(){
   finally{ cloudSyncing=false; }
 }
 
-// Sync background — ไม่บล็อก UI
+// Sync background — ไม่บล็อก UI, ไม่ full re-render
 function syncInBackground(){
   var ctrl=typeof AbortController!=="undefined"?new AbortController():null;
   var timer=setTimeout(function(){ if(ctrl) ctrl.abort(); },4000);
@@ -615,8 +630,19 @@ function syncInBackground(){
       // push merged กลับขึ้น cloud
       fetch("/api/sync",{method:"POST",headers:{"Content-Type":"application/json"},
         body:JSON.stringify(merged)}).catch(function(){});
-      // re-render ถ้าได้ข้อมูลใหม่
-      if(typeof renderPage==="function") renderPage();
+      // อัพเดตเฉพาะ task list เงียบๆ ไม่ full re-render
+      if(activeTab==="tasks"){
+        syncLessonTasks();
+        var inner=document.getElementById("task-list-inner");
+        if(inner){
+          var all=getLocalTasks();
+          var shown=taskFilter==="done"?all.filter(function(t){return t.status==="done";}):
+                    taskFilter==="pending"?all.filter(function(t){return t.status!=="done";}):all;
+          inner.innerHTML=renderTaskList(shown);
+        }
+      }
+      // refresh cal top ถ้า event มีการเปลี่ยนแปลง
+      if(typeof refreshCalTop==="function") refreshCalTop();
     })
     .catch(function(e){ clearTimeout(timer); console.warn("Sync skipped:",e.message); });
 }
