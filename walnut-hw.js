@@ -320,10 +320,20 @@ function switchResTab(t){
 function retakeHw(lessonId){
   if(!confirm("ยืนยันทำใหม่? คะแนนเดิมจะถูกลบ\n(ทำใหม่ = ฝึกได้อีกรอบ ไม่ใช่เรื่องแย่ 💪)")) return;
   var hw=getHwState(lessonId);
+  // บันทึกประวัติเฉพาะครั้งที่ "ผ่าน" (≥60%) เพื่อวิเคราะห์พัฒนาการในอนาคต
+  var pct=Math.round(((hw.score||0)/20)*100);
+  if(hw.submitted&&pct>=RETAKE_THRESHOLD){
+    try{
+      var histKey="hw_hist_"+lessonId;
+      var hist=JSON.parse(localStorage.getItem(histKey)||"[]");
+      hist.push(hw); // เก็บ full state รวม AI eval
+      localStorage.setItem(histKey,JSON.stringify(hist));
+    }catch(e){}
+  }
   var newCount=(hw.retakeCount||0)+1;
   localStorage.removeItem("hw_"+lessonId);
-  saveHwState(lessonId,{retakeCount:newCount,retakedAt:new Date().toISOString()}); // เก็บ count + เวลา retake
-  if(typeof saveToCloud==="function") saveToCloud(); // push retake state ขึ้น cloud
+  saveHwState(lessonId,{retakeCount:newCount,retakedAt:new Date().toISOString()});
+  if(typeof saveToCloud==="function") saveToCloud();
   // คืน task กลับ pending zone
   var ts=getLocalTasks();
   var t=ts.find(function(x){return x.lessonId===lessonId;});

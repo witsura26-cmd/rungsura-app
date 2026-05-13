@@ -563,12 +563,16 @@ function collectHwData(){
   var data={};
   for(var i=0;i<localStorage.length;i++){
     var k=localStorage.key(i);
-    if(k&&k.startsWith("hw_")){
+    if(!k) continue;
+    if(k.startsWith("hw_hist_")){
+      // ประวัติการทำที่ผ่าน — sync ข้ามเครื่องด้วย
+      try{ data[k]=JSON.parse(localStorage.getItem(k)); }catch(e){}
+    } else if(k.startsWith("hw_")){
       try{
         var full=JSON.parse(localStorage.getItem(k));
         if(!full) continue;
-        if(full.submitted) data[k]=full; // เก็บ submitted ปกติ
-        else if(full.retakeCount) data[k]={retakeCount:full.retakeCount,retakedAt:full.retakedAt||""}; // เก็บ retake state
+        if(full.submitted) data[k]=full;
+        else if(full.retakeCount) data[k]={retakeCount:full.retakeCount,retakedAt:full.retakedAt||""};
       }catch(e){}
     }
   }
@@ -625,7 +629,19 @@ async function doSync(manual){
     setSyncStatus("⏳ พบ "+cloudKeys.length+" รายการ...","");
     var changed=false;
 
-    // 2. pull จาก cloud: เอา version ที่ submitted + มีข้อมูลมากกว่า (drAimEval)
+    // 2. pull จาก cloud: รวม history array + hw states
+    // — pull hw_hist_ (merge arrays, no duplicates by submittedAt)
+    Object.keys(cloud).forEach(function(k){
+      if(!k.startsWith("hw_hist_")) return;
+      var cloudHist=Array.isArray(cloud[k])?cloud[k]:[];
+      var localRaw=localStorage.getItem(k);
+      var localHist=localRaw?JSON.parse(localRaw):[];
+      var seen={}; localHist.forEach(function(h){if(h.submittedAt)seen[h.submittedAt]=true;});
+      var added=false;
+      cloudHist.forEach(function(h){if(h.submittedAt&&!seen[h.submittedAt]){localHist.push(h);added=true;}});
+      if(added) try{localStorage.setItem(k,JSON.stringify(localHist));}catch(e){}
+    });
+    // 2b. pull จาก cloud: เอา version ที่ submitted + มีข้อมูลมากกว่า (drAimEval)
     Object.keys(cloud).forEach(function(k){
       if(!k.startsWith("hw_")) return;
       var cv=cloud[k]; if(!cv||!cv.submitted) return;
