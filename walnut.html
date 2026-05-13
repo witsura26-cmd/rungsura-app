@@ -624,27 +624,30 @@ async function doSync(manual){
     setSyncStatus("⏳ พบ "+cloudKeys.length+" รายการ...","");
     var changed=false;
 
-    // 2. merge hw states: เก็บ version ที่ submitted และ submittedAt ใหม่กว่า
+    // 2. pull จาก cloud: เอา version ที่ submitted + มีข้อมูลมากกว่า (drAimEval)
     Object.keys(cloud).forEach(function(k){
       if(!k.startsWith("hw_")) return;
       var cv=cloud[k]; if(!cv||!cv.submitted) return;
       var lv_str=localStorage.getItem(k);
       var lv=lv_str?JSON.parse(lv_str):null;
       var cAt=cv.submittedAt||""; var lAt=(lv&&lv.submittedAt)||"";
-      if(!lv||!lv.submitted||cAt>lAt){
+      // pull ถ้า: local ไม่มี, หรือ cloud ใหม่กว่า, หรือ cloud มี AI eval แต่ local ไม่มี
+      var cloudHasMore=cv.drAimEval&&(!lv||!lv.drAimEval);
+      if(!lv||!lv.submitted||cAt>lAt||cloudHasMore){
         if(safeSetItem(k,JSON.stringify(cv))) changed=true;
       }
     });
 
-    // 3. push local hw states ขึ้น cloud
-    // — merge cloud กับ local ก่อน แล้วค่อย push (ป้องกัน overwrite iPad data)
+    // 3. push local ขึ้น cloud: เอา version ที่มีข้อมูลมากกว่า (full AI eval)
     var localHw=collectHwData();
     var mergedPush=Object.assign({},cloud);
     Object.keys(localHw).forEach(function(k){
       var lv=localHw[k]; if(!lv||!lv.submitted) return;
       var cv=mergedPush[k];
       var lAt=lv.submittedAt||""; var cAt=(cv&&cv.submittedAt)||"";
-      if(!cv||!cv.submitted||lAt>cAt) mergedPush[k]=lv;
+      // push ถ้า: cloud ไม่มี, หรือ local ใหม่กว่า, หรือ local มี AI eval แต่ cloud ไม่มี
+      var localHasMore=lv.drAimEval&&(!cv||!cv.drAimEval);
+      if(!cv||!cv.submitted||lAt>cAt||localHasMore) mergedPush[k]=lv;
     });
     await fetch("/api/sync",{method:"POST",headers:{"Content-Type":"application/json"},
       body:JSON.stringify(mergedPush)});
