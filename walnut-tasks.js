@@ -613,7 +613,10 @@ function addAnalysisTasks(){
 }
 
 function bookToCalendar(){
-  if(!calAnalysisTasks.length) return;
+  if(!calAnalysisTasks.length){
+    alert("กด 🔍 วิเคราะห์ก่อน แล้วค่อยบุ๊คปฏิทินครับ");
+    return;
+  }
   var evts=getCalEvents();
   var booked=[];
   calAnalysisTasks.forEach(function(t){
@@ -807,7 +810,7 @@ function buildCalHeader(){
     '<div style="display:flex;gap:4px">'+viewBtns+'</div>'+
     '<button onclick="openAddEvent(TODAY,\'08:00\',1)" style="background:#fbbf24;color:#fff;border:none;padding:5px 11px;border-radius:8px;font-weight:600;cursor:pointer;font-size:12px">+ เพิ่ม</button>'+
     '<button id="cal-analyze-btn" onclick="analyzeSchedule()" style="background:#2563eb;color:#fff;border:none;padding:5px 11px;border-radius:8px;font-weight:600;cursor:pointer;font-size:12px">🔍 วิเคราะห์</button>'+
-    (calAnalysisTasks.length?'<button onclick="bookToCalendar()" style="background:#7c3aed;color:#fff;border:none;padding:5px 11px;border-radius:8px;font-weight:600;cursor:pointer;font-size:12px">📅 บุ๊คปฏิทิน</button>':'')+
+    '<button onclick="bookToCalendar()" style="background:#7c3aed;color:#fff;border:none;padding:5px 11px;border-radius:8px;font-weight:600;cursor:pointer;font-size:12px">📅 บุ๊คปฏิทิน</button>'+
   '</div>';
 }
 function btnSt(){ return "color:#d97706;background:#fef3c7;border:1px solid #fde68a;padding:5px 11px;border-radius:8px;font-weight:600;cursor:pointer;font-size:12px"; }
