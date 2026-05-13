@@ -608,8 +608,51 @@ function addAnalysisTasks(){
     });
   });
   saveLocalTasks(ts);
+  calAnalysisResult="✅ เพิ่ม Task แล้ว";
+  refreshCalTop();
+}
+
+function bookToCalendar(){
+  if(!calAnalysisTasks.length) return;
+  var evts=getCalEvents();
+  var booked=[];
+  calAnalysisTasks.forEach(function(t){
+    if(!t.due) return;
+    // หาช่วงเวลาว่างในวันนั้น: เริ่มจาก 16:00 เพิ่มครั้งละ 30 นาที
+    var d=new Date(t.due);
+    var dow=d.getDay();
+    var dateStr=dStr(d);
+    var dayEvts=evts.filter(function(e){return eventOnDay(e,dateStr,dow);})
+      .sort(function(a,b){return a.startTime.localeCompare(b.startTime);});
+    // หา slot ว่าง (30 นาที) ตั้งแต่ 16:00
+    var slotStart="16:00";
+    var slotEnd="16:30";
+    for(var h=16;h<=20;h++){
+      for(var m=0;m<60;m+=30){
+        var ts=String(h).padStart(2,"0")+":"+String(m).padStart(2,"0");
+        var te=String(m+30>=60?h+1:h).padStart(2,"0")+":"+String((m+30)%60).padStart(2,"0");
+        var busy=dayEvts.some(function(e){
+          return e.startTime<te&&e.endTime>ts;
+        });
+        if(!busy){slotStart=ts;slotEnd=te;break;}
+      }
+      if(slotStart!=="16:00"||!dayEvts.some(function(e){return e.startTime<"16:30"&&e.endTime>"16:00";})) break;
+    }
+    var newEvt={
+      id:"ev_"+Date.now()+"-"+Math.random().toString(36).slice(2,5),
+      title:(t.icon||"📚")+" "+t.subject+" test",
+      type:"learning",
+      date:dateStr,
+      startTime:slotStart,
+      endTime:slotEnd
+    };
+    evts.push(newEvt);
+    booked.push(t.subject+" "+dateStr+" "+slotStart);
+  });
+  saveCalEvents(evts);
+  if(typeof saveToCloud==="function") saveToCloud(); // sync ขึ้น cloud
   calAnalysisTasks=[];
-  calAnalysisResult="✅ เพิ่ม Task แล้ว — ไปดูที่แท็บ Tasks ได้เลย";
+  calAnalysisResult="✅ บุ๊คลงปฏิทินแล้ว "+booked.length+" รายการ!\n"+booked.join("\n");
   refreshCalTop();
 }
 
@@ -922,7 +965,10 @@ function buildCalAnalysis(){
             '<span>'+(t.icon||"📌")+'</span><span style="font-weight:500">'+t.title+'</span>'+
             '<span style="color:#9ca3af;font-size:11px;margin-left:auto">'+t.due+'</span></div>';
         }).join("")+
-        '<button onclick="addAnalysisTasks()" style="width:100%;margin-top:8px;background:#fbbf24;color:#fff;border:none;padding:7px;border-radius:10px;font-weight:600;cursor:pointer;font-size:12px">✅ เพิ่ม Tasks ทั้งหมดเลย</button>'+
+        '<div style="display:flex;gap:6px;margin-top:8px">'+
+          '<button onclick="addAnalysisTasks()" style="flex:1;background:#fbbf24;color:#fff;border:none;padding:7px;border-radius:10px;font-weight:600;cursor:pointer;font-size:12px">✅ เพิ่ม Tasks</button>'+
+          '<button onclick="bookToCalendar()" style="flex:1;background:#3b82f6;color:#fff;border:none;padding:7px;border-radius:10px;font-weight:600;cursor:pointer;font-size:12px">📅 บุ๊คลงปฏิทิน</button>'+
+        '</div>'+
       '</div>':'')+'</div>';
 }
 
