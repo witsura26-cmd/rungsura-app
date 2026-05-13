@@ -284,10 +284,15 @@ function renderPage(){
     <div class="mb-3">
       <div class="flex items-center gap-4">
         <div class="bg-pink-400 w-14 h-14 rounded-2xl flex items-center justify-center text-3xl shadow">🎵</div>
-        <div>
+        <div class="flex-1">
           <h1 class="text-2xl font-bold text-gray-900">Walnut Learning</h1>
           <p class="text-gray-400 text-sm">การศึกษา + อาชีพนักร้อง</p>
         </div>
+        <button onclick="doSync()" title="Sync ข้อมูลระหว่างเครื่อง"
+          class="flex flex-col items-center gap-0.5 text-gray-400 hover:text-amber-500">
+          <span class="text-xl">☁️</span>
+          <span id="sync-status" style="font-size:9px;color:#9ca3af">sync</span>
+        </button>
       </div>
     </div>
     <div class="mb-4 bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
@@ -551,106 +556,78 @@ function getNextDay(dow){
   return d.toLocaleDateString("th-TH",{day:"numeric",month:"short"});
 }
 
-// ── INIT ──────────────────────────────────────────────────
 // ── CLOUD SYNC ────────────────────────────────────────────
-var cloudSyncing=false;
-var SYNC_PREFIXES=["hw_","walnut_","rs_claude","rs_sb"];
+// sync เฉพาะ hw_ states เท่านั้น — ไม่ยุ่ง tasks/events
 
-function collectLocalData(){
+function collectHwData(){
   var data={};
   for(var i=0;i<localStorage.length;i++){
     var k=localStorage.key(i);
-    if(!k) continue;
-    var keep=SYNC_PREFIXES.some(function(p){return k.startsWith(p);});
-    if(keep){
+    if(k&&k.startsWith("hw_")){
       try{ data[k]=JSON.parse(localStorage.getItem(k)); }
-      catch(e){ data[k]=localStorage.getItem(k); }
+      catch(e){}
     }
   }
   return data;
 }
 
-function applyCloudData(cloud){
-  var local=collectLocalData();
-  var merged=Object.assign({},local);
-  Object.keys(cloud).forEach(function(k){
-    var cv=cloud[k];
-    if(k.startsWith("hw_")){
-      // hw: เก็บ version ที่ส่งแล้วและ submittedAt ใหม่กว่า
-      var lv=local[k];
-      var cAt=(cv&&cv.submittedAt)||"";
-      var lAt=(lv&&lv.submittedAt)||"";
-      if(!lv||!lv.submitted||(cv&&cv.submitted&&cAt>lAt)) merged[k]=cv;
-    } else if(k==="walnut_tasks"){
-      // tasks: merge by id ไม่เขียนทับ
-      var larr=Array.isArray(local[k])?local[k]:[];
-      var carr=Array.isArray(cv)?cv:[];
-      var ids={}; larr.forEach(function(t){ids[t.id]=true;});
-      carr.forEach(function(t){if(!ids[t.id]){larr.push(t);}});
-      merged[k]=larr;
-    } else if(k==="walnut_events"){
-      // events: merge by id
-      var larr=Array.isArray(local[k])?local[k]:[];
-      var carr=Array.isArray(cv)?cv:[];
-      var ids={}; larr.forEach(function(e){ids[e.id]=true;});
-      carr.forEach(function(e){if(!ids[e.id]){larr.push(e);}});
-      merged[k]=larr;
-    } else {
-      // settings: cloud ชนะ
-      merged[k]=cv;
-    }
-  });
-  Object.keys(merged).forEach(function(k){
-    var v=merged[k];
-    localStorage.setItem(k,typeof v==="string"?v:JSON.stringify(v));
-  });
-  return merged;
-}
-
 async function saveToCloud(){
-  if(cloudSyncing) return;
-  cloudSyncing=true;
   try{
-    var data=collectLocalData();
-    await fetch("/api/sync",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});
+    await fetch("/api/sync",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify(collectHwData())});
   }catch(e){ console.warn("Cloud save failed:",e.message); }
-  finally{ cloudSyncing=false; }
 }
 
-// Sync background — ไม่บล็อก UI, ไม่ full re-render
-function syncInBackground(){
-  var ctrl=typeof AbortController!=="undefined"?new AbortController():null;
-  var timer=setTimeout(function(){ if(ctrl) ctrl.abort(); },4000);
-  fetch("/api/sync",ctrl?{signal:ctrl.signal}:{})
-    .then(function(r){return r.json();})
-    .then(function(d){
-      clearTimeout(timer);
-      if(!d.data) return;
-      var merged=applyCloudData(d.data);
-      // push merged กลับขึ้น cloud
-      fetch("/api/sync",{method:"POST",headers:{"Content-Type":"application/json"},
-        body:JSON.stringify(merged)}).catch(function(){});
-      // อัพเดตเฉพาะ task list เงียบๆ ไม่ full re-render
-      if(activeTab==="tasks"){
-        syncLessonTasks();
-        var inner=document.getElementById("task-list-inner");
-        if(inner){
-          var all=getLocalTasks();
-          var shown=taskFilter==="done"?all.filter(function(t){return t.status==="done";}):
-                    taskFilter==="pending"?all.filter(function(t){return t.status!=="done";}):all;
-          inner.innerHTML=renderTaskList(shown);
-        }
+function setSyncStatus(msg,ok){
+  var el=document.getElementById("sync-status");
+  if(el){ el.textContent=msg; el.style.color=ok?"#16a34a":"#6b7280"; }
+}
+
+async function doSync(){
+  setSyncStatus("⏳ กำลัง sync...","");
+  try{
+    // 1. ดึง hw states จาก cloud
+    var ctrl=typeof AbortController!=="undefined"?new AbortController():null;
+    if(ctrl) setTimeout(function(){ctrl.abort();},5000);
+    var r=await fetch("/api/sync",ctrl?{signal:ctrl.signal}:{});
+    var d=await r.json();
+    var cloud=d.data||{};
+    var changed=false;
+
+    // 2. merge hw states: เก็บ version ที่ submitted และ submittedAt ใหม่กว่า
+    Object.keys(cloud).forEach(function(k){
+      if(!k.startsWith("hw_")) return;
+      var cv=cloud[k]; if(!cv||!cv.submitted) return;
+      var lv_str=localStorage.getItem(k);
+      var lv=lv_str?JSON.parse(lv_str):null;
+      var cAt=cv.submittedAt||""; var lAt=(lv&&lv.submittedAt)||"";
+      if(!lv||!lv.submitted||cAt>lAt){
+        localStorage.setItem(k,JSON.stringify(cv));
+        changed=true;
       }
-      // refresh cal top ถ้า event มีการเปลี่ยนแปลง
-      if(typeof refreshCalTop==="function") refreshCalTop();
-    })
-    .catch(function(e){ clearTimeout(timer); console.warn("Sync skipped:",e.message); });
+    });
+
+    // 3. push local hw states ขึ้น cloud (เผื่อ device นี้มีข้อมูลใหม่กว่า)
+    await fetch("/api/sync",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify(collectHwData())});
+
+    if(changed){
+      syncLessonTasks(); // อัพเดต task statuses
+      setSyncStatus("✅ Sync แล้ว",true);
+      if(activeTab==="tasks") switchTab("tasks"); // re-render tasks tab
+    } else {
+      setSyncStatus("✅ ข้อมูลล่าสุดแล้ว",true);
+    }
+  }catch(e){
+    setSyncStatus("⚠️ Sync ไม่ได้",false);
+    console.warn("Sync error:",e.message);
+  }
 }
 
 async function init(){
   initSb();
-  renderPage(); // render ทันทีด้วย local data
-  syncInBackground(); // sync cloud ใน background ไม่บล็อก
+  renderPage();
+  doSync(); // sync ใน background ไม่บล็อก
 }
 init();
 </script>
