@@ -49,10 +49,13 @@ function setTaskFilter(f,btn){
     el.className="task-f px-3 py-1.5 rounded-lg text-xs font-medium transition-colors "+
       (el.dataset.f===f?"bg-amber-400 text-white":"bg-gray-100 text-gray-500");
   });
+  syncLessonTasks(); // sync ก่อนเสมอเพื่อให้ task status ถูกต้อง
   var all=getLocalTasks();
+  if(!all.length){ syncLessonTasks(); all=getLocalTasks(); } // safeguard
   var shown=f==="done"?all.filter(function(t){return t.status==="done";}):
              f==="pending"?all.filter(function(t){return t.status!=="done";}):all;
-  document.getElementById("task-list-inner").innerHTML=renderTaskList(shown);
+  var inner=document.getElementById("task-list-inner");
+  if(inner) inner.innerHTML=renderTaskList(shown);
 }
 
 // ── TASK LIST RENDER ──────────────────────────────────────

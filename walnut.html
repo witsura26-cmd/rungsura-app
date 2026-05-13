@@ -652,10 +652,10 @@ async function doSync(){
     await fetch("/api/sync",{method:"POST",headers:{"Content-Type":"application/json"},
       body:JSON.stringify(mergedPush)});
 
+    // อัพเดต localStorage เงียบๆ ไม่ยุ่ง UI เพื่อหลีกเลี่ยง race condition
     if(changed){
-      syncLessonTasks();
-      setSyncStatus("✅ ดึงข้อมูลใหม่แล้ว",true);
-      if(activeTab==="tasks") switchTab("tasks");
+      syncLessonTasks(); // อัพเดต task status ใน localStorage
+      setSyncStatus("✅ มีข้อมูลใหม่ — กด Tasks",true);
     } else {
       setSyncStatus("✅ ล่าสุดแล้ว",true);
     }
