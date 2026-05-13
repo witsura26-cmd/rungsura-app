@@ -561,42 +561,69 @@ function getNextDay(dow){
 // ── INIT ──────────────────────────────────────────────────
 // ── CLOUD SYNC ────────────────────────────────────────────
 var cloudSyncing=false;
-async function loadFromCloud(){
-  try{
-    var r=await fetch("/api/sync");
-    var d=await r.json();
-    if(!d.data) return;
-    // merge: cloud data overwrites local for hw states, tasks, events
-    var data=d.data;
-    Object.keys(data).forEach(function(k){
-      localStorage.setItem(k,typeof data[k]==="string"?data[k]:JSON.stringify(data[k]));
-    });
-  }catch(e){ console.warn("Cloud load failed:",e.message); }
+
+function collectLocalData(){
+  var data={};
+  for(var i=0;i<localStorage.length;i++){
+    var k=localStorage.key(i);
+    if(k&&(k.startsWith("hw_")||k.startsWith("walnut_"))){
+      try{ data[k]=JSON.parse(localStorage.getItem(k)); }
+      catch(e){ data[k]=localStorage.getItem(k); }
+    }
+  }
+  return data;
 }
+
 async function saveToCloud(){
   if(cloudSyncing) return;
   cloudSyncing=true;
   try{
-    // collect all walnut keys from localStorage
-    var data={};
-    for(var i=0;i<localStorage.length;i++){
-      var k=localStorage.key(i);
-      if(k&&(k.startsWith("hw_")||k.startsWith("walnut_")||k==="walnut_tasks"||k==="walnut_events")){
-        try{ data[k]=JSON.parse(localStorage.getItem(k)); }
-        catch(e){ data[k]=localStorage.getItem(k); }
-      }
-    }
+    var data=collectLocalData();
     await fetch("/api/sync",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});
   }catch(e){ console.warn("Cloud save failed:",e.message); }
   finally{ cloudSyncing=false; }
 }
 
+async function syncBothWays(){
+  // 1. ดึงข้อมูลจาก cloud
+  var cloud={};
+  try{
+    var r=await fetch("/api/sync");
+    var d=await r.json();
+    cloud=d.data||{};
+  }catch(e){ console.warn("Cloud load failed:",e.message); }
+
+  // 2. merge: hw_ ใช้ submittedAt เปรียบเทียบ, อื่นๆ cloud ชนะถ้ามี
+  var local=collectLocalData();
+  var merged=Object.assign({},local);
+  Object.keys(cloud).forEach(function(k){
+    var cv=cloud[k];
+    if(k.startsWith("hw_")){
+      var lv=local[k];
+      var cAt=(cv&&cv.submittedAt)||"";
+      var lAt=(lv&&lv.submittedAt)||"";
+      if(!lv||!lv.submitted||(cv&&cv.submitted&&cAt>lAt)) merged[k]=cv;
+    } else {
+      merged[k]=cv;
+    }
+  });
+
+  // 3. เขียน merged ลง localStorage
+  Object.keys(merged).forEach(function(k){
+    localStorage.setItem(k,typeof merged[k]==="string"?merged[k]:JSON.stringify(merged[k]));
+  });
+
+  // 4. push merged กลับขึ้น cloud (เผื่อ local มีข้อมูลใหม่กว่า)
+  try{
+    await fetch("/api/sync",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(merged)});
+  }catch(e){ console.warn("Cloud push failed:",e.message); }
+}
+
 async function init(){
   initSb();
-  // โหลดข้อมูลจาก cloud ก่อน แล้วค่อย render
   var banner=document.getElementById("sync-banner");
   if(banner) banner.classList.remove("hidden");
-  await loadFromCloud();
+  await syncBothWays(); // sync 2 ทาง: pull+merge+push
   if(banner) banner.classList.add("hidden");
   renderPage();
 }
