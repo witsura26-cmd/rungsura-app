@@ -288,7 +288,7 @@ function renderPage(){
           <h1 class="text-2xl font-bold text-gray-900">Walnut Learning</h1>
           <p class="text-gray-400 text-sm">การศึกษา + อาชีพนักร้อง</p>
         </div>
-        <button onclick="doSync()" title="Sync ข้อมูลระหว่างเครื่อง"
+        <button onclick="doSync(true)" title="Sync ข้อมูลระหว่างเครื่อง"
           class="flex flex-col items-center gap-0.5 text-gray-400 hover:text-amber-500">
           <span class="text-xl">☁️</span>
           <span id="sync-status" style="font-size:9px;color:#9ca3af">sync</span>
@@ -615,7 +615,7 @@ function setSyncStatus(msg,ok){
   if(el){ el.textContent=msg; el.style.color=ok?"#16a34a":"#6b7280"; }
 }
 
-async function doSync(){
+async function doSync(manual){
   setSyncStatus("⏳ กำลัง sync...","");
   try{
     // 1. ดึง hw states จาก cloud
@@ -652,10 +652,15 @@ async function doSync(){
     await fetch("/api/sync",{method:"POST",headers:{"Content-Type":"application/json"},
       body:JSON.stringify(mergedPush)});
 
-    // อัพเดต localStorage เงียบๆ ไม่ยุ่ง UI เพื่อหลีกเลี่ยง race condition
     if(changed){
       syncLessonTasks(); // อัพเดต task status ใน localStorage
-      setSyncStatus("✅ มีข้อมูลใหม่ — กด Tasks",true);
+      if(manual){
+        // กดปุ่มเอง → re-render Tasks tab ให้เลย
+        setSyncStatus("✅ sync แล้ว!",true);
+        switchTab("tasks");
+      } else {
+        setSyncStatus("✅ มีข้อมูลใหม่",true);
+      }
     } else {
       setSyncStatus("✅ ล่าสุดแล้ว",true);
     }
