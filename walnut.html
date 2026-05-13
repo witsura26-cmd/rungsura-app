@@ -557,15 +557,12 @@ function getNextDay(dow){
 }
 
 // ── CLOUD SYNC ────────────────────────────────────────────
-// sync เฉพาะ hw_ states เท่านั้น — ไม่ยุ่ง tasks/events
-
 function collectHwData(){
   var data={};
   for(var i=0;i<localStorage.length;i++){
     var k=localStorage.key(i);
     if(!k) continue;
     if(k.startsWith("hw_hist_")){
-      // ประวัติการทำที่ผ่าน — sync ข้ามเครื่องด้วย
       try{ data[k]=JSON.parse(localStorage.getItem(k)); }catch(e){}
     } else if(k.startsWith("hw_")){
       try{
@@ -576,6 +573,11 @@ function collectHwData(){
       }catch(e){}
     }
   }
+  // รวม calendar events ด้วย
+  try{
+    var evts=localStorage.getItem("walnut_events");
+    if(evts) data["walnut_events"]=JSON.parse(evts);
+  }catch(e){}
   return data;
 }
 function clearStorageSpace(){
@@ -620,7 +622,11 @@ function setSyncStatus(msg,ok){
 async function doSync(manual){
   setSyncStatus("⏳ sync...","");
   try{
-    if(manual) localStorage.clear(); // ล้าง storage ก่อนเสมอเมื่อกดปุ่มเอง
+    if(manual){ // ล้างเฉพาะ hw_ เก่าเพื่อเปิดพื้นที่ ไม่ลบ events
+      var oldKeys=[];
+      for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(k&&k.startsWith("hw_")&&!k.startsWith("hw_hist_"))oldKeys.push(k);}
+      oldKeys.forEach(function(k){localStorage.removeItem(k);});
+    }
     var r=await fetch("/api/sync");
     if(!r.ok) throw new Error("HTTP "+r.status);
     var d=await r.json();
@@ -629,7 +635,19 @@ async function doSync(manual){
     setSyncStatus("⏳ พบ "+cloudKeys.length+" รายการ...","");
     var changed=false;
 
-    // 2. pull จาก cloud: รวม history array + hw states
+    // 2a. pull walnut_events จาก cloud — merge by id
+    if(cloud.walnut_events&&Array.isArray(cloud.walnut_events)){
+      var localEvtRaw=localStorage.getItem("walnut_events");
+      var localEvts=localEvtRaw?JSON.parse(localEvtRaw):[];
+      var evtIds={}; localEvts.forEach(function(e){if(e.id)evtIds[e.id]=true;});
+      var added=false;
+      cloud.walnut_events.forEach(function(e){if(e.id&&!evtIds[e.id]){localEvts.push(e);added=true;}});
+      if(added){
+        try{localStorage.setItem("walnut_events",JSON.stringify(localEvts));}catch(e){}
+        changed=true;
+      }
+    }
+    // 2b. pull จาก cloud: รวม history array + hw states
     // — pull hw_hist_ (merge arrays, no duplicates by submittedAt)
     Object.keys(cloud).forEach(function(k){
       if(!k.startsWith("hw_hist_")) return;
