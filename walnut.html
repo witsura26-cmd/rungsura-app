@@ -623,8 +623,16 @@ async function init(){
   initSb();
   var banner=document.getElementById("sync-banner");
   if(banner) banner.classList.remove("hidden");
-  await syncBothWays(); // sync 2 ทาง: pull+merge+push
-  if(banner) banner.classList.add("hidden");
+  // sync พร้อม timeout 5 วิ — ถ้าช้าเกิน ข้ามไปแสดงหน้าเลย
+  try{
+    await Promise.race([
+      syncBothWays(),
+      new Promise(function(_,rej){setTimeout(function(){rej(new Error("timeout"));},5000)})
+    ]);
+  }catch(e){ console.warn("Sync skipped:",e.message); }
+  finally{
+    if(banner) banner.classList.add("hidden");
+  }
   renderPage();
 }
 init();
