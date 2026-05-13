@@ -595,11 +595,7 @@ function clearStorageSpace(){
   }catch(e){}
 }
 function safeSetItem(k,v){
-  try{ localStorage.setItem(k,v); return true; }catch(e){}
-  // รอบ 1: ล้าง AI text
-  clearStorageSpace();
-  try{ localStorage.setItem(k,v); return true; }catch(e){}
-  // รอบ 2: ลบ hw_ เก่าทิ้งเลย (ยกเว้นตัวที่กำลังจะเซฟ)
+  // ลบ hw_ เก่าทิ้งก่อนเสมอ เพื่อป้องกัน storage เต็ม
   var keys=[];
   for(var i=0;i<localStorage.length;i++){var key=localStorage.key(i);if(key&&key.startsWith("hw_")&&key!==k)keys.push(key);}
   keys.forEach(function(key){localStorage.removeItem(key);});
@@ -654,12 +650,15 @@ async function doSync(manual){
     await fetch("/api/sync",{method:"POST",headers:{"Content-Type":"application/json"},
       body:JSON.stringify(mergedPush)});
 
-    if(changed){
+    if(manual){
+      // reload เพื่อให้หน้าแสดงผลใหม่สมบูรณ์
+      setSyncStatus("✅ sync แล้ว กำลัง reload...",true);
+      setTimeout(function(){ window.location.reload(); },800);
+    } else if(changed){
       syncLessonTasks();
-      setSyncStatus("✅ sync "+cloudKeys.length+" วิชา!",true);
-      if(manual) switchTab("tasks");
+      setSyncStatus("✅ มีข้อมูลใหม่",true);
     } else {
-      setSyncStatus("✅ ล่าสุด ("+cloudKeys.length+")",true);
+      setSyncStatus("✅ ล่าสุดแล้ว",true);
     }
   }catch(e){
     setSyncStatus("⚠️ "+e.message,false);
