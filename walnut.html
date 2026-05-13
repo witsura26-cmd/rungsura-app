@@ -692,9 +692,9 @@ async function doSync(manual){
       body:JSON.stringify(mergedPush)});
 
     if(manual){
-      // reload เพื่อให้หน้าแสดงผลใหม่สมบูรณ์
-      setSyncStatus("✅ sync แล้ว กำลัง reload...",true);
-      setTimeout(function(){ window.location.reload(); },800);
+      setSyncStatus("✅ sync แล้ว!",true);
+      if(typeof refreshCalTop==="function") refreshCalTop(); // อัพเดต calendar
+      if(activeTab==="tasks") switchTab("tasks"); // อัพเดต tasks ถ้าอยู่หน้านั้น
     } else if(changed){
       syncLessonTasks();
       setSyncStatus("✅ มีข้อมูลใหม่",true);
