@@ -677,17 +677,26 @@ async function doSync(manual){
       }
     });
 
-    // 3. push local ขึ้น cloud: เอา version ที่มีข้อมูลมากกว่า (full AI eval)
+    // 3. push local ขึ้น cloud
     var localHw=collectHwData();
     var mergedPush=Object.assign({},cloud);
+
+    // push hw_ states (เฉพาะที่ submitted)
     Object.keys(localHw).forEach(function(k){
+      if(k==="walnut_events") return; // จัดการแยกด้านล่าง
       var lv=localHw[k]; if(!lv||!lv.submitted) return;
       var cv=mergedPush[k];
       var lAt=lv.submittedAt||""; var cAt=(cv&&cv.submittedAt)||"";
-      // push ถ้า: cloud ไม่มี, หรือ local ใหม่กว่า, หรือ local มี AI eval แต่ cloud ไม่มี
       var localHasMore=lv.drAimEval&&(!cv||!cv.drAimEval);
       if(!cv||!cv.submitted||lAt>cAt||localHasMore) mergedPush[k]=lv;
     });
+
+    // push walnut_events — merge by id (local + cloud รวมกัน)
+    var localEvtsForPush=Array.isArray(localHw.walnut_events)?localHw.walnut_events:[];
+    var cloudEvts=Array.isArray(mergedPush.walnut_events)?mergedPush.walnut_events:[];
+    var evtMap={}; cloudEvts.forEach(function(e){if(e.id)evtMap[e.id]=e;});
+    localEvtsForPush.forEach(function(e){if(e.id)evtMap[e.id]=e;}); // local wins on conflict
+    mergedPush.walnut_events=Object.values(evtMap);
     await fetch("/api/sync",{method:"POST",headers:{"Content-Type":"application/json"},
       body:JSON.stringify(mergedPush)});
 
