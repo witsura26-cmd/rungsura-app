@@ -1,332 +1,468 @@
-// ── LESSON VISUAL ─────────────────────────────────────────
-function getLessonVisual(id){
-  if(id.startsWith("thai")) return (
-    '<div class="bg-gradient-to-r from-yellow-50 to-amber-50 rounded-2xl p-4 mb-4 border border-yellow-100">'+
-    '<div class="text-xs font-bold text-amber-700 mb-3">📚 ตารางมาตราตัวสะกด</div>'+
-    '<div class="grid grid-cols-3 gap-2">'+
-    [["แม่กง","วาง กาง วิ่ง สิ่ง","🔔"],["แม่กน","กิน คน นอน วัน","📝"],["แม่กม","ยิ้ม ชม ลิ้ม นาม","💜"]].map(function(m){
-      return '<div class="bg-white rounded-xl p-3 text-center shadow-sm"><div class="font-bold text-amber-600 mb-1">'+m[0]+' '+m[2]+'</div>'+
-        m[1].split(" ").map(function(w){return '<span class="inline-block bg-amber-50 text-amber-800 px-2 py-0.5 rounded-lg text-xs m-0.5">'+w+'</span>';}).join("")+
-      '</div>';
-    }).join("")+
-    '</div></div>');
-  if(id.startsWith("math")) return (
-    '<div class="bg-gradient-to-r from-orange-50 to-yellow-50 rounded-2xl p-4 mb-4 border border-orange-100">'+
-    '<div class="text-xs font-bold text-orange-700 mb-3">🎮 ตารางสูตรคูณ แม่ 6–9</div>'+
-    '<div class="grid grid-cols-4 gap-1 text-xs text-center">'+
-    [6,7,8,9].map(function(a){
-      return '<div><div class="font-bold text-orange-600 bg-orange-100 rounded-t-lg py-1">×'+a+'</div>'+
-        [6,7,8,9,10,11].map(function(b){
-          return '<div class="'+(a===b?'bg-amber-200 font-bold':'bg-white')+' border-b py-1 rounded">'+a+'×'+b+'='+a*b+'</div>';
-        }).join("")+
-      '</div>';
-    }).join("")+
-    '</div></div>');
-  if(id.startsWith("sci")) return (
-    '<div class="bg-gradient-to-r from-cyan-50 to-blue-50 rounded-2xl p-4 mb-4 border border-cyan-100">'+
-    '<div class="text-xs font-bold text-cyan-700 mb-3">🔬 แผนภาพร่างกาย</div>'+
-    '<div class="flex items-start gap-4">'+
-    '<div class="text-center text-4xl leading-tight">🧠<br>🫁🫀<br>💪<br>🦷<br>🦵</div>'+
-    '<div class="flex-1 space-y-1.5 text-xs">'+
-    [["🧠 สมอง","สั่งการร่างกาย","bg-purple-50 text-purple-700"],
-     ["🫀 หัวใจ","กล้ามเนื้อหัวใจ — ทำงาน 24/7","bg-red-50 text-red-700"],
-     ["💪 กล้ามเนื้อโครงร่าง","ควบคุมได้ตามใจ","bg-orange-50 text-orange-700"],
-     ["🦴 กระดูก 206 ชิ้น","ค้ำจุน + ปกป้องอวัยวะ","bg-cyan-50 text-cyan-700"]].map(function(r){
-      return '<div class="'+r[2]+' rounded-lg px-2 py-1"><strong>'+r[0]+'</strong> — '+r[1]+'</div>';
-    }).join("")+
-    '</div></div></div>');
-  if(id.startsWith("sing")) return (
-    '<div class="bg-gradient-to-r from-rose-50 to-pink-50 rounded-2xl p-4 mb-4 border border-rose-100">'+
-    '<div class="text-xs font-bold text-rose-700 mb-3">🎤 Warm-Up Routine (10 นาที)</div>'+
-    '<div class="flex gap-2 items-center flex-wrap">'+
-    [["Lip Trill","2 นาที","🌬️","bg-rose-100"],["Humming","3 นาที","🎵","bg-pink-100"],["Ma-Me-Mi","3 นาที","🗣️","bg-fuchsia-100"],["Scale","2 นาที","🎼","bg-purple-100"]].map(function(s){
-      return '<div class="'+s[3]+' rounded-xl p-2.5 text-center flex-1 min-w-0"><div class="text-xl">'+s[2]+'</div><div class="font-bold text-xs mt-1">'+s[0]+'</div><div class="text-xs text-gray-500">'+s[1]+'</div></div>';
-    }).join('<div class="text-gray-300 text-lg">→</div>')+
-    '</div></div>');
-  if(id.startsWith("piano")) return (
-    '<div class="bg-gradient-to-r from-violet-50 to-purple-50 rounded-2xl p-4 mb-4 border border-violet-100">'+
-    '<div class="text-xs font-bold text-violet-700 mb-3">🎹 คีย์บอร์ด Treble Clef</div>'+
-    '<div class="flex gap-0.5 items-end justify-center mb-3">'+
-    ["C","D","E","F","G","A","B","C"].map(function(n){
-      return '<div class="flex flex-col items-center"><div class="w-8 h-16 bg-white border-2 border-gray-200 rounded-b-lg flex items-end justify-center pb-1 text-xs font-bold text-violet-600">'+n+'</div></div>';
-    }).join("")+
-    '</div>'+
-    '<div class="text-xs text-gray-600 text-center">เส้น: <strong>E G B D F</strong> ("Every Good Boy Does Fine") · ช่อง: <strong>F A C E</strong></div>'+
-    '</div>');
-  if(id.startsWith("eng")) return (
-    '<div class="bg-gradient-to-r from-indigo-50 to-blue-50 rounded-2xl p-4 mb-4 border border-indigo-100">'+
-    '<div class="text-xs font-bold text-indigo-700 mb-3">🇬🇧 Vocabulary Flashcards</div>'+
-    '<div class="grid grid-cols-3 gap-2 mb-3">'+
-    [["happy","มีความสุข","😊"],["proud","ภูมิใจ","🏆"],["singer","นักร้อง","🎤"],
-     ["school","โรงเรียน","🏫"],["friend","เพื่อน","🤝"],["music","ดนตรี","🎵"]].map(function(v){
-      return '<div class="bg-white rounded-xl p-2.5 text-center shadow-sm border border-indigo-50">'+
-        '<div class="text-xl">'+v[2]+'</div>'+
-        '<div class="font-bold text-indigo-600 text-xs mt-1">'+v[0]+'</div>'+
-        '<div class="text-gray-500 text-xs">'+v[1]+'</div>'+
-      '</div>';
-    }).join("")+
-    '</div>'+
-    '<div class="bg-indigo-100 rounded-xl p-3 text-xs text-center font-semibold text-indigo-800">I → AM &nbsp;|&nbsp; He/She/It → IS &nbsp;|&nbsp; We/You/They → ARE</div>'+
-    '</div>');
-  return "";
-}
+// ══════════════════════════════════════════════════════════
+//  WALNUT LESSON FULL-PAGE EXPERIENCE
+//  Full page per lesson — MCQ ทีละข้อ + XP + rich reading
+// ══════════════════════════════════════════════════════════
 
-// ── HOMEWORK OPEN/DISPLAY ─────────────────────────────────
-function openHw(id){
-  const l=LESSONS.find(x=>x.id===id);if(!l)return;
+var currentHwLesson=null;
+var hwSection="reading";   // reading | mcq | written | result
+var hwMcqIndex=0;
+var hwMcqAnswers=[];
+var hwMcqFeedback=null;    // {correct:bool, chosen:int}
+var hwXP=0;
+var hwWrittenAnswers=[];
+
+// ── Open / Close ──────────────────────────────────────────
+function openHw(lessonId){
+  var l=LESSONS.find(function(x){return x.id===lessonId;});
+  if(!l){alert("ไม่พบบทเรียน");return;}
   currentHwLesson=l;
-  const st=getHwState(id);
-  hwMcqAnswers=st.mcqAnswers||new Array(l.mcq.length).fill(null);
-  hwWrittenAnswers=st.writtenAnswers||new Array(l.written.length).fill("");
-  document.getElementById("hw-hdr").className="rounded-2xl p-5 mb-5 flex items-center justify-between "+l.bg+" border "+l.border;
-  document.getElementById("hw-icon").textContent=l.icon;
-  document.getElementById("hw-subj").textContent=l.subject;
-  document.getElementById("hw-tch").textContent=l.teacher+" · สัปดาห์ที่ "+l.week;
-  document.getElementById("hw-title").textContent=l.title;
-  document.getElementById("hw-goal").textContent="🎯 "+l.goal;
-  document.getElementById("hw-content").innerHTML=getLessonVisual(l.id)+
-    '<div class="whitespace-pre-line text-sm text-gray-700 leading-relaxed">'+
-    l.reading.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")+
-    '</div>';
-  document.getElementById("hw-mcq").innerHTML=l.mcq.map(function(q,i){
-    return '<div class="border border-gray-100 rounded-xl p-4 bg-gray-50">'+
-      '<div class="text-sm font-medium text-gray-800 mb-3">'+(i+1)+'. '+q.q+'</div>'+
-      '<div class="space-y-2">'+
-      q.c.map(function(c,ci){
-        var sel=hwMcqAnswers[i]===ci;
-        return '<button onclick="selMcq('+i+','+ci+')" data-q="'+i+'" data-c="'+ci+'" class="mcq-btn w-full text-left px-4 py-2.5 rounded-lg text-sm border '+(sel?"bg-amber-400 border-amber-400 text-white font-semibold":"bg-white border-gray-200 hover:border-amber-300 text-gray-700")+'">'+c+'</button>';
-      }).join("")+
-      '</div></div>';
-  }).join("");
-  document.getElementById("hw-written").innerHTML=l.written.map(function(q,i){
-    return '<div class="border border-gray-100 rounded-xl p-4 bg-gray-50">'+
-      '<div class="text-sm font-medium text-gray-800 mb-2">'+(i+1)+'. '+q.q+'</div>'+
-      '<textarea rows="3" placeholder="เขียนคำตอบที่นี่..." data-wi="'+i+'" onchange="hwWrittenAnswers['+i+']=this.value" '+
-      'class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-400 resize-none bg-white">'+
-      (hwWrittenAnswers[i]||"")+'</textarea>'+
-      '</div>';
-  }).join("");
+  var st=getHwState(l.id);
   if(st.submitted){
-    showHwResult(st);
-    var btn=document.getElementById("hw-submit");
-    btn.textContent="✅ ส่งแล้ว"; btn.disabled=true;
-    btn.className="w-full bg-green-400 text-white py-3 rounded-2xl font-bold cursor-not-allowed";
+    hwSection="result";
   } else {
-    document.getElementById("hw-result").classList.add("hidden");
-    var btn2=document.getElementById("hw-submit");
-    btn2.textContent="ส่งการบ้าน →"; btn2.disabled=false;
-    btn2.className="w-full bg-amber-400 hover:bg-amber-500 text-white py-3 rounded-2xl font-bold";
+    hwSection="reading";
+    hwMcqIndex=0;
+    hwXP=0;
+    hwMcqFeedback=null;
+    hwMcqAnswers=new Array(l.mcq.length).fill(null);
+    hwWrittenAnswers=st.writtenAnswers||new Array(l.written.length).fill("");
   }
-  document.getElementById("hw-modal").classList.remove("hidden");
+  renderLessonFullPage();
+  document.getElementById("lesson-fullpage").classList.remove("hidden");
   window.scrollTo(0,0);
 }
-function closeHw(){document.getElementById("hw-modal").classList.add("hidden");currentHwLesson=null;}
 
-function selMcq(qi,ci){
-  hwMcqAnswers[qi]=ci;
-  document.querySelectorAll('[data-q="'+qi+'"]').forEach(function(btn){
-    var sel=+btn.dataset.c===ci;
-    btn.className="mcq-btn w-full text-left px-4 py-2.5 rounded-lg text-sm border transition-colors "+
-      (sel?"bg-amber-400 border-amber-400 text-white font-semibold":"bg-white border-gray-200 hover:border-amber-300 text-gray-700");
-  });
+function closeHw(){
+  document.getElementById("lesson-fullpage").classList.add("hidden");
+  currentHwLesson=null;
 }
 
-// โหลดคำอธิบาย MCQ ข้อเดิมที่ยังไม่มีทีหลัง
-async function loadMcqExplain(lessonId, qi){
+// ── Main Render ───────────────────────────────────────────
+function renderLessonFullPage(){
+  var l=currentHwLesson; if(!l) return;
+  var fp=document.getElementById("lesson-fullpage"); if(!fp) return;
+
+  var totalQ=(l.mcq&&l.mcq.length)||0;
+  var answered=hwMcqAnswers.filter(function(a){return a!==null;}).length;
+
+  // Header
+  var hdr='<div class="sticky top-0 z-10 bg-gray-950 border-b border-gray-800 px-4 py-3 flex items-center gap-3">'+
+    '<button onclick="closeHw()" class="text-gray-400 hover:text-white text-2xl leading-none w-8">←</button>'+
+    '<div class="flex items-center gap-2 flex-1 min-w-0">'+
+      '<span class="text-xl">'+l.icon+'</span>'+
+      '<div class="min-w-0">'+
+        '<div class="font-bold text-white text-sm truncate">'+l.subject+' — W'+l.week+'</div>'+
+        '<div class="text-xs text-gray-400 truncate">'+l.teacher+'</div>'+
+      '</div>'+
+    '</div>'+
+    (hwSection==="mcq"?'<div class="text-amber-400 font-black text-sm">⭐ '+hwXP+' XP</div>':'')+
+  '</div>';
+
+  // Section tabs
+  var tabs='<div class="flex bg-gray-900 border-b border-gray-800">'+
+    [['reading','📖 อ่าน'],['mcq','🎮 '+(totalQ||15)+' ด่าน'],['written','✍️ เขียน']].map(function(t){
+      var active=hwSection===t[0];
+      var st2=getHwState(l.id);
+      var done=(t[0]==="result")||(t[0]==="mcq"&&answered>0)||(t[0]==="written"&&hwWrittenAnswers.some(function(a){return a;}));
+      return '<button onclick="lpGoSection(\''+t[0]+'\')" '+
+        'class="flex-1 py-3 text-xs font-bold transition-colors '+
+        (active?"text-amber-400 border-b-2 border-amber-400":"text-gray-500 hover:text-gray-300")+'">'+ t[1]+'</button>';
+    }).join("")+
+  '</div>';
+
+  // Body
+  var body="";
+  if(hwSection==="reading") body=renderLFPReading(l);
+  else if(hwSection==="mcq") body=renderLFPMcq(l);
+  else if(hwSection==="written") body=renderLFPWritten(l);
+  else if(hwSection==="result") body=renderLFPResult(l,getHwState(l.id));
+
+  fp.innerHTML=hdr+tabs+'<div id="lfp-body">'+body+'</div>';
+}
+
+function lpGoSection(s){
+  hwSection=s;
+  if(s==="mcq"&&hwMcqFeedback){hwMcqFeedback=null;}
+  renderLessonFullPage();
+  var fp=document.getElementById("lesson-fullpage");
+  if(fp) fp.scrollTo(0,0);
+}
+
+// ── Section: Reading ─────────────────────────────────────
+function renderLFPReading(l){
+  var scene=l.scene||l.icon+"✨";
+  var paragraphs=(l.reading||"เนื้อหากำลังโหลด...").split(/\n\n+/);
+
+  return '<div class="max-w-2xl mx-auto pb-8">'+
+    // Scene banner
+    '<div class="bg-gradient-to-b from-gray-800 to-gray-900 px-6 py-8 text-center">'+
+      '<div class="text-5xl mb-3 tracking-widest">'+scene+'</div>'+
+      '<div class="text-xl font-black text-white mb-2">'+l.title+'</div>'+
+      (l.missionBrief?'<div class="text-sm text-gray-300 italic leading-relaxed max-w-sm mx-auto">'+l.missionBrief+'</div>':'')+
+      '<div class="mt-3 inline-block bg-amber-500 text-gray-900 text-xs font-bold px-3 py-1 rounded-full">🎯 '+l.goal+'</div>'+
+    '</div>'+
+    // Reading content
+    '<div class="px-5 py-6 space-y-5">'+
+      paragraphs.map(function(p,i){
+        if(!p.trim()) return "";
+        // ย่อหน้าแรกใส่ drop cap style
+        var pClass="text-gray-200 text-base leading-relaxed";
+        if(i===0) pClass="text-white text-base leading-relaxed font-medium";
+        return '<p class="'+pClass+'">'+p.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")+'</p>';
+      }).join("")+
+    '</div>'+
+    // Key info box ถ้ามี
+    getLessonKeyBox(l)+
+    // Rationale
+    (l.rationale?'<div class="mx-5 bg-blue-900/40 border border-blue-700/50 rounded-2xl p-4 mb-4">'+
+      '<div class="flex items-start gap-2">'+
+        '<span class="text-blue-400 text-sm">🌸</span>'+
+        '<div><div class="text-xs font-bold text-blue-300 mb-1">Rose + ทีมครูเลือกเนื้อหานี้เพราะ</div>'+
+        '<div class="text-xs text-blue-200 leading-relaxed">'+l.rationale+'</div></div>'+
+      '</div></div>':"")+
+    // CTA
+    '<div class="px-5 pb-4">'+
+      '<button onclick="lpGoSection(\'mcq\')" '+
+        'class="w-full py-4 bg-gradient-to-r from-amber-400 to-orange-400 hover:from-amber-500 hover:to-orange-500 text-gray-900 rounded-2xl font-black text-lg shadow-lg shadow-amber-900/30 transition-all">'+
+        '🎮 เริ่มทำด่าน '+(l.mcq&&l.mcq.length||15)+' ข้อ →'+
+      '</button>'+
+    '</div>'+
+  '</div>';
+}
+
+// ── Key Info Box (subject-specific) ──────────────────────
+function getLessonKeyBox(l){
+  var id=l.id||"";
+  if(!id.startsWith("thai")&&!id.startsWith("math")&&!id.startsWith("sci")&&
+     !id.startsWith("sing")&&!id.startsWith("piano")&&!id.startsWith("eng")) return "";
+  // Dynamic box based on subject
+  var subj=l.subject||"";
+  var items=[];
+  if(subj==="ภาษาไทย") items=[["📖","อ่านจับใจความ","จับ ใจความหลัก + ใจความสนับสนุน"],["✍️","คำศัพท์","หาคำยาก แล้วเดาจากบริบท"],["💡","หลักภาษา","สังเกตชนิดของคำ"]];
+  else if(subj==="คณิตศาสตร์") items=[["🔢","ขั้นตอน","อ่านโจทย์ → หาสิ่งที่โจทย์ถาม → เลือกวิธี"],["✏️","คำนวณ","แสดงวิธีทำเสมอ"],["✅","ตรวจ","ตรวจสอบว่าคำตอบสมเหตุสมผล"]];
+  else if(subj==="วิทยาศาสตร์") items=[["🔬","สังเกต","มองหาหลักการที่ซ่อนอยู่ในเนื้อหา"],["🧪","ทดลอง","นึกภาพถ้าทำจริงจะเกิดอะไร"],["💡","สรุป","เชื่อมกับชีวิตประจำวัน"]];
+  else if(subj==="ร้องเพลง") items=[["🎤","เสียง","สังเกตการใช้ Chest/Head Voice"],["🌬️","ลมหายใจ","Breath control = เสียงสม่ำเสมอ"],["🎵","จังหวะ","นับ beat ก่อนร้องเสมอ"]];
+  else if(subj==="เปียโน") items=[["🎹","โน้ต","อ่านทีละบรรทัด ช้าๆ ก่อน"],["✋","มือ","ฝึกมือเดียวก่อนสองมือ"],["👂","ฟัง","ฟังตัวเองเล่นแล้วปรับ"]];
+  else if(subj==="ภาษาอังกฤษ") items=[["👁","อ่าน","อ่าน 2 รอบ รอบแรกดูภาพรวม"],["🔤","คำศัพท์","เดาจาก context ก่อนเปิดพจนานุกรม"],["✍️","ไวยากรณ์","สังเกต tense ที่ใช้"]];
+  if(!items.length) return "";
+  return '<div class="mx-5 mb-5 bg-gray-800 border border-gray-700 rounded-2xl p-4">'+
+    '<div class="text-xs font-bold text-gray-400 mb-3 uppercase tracking-wider">💡 เคล็ดลับก่อนทำแบบทดสอบ</div>'+
+    '<div class="grid grid-cols-3 gap-2">'+
+    items.map(function(it){
+      return '<div class="bg-gray-700/50 rounded-xl p-3 text-center">'+
+        '<div class="text-2xl mb-1">'+it[0]+'</div>'+
+        '<div class="text-xs font-bold text-white">'+it[1]+'</div>'+
+        '<div class="text-xs text-gray-400 mt-0.5 leading-tight">'+it[2]+'</div>'+
+      '</div>';
+    }).join("")+
+    '</div></div>';
+}
+
+// ── Section: MCQ (ทีละข้อ) ────────────────────────────────
+function renderLFPMcq(l){
+  var q=l.mcq&&l.mcq[hwMcqIndex];
+  if(!q){
+    // เสร็จทุกข้อแล้ว
+    return '<div class="max-w-lg mx-auto px-5 py-8 text-center">'+
+      '<div class="text-6xl mb-4">🎉</div>'+
+      '<div class="text-2xl font-black text-white mb-2">ครบ '+(l.mcq&&l.mcq.length)+'  ด่านแล้ว!</div>'+
+      '<div class="text-amber-400 font-bold text-xl mb-6">⭐ '+hwXP+' XP</div>'+
+      '<button onclick="lpGoSection(\'written\')" class="w-full py-4 bg-gradient-to-r from-green-400 to-teal-400 text-gray-900 rounded-2xl font-black text-lg">✍️ ไปข้อเขียน →</button>'+
+    '</div>';
+  }
+  var total=l.mcq.length;
+  var pct=Math.round((hwMcqIndex/total)*100);
+  var answered=hwMcqAnswers.filter(function(a){return a!==null;}).length;
+  var colors=["from-blue-500 to-indigo-600","from-purple-500 to-pink-600","from-orange-500 to-amber-600","from-green-500 to-teal-600"];
+  var prefixes=["ก.","ข.","ค.","ง."];
+
+  return '<div class="max-w-lg mx-auto pb-8">'+
+    // Progress
+    '<div class="px-5 py-4">'+
+      '<div class="flex items-center justify-between mb-2">'+
+        '<span class="text-xs text-gray-400 font-semibold">ด่าน '+(hwMcqIndex+1)+' / '+total+'</span>'+
+        '<span class="text-xs text-amber-400 font-bold">⭐ '+hwXP+' XP</span>'+
+      '</div>'+
+      '<div class="bg-gray-800 rounded-full h-2">'+
+        '<div class="bg-gradient-to-r from-amber-400 to-orange-400 h-2 rounded-full transition-all" style="width:'+pct+'%"></div>'+
+      '</div>'+
+    '</div>'+
+    // Question card
+    '<div class="mx-5 bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 rounded-3xl p-6 mb-5 shadow-xl">'+
+      '<div class="text-xs font-bold text-amber-400 mb-3 uppercase tracking-widest">🎮 ด่านที่ '+(hwMcqIndex+1)+'</div>'+
+      '<div class="text-white text-lg font-bold leading-snug">'+q.q+'</div>'+
+    '</div>'+
+    // Feedback (ถ้ามี)
+    (hwMcqFeedback?
+      '<div class="mx-5 mb-4 p-4 rounded-2xl '+(hwMcqFeedback.correct?'bg-green-900/50 border border-green-600':'bg-red-900/50 border border-red-600')+'">'+
+        '<div class="font-black text-lg '+(hwMcqFeedback.correct?'text-green-400':'text-red-400')+'">'+
+          (hwMcqFeedback.correct?'⭐ ถูกต้อง! +10 XP':'❌ ยังไม่ถูก — เฉลยคือ')+
+        '</div>'+
+        (!hwMcqFeedback.correct?'<div class="text-white font-semibold mt-1">'+q.c[q.a]+'</div>':'')+
+      '</div>':'')+
+    // Choices
+    '<div class="px-5 space-y-3 mb-6">'+
+      q.c.map(function(c,ci){
+        var chosen=hwMcqFeedback&&hwMcqFeedback.chosen===ci;
+        var correct=hwMcqFeedback&&ci===q.a;
+        var wrong=hwMcqFeedback&&chosen&&!correct;
+        var base="w-full text-left px-5 py-4 rounded-2xl border-2 font-semibold text-sm transition-all flex items-center gap-3 ";
+        var style="";
+        if(!hwMcqFeedback) style="bg-gray-800 border-gray-600 text-white hover:border-amber-400 hover:bg-gray-700";
+        else if(correct) style="bg-green-800 border-green-500 text-green-200";
+        else if(wrong) style="bg-red-800 border-red-500 text-red-200";
+        else style="bg-gray-800/50 border-gray-700 text-gray-500";
+        var onclick=hwMcqFeedback?"":"onclick=\"lpAnswerMcq("+ci+")\"";
+        return '<button '+onclick+' '+(!hwMcqFeedback?'':'disabled')+' class="'+base+style+'">'+
+          '<span class="w-8 h-8 flex-shrink-0 rounded-xl bg-gradient-to-br '+colors[ci]+' flex items-center justify-center text-white font-black text-sm">'+prefixes[ci]+'</span>'+
+          '<span>'+c+'</span>'+
+        '</button>';
+      }).join("")+
+    '</div>'+
+    // Next button
+    (hwMcqFeedback?
+      '<div class="px-5">'+
+        '<button onclick="lpNextMcq()" class="w-full py-4 bg-gradient-to-r from-amber-400 to-orange-400 text-gray-900 rounded-2xl font-black text-lg">'+
+          (hwMcqIndex+1<total?'ด่านถัดไป →':'🎉 ครบทุกด่านแล้ว!')+
+        '</button>'+
+      '</div>':'')+
+  '</div>';
+}
+
+function lpAnswerMcq(ci){
+  var l=currentHwLesson; if(!l) return;
+  var q=l.mcq[hwMcqIndex]; if(!q) return;
+  hwMcqAnswers[hwMcqIndex]=ci;
+  var correct=(ci===q.a);
+  hwMcqFeedback={correct:correct,chosen:ci};
+  if(correct) hwXP+=10; else hwXP+=2; // XP แม้ตอบผิด
+  renderLessonFullPage();
+  // scroll up to see feedback
+  var fp=document.getElementById("lesson-fullpage");
+  if(fp) fp.scrollTo({top:0,behavior:"smooth"});
+}
+
+function lpNextMcq(){
+  hwMcqFeedback=null;
+  hwMcqIndex++;
+  renderLessonFullPage();
+  var fp=document.getElementById("lesson-fullpage");
+  if(fp) fp.scrollTo({top:0,behavior:"smooth"});
+}
+
+// ── Section: Written ─────────────────────────────────────
+function renderLFPWritten(l){
+  var mcqDone=hwMcqAnswers.filter(function(a){return a!==null;}).length;
+  var mcqTotal=l.mcq&&l.mcq.length||0;
+
+  return '<div class="max-w-2xl mx-auto pb-8">'+
+    // Status bar
+    '<div class="px-5 py-4 flex items-center justify-between bg-gray-900 border-b border-gray-800">'+
+      '<div class="text-xs text-gray-400">MCQ: <span class="text-green-400 font-bold">'+mcqDone+'/'+mcqTotal+'</span> ตอบแล้ว</div>'+
+      '<div class="text-amber-400 font-bold text-sm">⭐ '+hwXP+' XP</div>'+
+    '</div>'+
+    // Questions
+    '<div class="px-5 py-5 space-y-6">'+
+      l.written.map(function(q,i){
+        var icons=["🧠","💡","🔍","🌟","💬"];
+        return '<div class="bg-gray-900 border border-gray-700 rounded-2xl overflow-hidden">'+
+          // Question header
+          '<div class="bg-gradient-to-r from-gray-800 to-gray-900 px-5 py-4">'+
+            '<div class="flex items-start gap-3">'+
+              '<div class="w-10 h-10 flex-shrink-0 bg-amber-500 rounded-xl flex items-center justify-center text-xl">'+icons[i]+'</div>'+
+              '<div>'+
+                '<div class="text-xs font-bold text-amber-400 mb-1">ข้อที่ '+(i+1)+' / '+l.written.length+'</div>'+
+                '<div class="text-white font-semibold text-sm leading-snug">'+q.q+'</div>'+
+              '</div>'+
+            '</div>'+
+            (q.hint?'<div class="mt-3 bg-gray-700/50 rounded-xl px-3 py-2 text-xs text-gray-300">💡 <em>'+q.hint+'</em></div>':'')+
+          '</div>'+
+          // Answer area
+          '<div class="px-5 py-4">'+
+            '<textarea rows="4" placeholder="เขียนคำตอบที่นี่... ไม่ต้องกังวล เขียนในแบบของตัวเองได้เลยค่ะ 😊" '+
+              'data-wi="'+i+'" '+
+              'oninput="hwWrittenAnswers['+i+']=this.value;updateWrittenCount('+i+',this)" '+
+              'class="w-full bg-gray-800 border border-gray-600 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-amber-400 resize-none placeholder-gray-500 leading-relaxed">'+
+              (hwWrittenAnswers[i]||"")+'</textarea>'+
+            '<div class="flex items-center justify-between mt-1">'+
+              '<span id="wc-'+i+'" class="text-xs text-gray-500">'+(hwWrittenAnswers[i]?hwWrittenAnswers[i].length:0)+' ตัวอักษร</span>'+
+              '<span class="text-xs text-gray-600">เขียนยิ่งละเอียด ได้คะแนนยิ่งสูง ✍️</span>'+
+            '</div>'+
+          '</div>'+
+        '</div>';
+      }).join("")+
+    '</div>'+
+    // Submit button
+    '<div class="px-5 pb-4" id="hw-submit-bar">'+
+      '<div class="bg-gray-800 border border-gray-700 rounded-2xl p-4 mb-4 text-xs text-gray-400">'+
+        '<div class="font-bold text-white mb-1">📋 ก่อนส่ง ตรวจสอบ:</div>'+
+        '<div>• MCQ ตอบแล้ว <span class="text-green-400 font-bold">'+mcqDone+'/'+mcqTotal+'</span> ข้อ</div>'+
+        '<div>• ข้อเขียนตอบแล้ว <span id="written-done-count" class="text-amber-400 font-bold">'+hwWrittenAnswers.filter(function(a){return a&&a.trim();}).length+'</span>/'+l.written.length+' ข้อ</div>'+
+      '</div>'+
+      '<button id="hw-submit" onclick="submitHw()" '+
+        'class="w-full py-4 bg-gradient-to-r from-green-400 to-teal-500 text-gray-900 rounded-2xl font-black text-lg shadow-lg shadow-green-900/30">'+
+        '🚀 ส่งการบ้านและรับผล →'+
+      '</button>'+
+    '</div>'+
+  '</div>';
+}
+
+function updateWrittenCount(i,el){
+  hwWrittenAnswers[i]=el.value;
+  var wc=document.getElementById("wc-"+i);
+  if(wc) wc.textContent=el.value.length+" ตัวอักษร";
+  var dc=document.getElementById("written-done-count");
+  if(dc) dc.textContent=hwWrittenAnswers.filter(function(a){return a&&a.trim();}).length;
+}
+
+// ── Section: Result ───────────────────────────────────────
+function renderLFPResult(l,st){
+  if(!st||!st.submitted) return '<div class="px-5 py-8 text-center text-gray-400">ยังไม่มีผล</div>';
+  var writtenRaw=st.writtenRaw||0;
+  var writtenNorm=Math.round(writtenRaw/10);
+  var total=st.mcqScore+writtenNorm;
+  var pct=Math.round(total/20*100);
+  var needRetake=pct<RETAKE_THRESHOLD;
+  var em=pct>=80?"🏆":pct>=60?"🌟":"💪";
+  var grade=pct>=80?"A":pct>=70?"B":pct>=60?"C":"D";
+
+  // MCQ review
+  var mcqReview=l.mcq.map(function(q,i){
+    var ua=st.mcqAnswers?st.mcqAnswers[i]:null;
+    var ok=ua===q.a;
+    var expl=st.mcqExplains?st.mcqExplains.find(function(e){return e.qi===i;}):null;
+    return '<div class="border rounded-xl p-3 mb-2 '+
+      (ok?"border-green-800 bg-green-900/30":"border-red-800 bg-red-900/30")+'">'+
+      '<div class="text-xs font-semibold mb-1 '+(ok?"text-green-400":"text-red-400")+'">'+(ok?"✅":"❌")+' ข้อ '+(i+1)+': '+q.q+'</div>'+
+      (ok?'<div class="text-xs text-green-300">'+q.c[q.a]+' ✓</div>':
+        '<div class="space-y-1">'+
+          '<div class="text-xs text-red-300">คุณตอบ: '+(ua!==null&&ua!==undefined?q.c[ua]:"(ไม่ได้ตอบ)")+'</div>'+
+          '<div class="text-xs text-green-400 font-semibold">เฉลย: '+q.c[q.a]+'</div>'+
+          (expl?'<div class="mt-1 bg-yellow-900/40 border border-yellow-700/50 rounded-lg p-2 text-xs text-yellow-300">💡 '+expl.explain+(expl.trick?'<br>🧠 '+expl.trick:'')+'</div>':
+           '<button onclick="loadMcqExplain(\''+l.id+'\','+i+')" class="mt-1 text-xs text-indigo-400 hover:text-indigo-300 underline">💡 ขอคำอธิบาย</button>')+
+        '</div>')+
+    '</div>';
+  }).join("");
+
+  // Written review
+  var writtenReview="";
+  if(st.writtenEvals&&st.writtenEvals.length){
+    writtenReview=l.written.map(function(q,i){
+      var ev=st.writtenEvals[i]||{score:0,feedback:""};
+      var s=ev.score||0;
+      var col=s>=8?"text-green-400":s>=5?"text-amber-400":"text-red-400";
+      return '<div class="border border-gray-700 rounded-xl p-4 mb-3 bg-gray-900">'+
+        '<div class="flex items-center justify-between mb-2">'+
+          '<div class="text-sm font-bold text-white">ข้อ '+(i+1)+'</div>'+
+          '<div class="font-black '+col+'">'+s+'/10</div>'+
+        '</div>'+
+        '<div class="text-xs text-gray-400 mb-2 italic">'+q.q+'</div>'+
+        '<div class="bg-gray-800 rounded-lg p-2 mb-2 text-xs text-gray-300">'+
+          (st.writtenAnswers?st.writtenAnswers[i]||"(ไม่ได้ตอบ)":"(ไม่ได้ตอบ)")+
+        '</div>'+
+        '<div class="text-xs '+col+'"><strong>ครูวิจารณ์: </strong>'+ev.feedback+'</div>'+
+        (ev.model&&s<8?'<div class="mt-2 bg-blue-900/30 border border-blue-700/50 rounded-lg p-2 text-xs text-blue-300"><strong>📝 แนวคำตอบที่ดี: </strong>'+ev.model+'</div>':'')+
+      '</div>';
+    }).join("");
+  } else {
+    writtenReview='<div class="text-xs text-gray-500 text-center py-6">ยังไม่มีผลตรวจข้อเขียน</div>';
+  }
+
+  return '<div class="max-w-2xl mx-auto pb-8">'+
+    // Score hero
+    '<div class="bg-gradient-to-b from-gray-800 to-gray-900 px-6 py-8 text-center border-b border-gray-800">'+
+      '<div class="text-6xl mb-3">'+em+'</div>'+
+      '<div class="text-5xl font-black text-white mb-1">'+total+'/20</div>'+
+      '<div class="text-2xl font-bold text-amber-400 mb-3">Grade '+grade+' · '+pct+'%</div>'+
+      '<div class="grid grid-cols-3 gap-3 max-w-sm mx-auto">'+
+        '<div class="bg-gray-800 rounded-xl p-3 text-center"><div class="font-black text-amber-400 text-xl">'+st.mcqScore+'</div><div class="text-xs text-gray-400">MCQ /'+l.mcq.length+'</div></div>'+
+        '<div class="bg-gray-800 rounded-xl p-3 text-center"><div class="font-black text-blue-400 text-xl">'+writtenRaw+'</div><div class="text-xs text-gray-400">เขียน /50</div></div>'+
+        '<div class="bg-gray-800 rounded-xl p-3 text-center"><div class="font-black text-purple-400 text-xl">'+hwXP+'</div><div class="text-xs text-gray-400">⭐ XP</div></div>'+
+      '</div>'+
+      (needRetake?
+        '<div class="mt-4 bg-red-900/50 border border-red-700 rounded-2xl p-4">'+
+          '<div class="text-red-400 font-bold mb-2">⚠️ ต่ำกว่า '+RETAKE_THRESHOLD+'% — ลองใหม่นะ</div>'+
+          '<button onclick="retakeHw(\''+l.id+'\')" class="bg-red-500 hover:bg-red-400 text-white px-6 py-2.5 rounded-xl font-black">🔄 ทำใหม่</button>'+
+        '</div>':
+        '<div class="mt-4 bg-green-900/30 border border-green-700/50 rounded-2xl p-3 text-green-400 font-semibold">✅ ผ่านเกณฑ์ 🎉</div>')+
+    '</div>'+
+    // Result tabs
+    '<div class="flex bg-gray-900 border-b border-gray-800 sticky top-0 z-10">'+
+      [['mcq-res','🔢 MCQ'],['written-res','✍️ เขียน'],['analysis-res','📊 วิเคราะห์']].map(function(t,i){
+        return '<button onclick="lpResTab(\''+t[0]+'\')" data-rt="'+t[0]+'" '+
+          'class="lp-rt flex-1 py-3 text-xs font-bold transition-colors '+
+          (i===0?"text-amber-400 border-b-2 border-amber-400":"text-gray-500")+'">'+t[1]+'</button>';
+      }).join("")+
+    '</div>'+
+    '<div id="lp-res-mcq-res" class="px-5 py-4">'+mcqReview+'</div>'+
+    '<div id="lp-res-written-res" class="px-5 py-4 hidden">'+writtenReview+'</div>'+
+    '<div id="lp-res-analysis-res" class="px-5 py-4 hidden">'+
+      '<div class="space-y-4">'+
+        '<div class="bg-blue-900/30 border border-blue-700/50 rounded-2xl p-4">'+
+          '<div class="flex items-center gap-2 mb-2"><span>📊</span><strong class="text-sm text-blue-300">Dr.Aim วิเคราะห์</strong></div>'+
+          '<div class="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap">'+(st.drAimEval||'<span class="text-gray-500">กำลังวิเคราะห์...</span>')+'</div>'+
+        '</div>'+
+        '<div class="bg-green-900/30 border border-green-700/50 rounded-2xl p-4">'+
+          '<div class="flex items-center gap-2 mb-2"><span>🌱</span><strong class="text-sm text-green-300">Ploy</strong></div>'+
+          '<div class="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap">'+(st.ployEval||'<span class="text-gray-500">กำลังประเมิน...</span>')+'</div>'+
+        '</div>'+
+      '</div>'+
+    '</div>'+
+  '</div>';
+}
+
+function lpResTab(t){
+  document.querySelectorAll(".lp-rt").forEach(function(el){
+    el.className="lp-rt flex-1 py-3 text-xs font-bold transition-colors "+
+      (el.dataset.rt===t?"text-amber-400 border-b-2 border-amber-400":"text-gray-500");
+  });
+  document.querySelectorAll('[id^="lp-res-"]').forEach(function(el){el.classList.add("hidden");});
+  var p=document.getElementById("lp-res-"+t);
+  if(p) p.classList.remove("hidden");
+}
+
+// ── MCQ explain (keep existing) ───────────────────────────
+async function loadMcqExplain(lessonId,qi){
   var l=LESSONS.find(function(x){return x.id===lessonId;});
   var st=getHwState(lessonId);
-  if(!l||!st.submitted)return;
+  if(!l||!st.submitted) return;
   var q=l.mcq[qi];
   var btn=event.target;
-  btn.textContent="⏳ กำลังโหลด...";btn.disabled=true;
+  btn.textContent="⏳ กำลังโหลด..."; btn.disabled=true;
   try{
     var res=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:200,
-        system:"คุณคือ"+l.teacher+" อธิบายสั้นๆ สำหรับเด็ก 8 ขวบ ทำไมคำตอบนี้ถูก มีทริคช่วยจำ ตอบ JSON: {\"explain\":\"...\",\"trick\":\"...\"}",
+      body:JSON.stringify({max_tokens:300,
+        system:"คุณคือ"+l.teacher+" อธิบายสั้นๆ สำหรับเด็ก 8 ขวบ ว่าทำไมคำตอบนี้ถูก มีทริคช่วยจำ ตอบ JSON: {\"explain\":\"...\",\"trick\":\"...\"}",
         messages:[{role:"user",content:"คำถาม: "+q.q+"\nเฉลย: "+q.c[q.a]}]})});
     var d=await res.json();
-    var txt=d.content?.[0]?.text||"{}";
+    var txt=typeof d.content==="string"?d.content:"";
     var m=txt.match(/\{[\s\S]*\}/);
-    var expl=m?JSON.parse(m[0]):{explain:"คำตอบที่ถูกต้องคือ "+q.c[q.a],trick:""};
+    var expl=m?JSON.parse(m[0]):{explain:"คำตอบที่ถูกคือ "+q.c[q.a],trick:""};
     var explains=st.mcqExplains||[];
     explains=explains.filter(function(e){return e.qi!==qi;});
     explains.push({qi:qi,explain:expl.explain||"",trick:expl.trick||""});
     st.mcqExplains=explains;
     saveHwState(lessonId,st);
-    // Re-render result
-    var savedLesson=currentHwLesson;
-    currentHwLesson=l;
-    showHwResult(st);
-    currentHwLesson=savedLesson;
-    switchResTab("mcq");
-  }catch(e){btn.textContent="❌ ลองใหม่";btn.disabled=false;}
+    // re-render result
+    var body=document.getElementById("lfp-body");
+    if(body) body.innerHTML=renderLFPResult(currentHwLesson,st);
+  }catch(e){btn.textContent="❌ ลองใหม่"; btn.disabled=false;}
 }
 
-// ── RESULT DISPLAY ────────────────────────────────────────
-// RETAKE_THRESHOLD defined in walnut-data.js
-
-function showHwResult(st){
-  var l=currentHwLesson||LESSONS.find(function(x){return x.id===st.lessonId;});
-  // writtenRaw = sum of 0-10 scores (max 50), normalized to /5 for total
-  var writtenRaw=st.writtenRaw||st.writtenScore*10||0;
-  var writtenNorm=Math.round(writtenRaw/10); // 0-5
-  var total=st.mcqScore+(writtenNorm);
-  var pct=Math.round(total/20*100);
-  var needRetake=pct<RETAKE_THRESHOLD;
-  var em=pct>=80?"🏆":pct>=60?"😊":"💪";
-  var resEl=document.getElementById("hw-result");
-
-  // MCQ review
-  var mcqReview="";
-  if(l){
-    mcqReview=l.mcq.map(function(q,i){
-      var userAns=st.mcqAnswers?st.mcqAnswers[i]:null;
-      var correct=q.a;
-      var isRight=userAns===correct;
-      var expl=st.mcqExplains?st.mcqExplains.find(function(e){return e.qi===i;}):null;
-      return '<div class="border rounded-xl p-3 mb-2 '+(isRight?"border-green-200 bg-green-50":"border-red-200 bg-red-50")+'">'+
-        '<div class="text-xs font-semibold mb-1 '+(isRight?"text-green-700":"text-red-700")+'">'+(isRight?"✅":"❌")+' ข้อ '+(i+1)+': '+q.q+'</div>'+
-        (isRight?
-          '<div class="text-xs text-green-600">'+q.c[correct]+' — ถูกต้อง! 🎉</div>':
-          '<div class="space-y-1">'+
-            '<div class="text-xs"><span class="text-red-500">คำตอบของวอลนัท: </span>'+
-              '<span class="line-through text-red-400">'+(userAns!==null&&userAns!==undefined?q.c[userAns]:"(ไม่ได้ตอบ)")+'</span></div>'+
-            '<div class="text-xs"><span class="text-green-600 font-semibold">เฉลยที่ถูก: </span>'+
-              '<span class="font-semibold text-green-700">'+q.c[correct]+'</span></div>'+
-            (expl?
-              '<div class="mt-2 bg-yellow-50 border border-yellow-200 rounded-lg p-2">'+
-                '<div class="text-xs text-yellow-800"><strong>💡 อธิบาย:</strong> '+expl.explain+'</div>'+
-                (expl.trick?'<div class="text-xs text-yellow-700 mt-1"><strong>🧠 ทริค:</strong> '+expl.trick+'</div>':'')+
-              '</div>':
-              '<button onclick="loadMcqExplain(\''+st.lessonId+'\','+i+')" class="mt-2 text-xs text-indigo-500 hover:text-indigo-700 underline">💡 ขอคำอธิบาย</button>')+
-          '</div>')+
-        '</div>';
-    }).join("");
-  }
-
-  // Written review (0-10 per question)
-  var writtenReview="";
-  if(l&&st.writtenEvals&&st.writtenEvals.length){
-    writtenReview=l.written.map(function(q,i){
-      var ev=st.writtenEvals[i]||{score:0,feedback:"",model:"",breakdown:""};
-      var s=ev.score||0;
-      var barColor=s>=8?"bg-green-400":s>=5?"bg-amber-400":"bg-red-400";
-      return '<div class="border rounded-xl p-4 mb-3 bg-white shadow-sm">'+
-        '<div class="flex items-center justify-between mb-2">'+
-          '<div class="text-sm font-semibold text-gray-800">ข้อ '+(i+1)+'</div>'+
-          '<div class="flex items-center gap-2">'+
-            '<div class="text-lg font-bold '+(s>=8?"text-green-600":s>=5?"text-amber-600":"text-red-500")+'">'+s+'/10</div>'+
-            '<div class="w-16 bg-gray-100 rounded-full h-2"><div class="'+barColor+' h-2 rounded-full" style="width:'+s*10+'%"></div></div>'+
-          '</div>'+
-        '</div>'+
-        '<div class="text-xs text-gray-500 mb-2 italic">'+q.q+'</div>'+
-        '<div class="bg-gray-50 rounded-lg p-2 mb-2 text-xs text-gray-700">'+
-          '<strong>คำตอบ: </strong>'+(st.writtenAnswers?st.writtenAnswers[i]||"(ไม่ได้ตอบ)":"(ไม่ได้ตอบ)")+
-        '</div>'+
-        '<div class="text-xs '+(s>=8?"text-green-700":s>=5?"text-amber-700":"text-red-600")+'">'+
-          '<strong>ครูวิจารณ์: </strong>'+ev.feedback+
-        '</div>'+
-        (ev.breakdown?'<div class="mt-2 text-xs text-gray-500"><strong>รายละเอียดคะแนน: </strong>'+ev.breakdown+'</div>':'')+
-        (ev.model&&s<8?'<div class="mt-2 bg-blue-50 border border-blue-200 rounded-lg p-2 text-xs text-gray-600"><strong>📝 คำตอบที่ดีควรเป็น: </strong>'+ev.model+'</div>':'')+
-      '</div>';
-    }).join("")+
-    '<div class="bg-gray-50 rounded-xl p-4 text-sm text-gray-700 border">'+
-      '<strong>📝 ภาพรวมข้อเขียน: </strong>'+(st.writtenOverall||"—")+'</div>';
-  } else {
-    writtenReview='<div class="text-xs text-gray-400 text-center py-4">ยังไม่มีผลตรวจข้อเขียน</div>';
-  }
-
-  // Dr.Aim + Ploy panel
-  var analysisPanel=
-    '<div class="space-y-4">'+
-    '<div class="bg-blue-50 border border-blue-200 rounded-2xl p-4">'+
-      '<div class="flex items-center gap-2 mb-2"><span>📊</span><strong class="text-sm text-blue-800">Dr.Aim วิเคราะห์</strong></div>'+
-      (st.drAimEval?
-        '<div class="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">'+st.drAimEval+'</div>':
-        '<div class="text-gray-400 text-sm">กำลังวิเคราะห์...</div>')+
-    '</div>'+
-    '<div class="bg-green-50 border border-green-200 rounded-2xl p-4">'+
-      '<div class="flex items-center gap-2 mb-2"><span>🌱</span><strong class="text-sm text-green-800">Ploy — ด้านความสุขและแรงบันดาลใจ</strong></div>'+
-      (st.ployEval?
-        '<div class="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">'+st.ployEval+'</div>':
-        '<div class="text-gray-400 text-sm">กำลังประเมิน...</div>')+
-    '</div>'+
-    (needRetake?
-      '<div class="bg-red-50 border border-red-200 rounded-2xl p-4 text-center">'+
-        '<div class="text-red-700 font-semibold mb-1">⚠️ คะแนนต่ำกว่า '+RETAKE_THRESHOLD+'% — แนะนำให้ทำใหม่</div>'+
-        '<div class="text-xs text-red-500 mb-3">ทำใหม่ = ได้ฝึกอีกรอบ ไม่ใช่เรื่องแย่ 💪</div>'+
-        '<button onclick="retakeHw(\''+st.lessonId+'\')" class="bg-red-500 hover:bg-red-600 text-white px-6 py-2.5 rounded-xl font-bold text-sm">🔄 ทำใหม่</button>'+
-      '</div>':'')+'</div>';
-
-  var retakeCountBadge=st.retakeCount?(' · ทำมาแล้ว <strong>'+st.retakeCount+'</strong> ครั้ง'):'';
-  resEl.innerHTML=
-    '<div class="bg-white rounded-2xl border border-gray-100 p-5">'+
-    // Score header
-    '<div class="text-center mb-3">'+
-      '<div class="text-5xl mb-2">'+em+'</div>'+
-      '<div class="text-3xl font-bold">'+total+'/20 <span class="text-lg text-gray-400">('+pct+'%)</span></div>'+
-    '</div>'+
-    // Retake banner — ขึ้นก่อน tabs เลย
-    (needRetake?
-      '<div class="bg-red-50 border-2 border-red-300 rounded-2xl p-4 mb-4 flex items-center justify-between gap-3">'+
-        '<div>'+
-          '<div class="text-red-700 font-bold text-sm">⚠️ คะแนนต่ำกว่า '+RETAKE_THRESHOLD+'%</div>'+
-          '<div class="text-xs text-red-500 mt-0.5">แนะนำให้ทำใหม่'+retakeCountBadge+'</div>'+
-        '</div>'+
-        '<button onclick="retakeHw(\''+st.lessonId+'\')" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2.5 rounded-xl font-bold text-sm shrink-0">🔄 ทำใหม่</button>'+
-      '</div>':
-      '<div class="bg-green-50 border border-green-200 rounded-xl p-3 mb-4 flex items-center justify-between">'+
-        '<div class="text-green-700 font-semibold text-sm">✅ ผ่านเกณฑ์ 60% ยินดีด้วยนะ 🎉</div>'+
-        (st.retakeCount?'<div class="text-xs text-gray-400">ทำมา '+st.retakeCount+' ครั้ง</div>':'')+
-      '</div>')+
-    '<div class="grid grid-cols-3 gap-2 mb-4">'+
-      '<div class="bg-amber-50 rounded-xl p-2 text-center"><div class="text-base font-bold text-amber-600">'+st.mcqScore+'/15</div><div class="text-xs text-gray-500">MCQ</div></div>'+
-      '<div class="bg-blue-50 rounded-xl p-2 text-center"><div class="text-base font-bold text-blue-600">'+writtenRaw+'/50</div><div class="text-xs text-gray-500">ข้อเขียน</div></div>'+
-      '<div class="bg-purple-50 rounded-xl p-2 text-center"><div class="text-base font-bold text-purple-600">'+pct+'%</div><div class="text-xs text-gray-500">ภาพรวม</div></div>'+
-    '</div>'+
-    // Tabs
-    '<div class="flex gap-1 mb-4">'+
-      [['mcq','🔢 MCQ'],['written','✍️ ข้อเขียน'],['analysis','📊 วิเคราะห์']].map(function(t,i){
-        return '<button onclick="switchResTab(\''+t[0]+'\')" data-rt="'+t[0]+'" '+
-          'class="res-tab flex-1 py-2 rounded-xl text-xs font-semibold transition-colors '+
-          (i===0?"bg-amber-400 text-white":"bg-gray-100 text-gray-500")+'">'+t[1]+'</button>';
-      }).join("")+
-    '</div>'+
-    '<div id="res-mcq-panel">'+mcqReview+'</div>'+
-    '<div id="res-written-panel" class="hidden">'+writtenReview+'</div>'+
-    '<div id="res-analysis-panel" class="hidden">'+analysisPanel+'</div>'+
-    '</div>';
-
-  resEl.classList.remove("hidden");
-  // scroll to top of modal
-  var top=document.getElementById("hw-scroll-top");
-  if(top) top.scrollIntoView({behavior:"smooth"});
-}
-
-function switchResTab(t){
-  document.querySelectorAll(".res-tab").forEach(function(el){
-    el.className="res-tab flex-1 py-2 rounded-xl text-xs font-semibold transition-colors "+
-      (el.dataset.rt===t?"bg-amber-400 text-white":"bg-gray-100 text-gray-500");
-  });
-  ["mcq","written","analysis"].forEach(function(p){
-    var el=document.getElementById("res-"+p+"-panel");
-    if(el) el.classList.add("hidden");
-  });
-  var panel=document.getElementById("res-"+t+"-panel");
-  if(panel) panel.classList.remove("hidden");
-}
-
-// ── RETAKE ────────────────────────────────────────────────
+// ── Retake ────────────────────────────────────────────────
 function retakeHw(lessonId){
-  if(!confirm("ยืนยันทำใหม่? คะแนนเดิมจะถูกลบ\n(ทำใหม่ = ฝึกได้อีกรอบ ไม่ใช่เรื่องแย่ 💪)")) return;
+  if(!confirm("ยืนยันทำใหม่?\n(ประวัติคะแนนเดิมจะถูกเก็บไว้ ทำใหม่ = ฝึกเพิ่ม 💪)")) return;
   var hw=getHwState(lessonId);
-  // บันทึกประวัติเฉพาะครั้งที่ "ผ่าน" (≥60%) เพื่อวิเคราะห์พัฒนาการในอนาคต
-  var pct=Math.round(((hw.score||0)/20)*100);
-  if(hw.submitted&&pct>=RETAKE_THRESHOLD){
+  if(hw.submitted){
     try{
       var histKey="hw_hist_"+lessonId;
       var hist=JSON.parse(localStorage.getItem(histKey)||"[]");
-      hist.push(hw); // เก็บ full state รวม AI eval
+      hist.push({
+        score:hw.score||0,mcqScore:hw.mcqScore||0,writtenScore:hw.writtenScore||0,
+        submittedAt:hw.submittedAt||"",attemptNo:hist.length+1,
+        passed:Math.round(((hw.score||0)/20)*100)>=RETAKE_THRESHOLD,
+        drAimEval:hw.drAimEval||"",ployEval:hw.ployEval||""
+      });
       localStorage.setItem(histKey,JSON.stringify(hist));
     }catch(e){}
   }
@@ -334,23 +470,25 @@ function retakeHw(lessonId){
   localStorage.removeItem("hw_"+lessonId);
   saveHwState(lessonId,{retakeCount:newCount,retakedAt:new Date().toISOString()});
   if(typeof saveToCloud==="function") saveToCloud();
-  // คืน task กลับ pending zone
   var ts=getLocalTasks();
   var t=ts.find(function(x){return x.lessonId===lessonId;});
   if(t){t.status="pending";saveLocalTasks(ts);}
-  closeHw();
-  // ไปหน้า tasks เพื่อเห็น task ที่ย้ายกลับมา
-  if(typeof switchTab==="function") switchTab("tasks");
+  // reset state
+  hwSection="reading";
+  hwMcqIndex=0; hwXP=0; hwMcqFeedback=null;
+  hwMcqAnswers=new Array((currentHwLesson&&currentHwLesson.mcq&&currentHwLesson.mcq.length)||15).fill(null);
+  hwWrittenAnswers=new Array((currentHwLesson&&currentHwLesson.written&&currentHwLesson.written.length)||5).fill("");
+  renderLessonFullPage();
 }
 
-// ── SUBMIT HOMEWORK ───────────────────────────────────────
+// ── Submit Homework ───────────────────────────────────────
 async function submitHw(){
-  if(!currentHwLesson)return;
+  if(!currentHwLesson) return;
   var l=currentHwLesson;
+  // collect latest written answers from DOM
   document.querySelectorAll("[data-wi]").forEach(function(el){hwWrittenAnswers[+el.dataset.wi]=el.value;});
-  var bar=document.getElementById("hw-submit-bar");
   var btn=document.getElementById("hw-submit");
-  btn.textContent="กำลังตรวจ..."; btn.disabled=true;
+  if(btn){btn.textContent="🔍 ครูกำลังตรวจ..."; btn.disabled=true; btn.className=btn.className.replace("from-green-400 to-teal-500","from-gray-600 to-gray-700");}
 
   // 1. MCQ auto-grade
   var mcqScore=0;
@@ -360,146 +498,112 @@ async function submitHw(){
     else wrongMcq.push({qi:i,q:q.q,userAns:hwMcqAnswers[i],correctAns:q.a,choices:q.c});
   });
 
-  var writtenRaw=0, writtenEvals=[], writtenOverall="", mcqExplains=[], drAimEval="", ployEval="";
+  var writtenRaw=0,writtenEvals=[],writtenOverall="",mcqExplains=[],drAimEval="",ployEval="";
 
-  // API key lives on Netlify server — always try /api/chat
-  {
-    btn.textContent="ครูกำลังตรวจ... (1/4)";
-    // 2. Written grading — 0-10 per question
+  // 2. Written grading
+  try{
+    if(btn) btn.textContent="✍️ ตรวจข้อเขียน... (1/3)";
+    var wtext=l.written.map(function(q,i){
+      return "ข้อ "+(i+1)+":\nคำถาม: "+q.q+"\nคำตอบ: "+(hwWrittenAnswers[i]&&hwWrittenAnswers[i].trim()||"(ไม่ได้เขียน — ให้ 0)");
+    }).join("\n---\n");
+    var sysW="คุณคือ"+l.teacher+" ตรวจข้อเขียน วิชา"+l.subject+" ของวอลนัท 8 ขวบ ป.4\n"+
+      "ให้ 0-10 ต่อข้อ บอก feedback ตรงๆ ไม่ปลอบ และมี model answer ถ้าคะแนนต่ำ\n"+
+      'ตอบ JSON เท่านั้น: {"questions":[{"score":7,"feedback":"...","breakdown":"...","model":""}],"overall":"..."}';
+    var rW=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({max_tokens:2000,system:sysW,messages:[{role:"user",content:wtext}]})});
+    var dW=await rW.json();
+    var txtW=(typeof dW.content==="string"?dW.content:"").replace(/```json\s*/gi,"").replace(/```\s*/g,"").trim();
+    var mW=txtW.match(/\{[\s\S]*\}/);
+    if(mW){var pW=JSON.parse(mW[0]);writtenEvals=pW.questions||[];writtenOverall=pW.overall||"";}
+    writtenRaw=writtenEvals.reduce(function(a,e){return a+(e.score||0);},0);
+  }catch(e){writtenRaw=0;writtenOverall="⚠️ "+e.message;}
+
+  // 3. MCQ explain (wrong only)
+  if(wrongMcq.length>0){
     try{
-      var answeredCount=hwWrittenAnswers.filter(function(a){return a&&a.trim();}).length;
-      var wtext=l.written.map(function(q,i){
-        return "ข้อ "+(i+1)+"\nคำถาม: "+q.q+"\nคำตอบของวอลนัท: "+(hwWrittenAnswers[i]&&hwWrittenAnswers[i].trim()||"(ไม่ได้เขียนอะไร — ให้ 0 คะแนน)");
-      }).join("\n---\n");
-      var sysWritten="คุณคือ"+l.teacher+" ครูของวอลนัท อายุ 8 ขวบ ชั้น ป.4\n\n"+
-        "ตรวจข้อเขียนตอบ 5 ข้อ วิชา"+l.subject+" เรื่อง\""+l.title+"\"\n\n"+
-        "กฎการให้คะแนน 0-10:\n"+
-        "10 = สมบูรณ์แบบ ครบถ้วน มีความคิดของตัวเอง\n"+
-        "8-9 = ดีมาก ถูกต้อง อาจขาดรายละเอียดเล็กน้อย\n"+
-        "6-7 = พอใช้ได้ เข้าใจหลัก แต่ขาดความลึก\n"+
-        "4-5 = เข้าใจบางส่วน มีข้อผิดพลาดหลายจุด\n"+
-        "2-3 = พยายามตอบ แต่เข้าใจผิดพื้นฐาน\n"+
-        "0-1 = ไม่ตอบ หรือไม่เกี่ยวข้องกับคำถามเลย\n\n"+
-        "สิ่งที่ต้องบอกในแต่ละข้อ:\n"+
-        "- score: ตัวเลข 0-10\n"+
-        "- feedback: บอกตรงๆ ว่าดีหรือไม่ดีอย่างไร ขาดอะไร (ภาษาไทยธรรมชาติ ไม่ formal)\n"+
-        "- breakdown: อธิบายวิธีให้คะแนน เช่น 'ถูกประเด็นหลัก +5 แต่ไม่มีตัวอย่าง -3'\n"+
-        "- model: คำตอบที่ดีควรเป็นอย่างไร (บอกเมื่อคะแนนต่ำกว่า 7)\n\n"+
-        "ตอบเป็น JSON อย่างเดียว ไม่มีข้อความอื่น:\n"+
-        '{"questions":[{"score":8,"feedback":"ตอบได้ดี แต่ยังขาด...","breakdown":"ถูกหลัก +7 แต่ไม่มีตัวอย่าง -2","model":""},...],"overall":"สรุปภาพรวม 2-3 ประโยค"}';
-      var resW=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:2000,
-          system:sysWritten,
-          messages:[{role:"user",content:wtext}]})});
-      var dW=await resW.json();
-      if(dW.error){throw new Error(dW.error);}
-      var txtW=dW.content?.[0]?.text||"{}";
-      // ลบ markdown code block ถ้ามี
-      txtW=txtW.replace(/```json\s*/g,"").replace(/```\s*/g,"").trim();
-      var matchW=txtW.match(/\{[\s\S]*\}/);
-      if(matchW){
-        try{
-          var pW=JSON.parse(matchW[0]);
-          writtenEvals=pW.questions||[];
-          writtenOverall=pW.overall||"";
-          writtenRaw=writtenEvals.reduce(function(a,e){return a+(e.score||0);},0);
-        }catch(pe){writtenOverall="แยก JSON ไม่สำเร็จ: "+txtW.slice(0,100);}
-      } else {
-        writtenOverall="ครูให้ความเห็น: "+txtW.slice(0,300);
-      }
-    }catch(e){writtenRaw=0;writtenEvals=[];writtenOverall="⚠️ ตรวจไม่สำเร็จ: "+e.message;}
+      if(btn) btn.textContent="💡 อธิบาย MCQ... (2/3)";
+      var mcqP=wrongMcq.map(function(w){return "ข้อ"+(w.qi+1)+": "+w.q+"\nเฉลย: "+w.choices[w.correctAns];}).join("\n---\n");
+      var rM=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({max_tokens:800,
+          system:"คุณคือ"+l.teacher+" อธิบายเฉลย MCQ ให้เด็ก 8 ขวบ เข้าใจง่าย มีทริค ตอบ JSON array: [{\"qi\":0,\"explain\":\"...\",\"trick\":\"...\"}]",
+          messages:[{role:"user",content:"วิชา"+l.subject+"\n"+mcqP}]})});
+      var dM=await rM.json();
+      var txtM=(typeof dM.content==="string"?dM.content:"").replace(/```json\s*/gi,"").replace(/```\s*/g,"").trim();
+      var mM=txtM.match(/\[[\s\S]*\]/);
+      if(mM) mcqExplains=JSON.parse(mM[0]);
+    }catch(e){}
+  }
 
-    btn.textContent="ครูอธิบาย MCQ... (2/4)";
-    // 3. MCQ explanations
-    if(wrongMcq.length>0){
-      try{
-        var mcqPrompt=wrongMcq.map(function(w){
-          return "ข้อ "+(w.qi+1)+": "+w.q+"\nคำตอบที่ถูก: "+w.choices[w.correctAns];
-        }).join("\n---\n");
-        var sysMcq="คุณคือ"+l.teacher+" อธิบายให้วอลนัท (8 ขวบ) เข้าใจว่าทำไมคำตอบนี้ถูก\n"+
-          "ใช้ภาษาไทยง่ายๆ สนุก เหมือนครูอธิบายให้เด็ก มีทริคช่วยจำด้วย\n"+
-          "ตอบ JSON อย่างเดียว:\n"+
-          '[{"qi":0,"explain":"เพราะ...อธิบายสั้นๆ...","trick":"จำง่ายๆ ว่า..."},...]';
-        var resM=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},
-          body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:800,system:sysMcq,
-            messages:[{role:"user",content:"วิชา "+l.subject+"\n\n"+mcqPrompt}]})});
-        var dM=await resM.json();
-        var txtM=(dM.content?.[0]?.text||"[]").replace(/```json\s*/g,"").replace(/```\s*/g,"").trim();
-        var matchM=txtM.match(/\[[\s\S]*\]/);
-        if(matchM) mcqExplains=JSON.parse(matchM[0]);
-      }catch(e){mcqExplains=[];}
-    }
-
-    btn.textContent="Dr.Aim + Ploy วิเคราะห์... (3/4)";
-    // 4. Dr.Aim + Ploy parallel
+  // 4. Dr.Aim + Ploy
+  try{
+    if(btn) btn.textContent="📊 Dr.Aim + Ploy วิเคราะห์... (3/3)";
     var writtenNorm=Math.round(writtenRaw/10);
     var total=mcqScore+writtenNorm;
     var pct=Math.round(total/20*100);
-    var wrongList=wrongMcq.length>0
-      ?wrongMcq.map(function(w){return "ข้อ"+(w.qi+1)+" ("+w.q+")";}).join(", ")
-      :"ถูกทั้งหมด";
-    var writtenSummary=writtenEvals.length>0
-      ?writtenEvals.map(function(e,i){return "ข้อ"+(i+1)+": "+e.score+"/10 — "+e.feedback;}).join("\n")
-      :"(ยังไม่มีผลตรวจข้อเขียน)";
-    var context="วิชา: "+l.subject+"\nหัวข้อ: "+l.title+"\n"+
-      "ผล MCQ: "+mcqScore+"/15 | ข้อเขียน: "+writtenRaw+"/50 | รวม: "+total+"/20 ("+pct+"%)\n"+
-      "MCQ ผิด: "+wrongList+"\n\n"+
-      "ผลตรวจข้อเขียน:\n"+writtenSummary+"\n\n"+
-      "ความเห็นภาพรวมจากครู: "+(writtenOverall||"ยังไม่มี");
-
-    try{
-      var aimPrompt="คุณคือ Dr.Aim นักวิเคราะห์วิชาการเด็กของ Walnut Learning\n\n"+
-        "วิเคราะห์ผลการบ้านของวอลนัท (8 ขวบ ป.4) จากข้อมูลที่ให้\n"+
-        "ภาษาไทยที่อ่านง่าย เป็นธรรมชาติ ไม่ formal เกินไป ตรงไปตรงมา\n"+
-        "ถ้าผลแย่ต้องบอกตรงๆ ว่าแย่ตรงไหน เพราะอะไร — ไม่ต้องปิดบัง\n\n"+
-        "เขียนในรูปแบบนี้ (ห้ามเปลี่ยน format):\n\n"+
-        "[ย่อหน้าที่ 1: ภาพรวมคะแนนและสิ่งที่เห็น 2-3 ประโยค]\n\n"+
-        "[ย่อหน้าที่ 2: pattern ที่เห็นจากข้อผิด เข้าใจผิดตรงไหน 2-3 ประโยค]\n\n"+
-        "✅ จุดแข็ง\n• [bullet point จริงๆ ไม่ใช่ ...]\n\n"+
-        "🔴 จุดที่ต้องพัฒนา\n• [bullet point จริงๆ]\n\n"+
-        "💡 Dr.Aim แนะนำ\n• [action ที่ทำได้จริง]";
-      var ployPrompt="คุณคือ Ploy นักพัฒนาศักยภาพเด็กของ Walnut Learning\n\n"+
-        "ดูผลการบ้านของวอลนัท แล้วประเมินด้านความรู้สึก แรงบันดาลใจ และ mindset\n"+
-        "ภาษาไทยอ่อนโยน อบอุ่น เป็นธรรมชาติ เหมือนพูดกับเด็กจริงๆ\n"+
-        (pct<RETAKE_THRESHOLD?"คะแนนยังไม่ผ่านเกณฑ์ — ช่วยบอกวอลนัทว่าการทำใหม่คือโอกาสฝึก ไม่ใช่ความล้มเหลว\n\n":"\n")+
-        "เขียนในรูปแบบนี้:\n\n"+
-        "[ย่อหน้าที่ 1: อ่านจากคำตอบแล้ว วอลนัทน่าจะรู้สึกหรือมี mindset อย่างไร 2-3 ประโยค]\n\n"+
-        "💚 สิ่งที่น่าชื่นชม\n• [จริงๆ ไม่ใช่ ...]\n\n"+
-        "🌱 Ploy แนะนำ\n• [แนะนำด้านความรู้สึกและแรงจูงใจ]";
-      var [resA,resP]=await Promise.all([
-        fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},
-          body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:900,system:aimPrompt,
-            messages:[{role:"user",content:context}]})}),
-        fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},
-          body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:700,system:ployPrompt,
-            messages:[{role:"user",content:context}]})})
-      ]);
-      var dA=await resA.json();
-      var dP=await resP.json();
-      if(dA.error) throw new Error("Dr.Aim: "+dA.error);
-      if(dP.error) throw new Error("Ploy: "+dP.error);
-      drAimEval=dA.content?.[0]?.text||"Dr.Aim ไม่สามารถวิเคราะห์ได้";
-      ployEval=dP.content?.[0]?.text||"Ploy ไม่สามารถประเมินได้";
-    }catch(e){drAimEval="⚠️ "+e.message;ployEval="⚠️ "+e.message;}
-  }
+    var ctx="วิชา: "+l.subject+" เรื่อง: "+l.title+"\n"+
+      "MCQ: "+mcqScore+"/"+l.mcq.length+" | เขียน: "+writtenRaw+"/50 | รวม: "+total+"/20 ("+pct+"%)";
+    var [rA,rP]=await Promise.all([
+      fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({max_tokens:900,
+          system:"คุณคือ Dr.Aim นักวิเคราะห์วิชาการ วิเคราะห์ผลการบ้านวอลนัท ภาษาไทย ตรงไปตรงมา",
+          messages:[{role:"user",content:ctx}]})}),
+      fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({max_tokens:700,
+          system:"คุณคือ Ploy นักพัฒนาศักยภาพเด็ก ประเมิน mindset motivation ของวอลนัท ภาษาไทย อ่อนโยน",
+          messages:[{role:"user",content:ctx}]})})
+    ]);
+    var dA=await rA.json(); var dPl=await rP.json();
+    drAimEval=typeof dA.content==="string"?dA.content:"";
+    ployEval=typeof dPl.content==="string"?dPl.content:"";
+  }catch(e){drAimEval="⚠️ "+e.message;}
 
   var writtenScore=Math.round(writtenRaw/10);
-  var total2=mcqScore+writtenScore;
   var st={
-    submitted:true, lessonId:l.id,
-    mcqAnswers:hwMcqAnswers, writtenAnswers:hwWrittenAnswers,
-    mcqScore:mcqScore, writtenRaw:writtenRaw, writtenScore:writtenScore, score:total2,
-    mcqExplains:mcqExplains, writtenEvals:writtenEvals, writtenOverall:writtenOverall,
-    drAimEval:drAimEval, ployEval:ployEval,
+    submitted:true,lessonId:l.id,
+    mcqAnswers:hwMcqAnswers,writtenAnswers:hwWrittenAnswers,
+    mcqScore:mcqScore,writtenRaw:writtenRaw,writtenScore:writtenScore,
+    score:mcqScore+writtenScore,
+    mcqExplains:mcqExplains,writtenEvals:writtenEvals,writtenOverall:writtenOverall,
+    drAimEval:drAimEval,ployEval:ployEval,
     submittedAt:new Date().toISOString()
   };
   saveHwState(l.id,st);
-  // sync ขึ้น cloud ทันทีหลังส่งการบ้าน
   if(typeof saveToCloud==="function") saveToCloud();
-
-  // hide submit bar, show result
-  if(bar) bar.classList.add("hidden");
-  showHwResult(st);
-  syncLessonTasks();
+  if(typeof syncLessonTasks==="function") syncLessonTasks();
+  hwXP+=Math.round((mcqScore/l.mcq.length)*50); // bonus XP from score
+  hwSection="result";
+  renderLessonFullPage();
+  var fp=document.getElementById("lesson-fullpage");
+  if(fp) fp.scrollTo({top:0,behavior:"smooth"});
 }
 
+// ── Helper: getHwState / saveHwState ─────────────────────
+function getHwState(lessonId){
+  try{return JSON.parse(localStorage.getItem("hw_"+lessonId)||"{}");}catch(e){return {};}
+}
+function saveHwState(lessonId,state){
+  try{localStorage.setItem("hw_"+lessonId,JSON.stringify(state));}catch(e){}
+}
+function collectHwData(){
+  var data={};
+  for(var i=0;i<localStorage.length;i++){
+    var k=localStorage.key(i); if(!k) continue;
+    if(k.startsWith("hw_hist_")){
+      try{data[k]=JSON.parse(localStorage.getItem(k));}catch(e){}
+    } else if(k.startsWith("hw_")){
+      try{
+        var full=JSON.parse(localStorage.getItem(k));
+        if(!full) continue;
+        if(full.submitted) data[k]=full;
+        else if(full.retakeCount) data[k]={retakeCount:full.retakeCount,retakedAt:full.retakedAt||""};
+      }catch(e){}
+    }
+  }
+  try{var evts=localStorage.getItem("walnut_events");if(evts)data["walnut_events"]=JSON.parse(evts);}catch(e){}
+  return data;
+}
+function saveToCloud(){
+  try{
+    fetch("/api/sync",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(collectHwData())});
+  }catch(e){}
+}

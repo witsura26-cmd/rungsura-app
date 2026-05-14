@@ -89,38 +89,8 @@
 <div id="t-overlay" class="fixed inset-0 bg-black/20 z-40 hidden" onclick="closeTeacher()"></div>
 
 <!-- HOMEWORK MODAL -->
-<div id="hw-modal" class="fixed inset-0 z-50 hidden bg-gray-50 overflow-y-auto">
-  <div id="hw-scroll-top"></div>
-  <div class="max-w-2xl mx-auto px-4 py-6 pb-10">
-    <div id="hw-hdr" class="rounded-2xl p-5 mb-5 flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <div id="hw-icon" class="text-3xl"></div>
-        <div><div id="hw-subj" class="font-bold text-gray-900"></div><div id="hw-tch" class="text-sm text-gray-500"></div></div>
-      </div>
-      <button onclick="closeHw()" class="w-9 h-9 rounded-full bg-white shadow flex items-center justify-center text-gray-500 text-xl">✕</button>
-    </div>
-    <!-- ผลอยู่ตรงนี้ — ระหว่าง header กับบทเรียน -->
-    <div id="hw-result" class="hidden mb-5"></div>
-    <div class="bg-white rounded-2xl border border-gray-100 p-5 mb-5">
-      <h3 class="font-bold mb-1">📖 บทเรียน</h3>
-      <div id="hw-title" class="text-sm font-semibold text-amber-700 mb-2"></div>
-      <div id="hw-goal" class="text-xs text-gray-500 bg-amber-50 rounded-xl p-3 mb-4"></div>
-      <div id="hw-content" class="leading-relaxed"></div>
-    </div>
-    <div class="bg-white rounded-2xl border border-gray-100 p-5 mb-5">
-      <h3 class="font-bold mb-4">✏️ ส่วนที่ 1: เลือกตอบ (15 ข้อ)</h3>
-      <div id="hw-mcq" class="space-y-5"></div>
-    </div>
-    <div class="bg-white rounded-2xl border border-gray-100 p-5 mb-5">
-      <h3 class="font-bold mb-4">🖊️ ส่วนที่ 2: เขียนตอบ (5 ข้อ)</h3>
-      <div id="hw-written" class="space-y-4"></div>
-    </div>
-    <!-- Submit bar — ซ่อนเมื่อส่งแล้ว -->
-    <div id="hw-submit-bar" class="sticky bottom-4">
-      <button onclick="submitHw()" id="hw-submit" class="w-full bg-amber-400 hover:bg-amber-500 text-white py-3 rounded-2xl font-bold text-base shadow-lg">ส่งการบ้าน →</button>
-    </div>
-  </div>
-</div>
+<!-- LESSON FULL PAGE -->
+<div id="lesson-fullpage" class="fixed inset-0 z-50 hidden bg-gray-950 overflow-y-auto"></div>
 
 <!-- SETTINGS MODAL -->
 <div id="settings-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/30">
