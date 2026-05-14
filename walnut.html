@@ -1660,9 +1660,17 @@ async function doSync(manual){
 
 async function init(){
   initSb();
-  cleanupOldLessonData(); // ลบ hw_ ของ W1/W2 ที่ไม่มีใน LESSONS แล้ว
-  loadCustomCurriculumIfExists();
-  renderPage();
+  try{ cleanupOldLessonData(); }catch(e){}
+  try{ loadCustomCurriculumIfExists(); }catch(e){}
+  try{
+    renderPage();
+  }catch(e){
+    // แสดง error จริงๆ แทนที่จะ spinner ค้าง
+    document.getElementById("app").innerHTML=
+      '<div class="p-6 text-red-500 text-sm bg-red-50 rounded-2xl m-4">'+
+      '<strong>⚠️ renderPage error:</strong><br>'+e.message+'<br><small>'+e.stack+'</small>'+
+      '</div>';
+  }
   doSync();
 }
 
