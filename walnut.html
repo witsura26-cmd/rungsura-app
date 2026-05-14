@@ -481,6 +481,149 @@ function renderLessons(){
     </div>`;
 }
 
+// ── PRE-ASSESSMENT ANALYSIS ───────────────────────────────
+function renderPreAssessmentSection(){
+  var intake=null;try{intake=JSON.parse(localStorage.getItem("walnut_intake_v1")||"null");}catch(e){}
+  if(!intake||!intake.complete){
+    return `<div class="p-5 border-b border-gray-100">
+      <div class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">🎯 Pre-Assessment Interview</div>
+      <div class="bg-violet-50 border border-violet-200 rounded-2xl p-4 flex items-center gap-3">
+        <span class="text-2xl">🎯</span>
+        <div class="flex-1 text-sm text-violet-700">ยังไม่มีข้อมูล Interview ของวอลนัท</div>
+        <button onclick="openIntakeFlow()" class="bg-violet-500 text-white text-xs font-bold px-4 py-2 rounded-xl">เริ่ม →</button>
+      </div></div>`;
+  }
+
+  var qs=intake.questions||[];
+  var ans=intake.answers||{};
+  var answered=Object.keys(ans).length;
+  var savedAnalysis={}; try{savedAnalysis=JSON.parse(localStorage.getItem("walnut_intake_analysis")||"{}");}catch(e){}
+
+  // สร้าง Q&A summary สั้นๆ
+  var qaSummary=qs.map(function(q,i){
+    var a=ans[q.id]||ans["q"+(i+1)]||"(ไม่ได้ตอบ)";
+    return "["+(q.category||"?")+"] "+q.question+" → "+a;
+  }).join("\n");
+
+  return `<div class="border-b border-gray-100">
+    <!-- Header -->
+    <div class="p-5 pb-3">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="text-xs font-bold text-gray-500 uppercase tracking-wider">🎯 Pre-Assessment Interview</div>
+          <div class="text-xs text-gray-400 mt-0.5">ตอบแล้ว ${answered}/${qs.length} ข้อ · ${intake.completedAt?new Date(intake.completedAt).toLocaleDateString("th-TH",{day:"numeric",month:"short",year:"2-digit"}):"ยังไม่เสร็จ"}</div>
+        </div>
+        <button onclick="openIntakeFlow()" class="text-xs text-violet-500 underline">ดู/ทำใหม่</button>
+      </div>
+    </div>
+
+    <!-- Q&A Accordion -->
+    <div class="px-5 pb-3">
+      <details class="group">
+        <summary class="cursor-pointer text-xs font-semibold text-gray-500 hover:text-gray-700 flex items-center gap-1 select-none">
+          <span class="group-open:rotate-90 transition-transform inline-block">▶</span>
+          ดูคำตอบทั้งหมดของวอลนัท
+        </summary>
+        <div class="mt-3 space-y-2 max-h-64 overflow-y-auto">
+          ${qs.map(function(q,i){
+            var a=ans[q.id]||ans["q"+(i+1)]||null;
+            return `<div class="bg-gray-50 rounded-xl p-3">
+              <div class="text-xs font-bold text-gray-500 mb-0.5">${q.mission||q.category} — ${q.question}</div>
+              <div class="text-sm ${a?"text-gray-800 font-medium":"text-gray-300 italic"}">${a||"(ยังไม่ตอบ)"}</div>
+            </div>`;
+          }).join("")}
+        </div>
+      </details>
+    </div>
+
+    <!-- Analysis Button + Results -->
+    <div class="px-5 pb-5">
+      <div class="flex items-center justify-between mb-3">
+        <div class="text-xs font-bold text-gray-500 uppercase tracking-wider">🧠 วิเคราะห์โดยทีมหลัก</div>
+        ${savedAnalysis.generatedAt?`<span class="text-xs text-gray-400">อัปเดต: ${new Date(savedAnalysis.generatedAt).toLocaleString("th-TH",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}</span>`:""}
+      </div>
+      <button onclick="generateIntakeAnalysis()" id="intake-analysis-btn"
+        class="w-full py-3 bg-gray-900 hover:bg-gray-700 text-white rounded-xl font-bold text-sm transition-colors flex items-center justify-center gap-2 mb-4">
+        🔍 Rose · Dr.Aim · Ploy — วิเคราะห์ผล Interview ตอนนี้
+      </button>
+      <div id="intake-analysis-panels" class="space-y-4">
+        ${savedAnalysis.rose?`<div class="border border-pink-200 rounded-2xl overflow-hidden">
+          <div class="bg-pink-50 px-4 py-2.5 flex items-center gap-2"><span>🌸</span><span class="font-bold text-sm text-pink-800">Rose — สรุปภาพรวมวอลนัท</span></div>
+          <div class="px-4 py-3 text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">${savedAnalysis.rose}</div></div>`:""}
+        ${savedAnalysis.aim?`<div class="border border-blue-200 rounded-2xl overflow-hidden">
+          <div class="bg-blue-50 px-4 py-2.5 flex items-center gap-2"><span>📊</span><span class="font-bold text-sm text-blue-800">Dr.Aim — วิเคราะห์ศักยภาพและ Learning Profile</span></div>
+          <div class="px-4 py-3 text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">${savedAnalysis.aim}</div></div>`:""}
+        ${savedAnalysis.ploy?`<div class="border border-green-200 rounded-2xl overflow-hidden">
+          <div class="bg-green-50 px-4 py-2.5 flex items-center gap-2"><span>🌱</span><span class="font-bold text-sm text-green-800">Ploy — Mindset, อารมณ์ และแรงจูงใจ</span></div>
+          <div class="px-4 py-3 text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">${savedAnalysis.ploy}</div></div>`:""}
+        ${!savedAnalysis.rose&&!savedAnalysis.aim&&!savedAnalysis.ploy?`<div class="text-center text-gray-300 text-sm py-3">กด "วิเคราะห์ตอนนี้" เพื่อรับผลจากทีมค่ะ</div>`:""}
+      </div>
+    </div>
+  </div>`;
+}
+
+async function generateIntakeAnalysis(){
+  var intake=null;try{intake=JSON.parse(localStorage.getItem("walnut_intake_v1")||"null");}catch(e){}
+  if(!intake){alert("ยังไม่มีข้อมูล Interview");return;}
+  var qs=intake.questions||[];
+  var ans=intake.answers||{};
+  var btn=document.getElementById("intake-analysis-btn");
+  if(btn){btn.disabled=true;btn.innerHTML='<span class="animate-spin inline-block mr-2">⏳</span> ทีมกำลังอ่านและวิเคราะห์...';}
+
+  // สร้าง Q&A context
+  var context="ข้อมูล Pre-Assessment Interview ของวอลนัท อายุ 8 ขวบ ป.4 ร้องเพลง 3 ปี เปียโน 2 ปี\n\n";
+  context+=qs.map(function(q,i){
+    var a=ans[q.id]||ans["q"+(i+1)]||"(ไม่ได้ตอบ)";
+    return "Q: ["+q.category+"] "+q.question+"\nA: "+a;
+  }).join("\n\n");
+
+  var analysts=[
+    {key:"rose",icon:"🌸",name:"Rose",bg:"bg-pink-50",border:"border-pink-200",textColor:"text-pink-800",
+     system:"คุณคือ Rose หัวหน้าแผนก Walnut Learning\nอ่านผล interview แล้วสรุปภาพรวมของวอลนัท: บุคลิก จุดแข็ง จุดที่น่ากังวล และ recommendations สำหรับการออกแบบหลักสูตร\nตรงไปตรงมา professional ไม่อ้อมค้อม ใช้ภาษาไทย"},
+    {key:"aim",icon:"📊",name:"Dr.Aim",bg:"bg-blue-50",border:"border-blue-200",textColor:"text-blue-800",
+     system:"คุณคือ Dr.Aim นักวิเคราะห์วิชาการเด็ก\nวิเคราะห์ Learning Profile ของวอลนัทจาก interview: cognitive style, logic, academic strengths/gaps, learning style preference\nระบุ baseline ที่ชัดเจนสำหรับแต่ละวิชา ใช้ภาษาไทย เฉียบคม"},
+    {key:"ploy",icon:"🌱",name:"Ploy",bg:"bg-green-50",border:"border-green-200",textColor:"text-green-800",
+     system:"คุณคือ Ploy นักพัฒนาศักยภาพเด็ก\nวิเคราะห์ emotional state, motivation, mindset และ wellbeing ของวอลนัทจาก interview\nบอกว่าวอลนัทพร้อมแค่ไหน มี pressure ไหม และแนะนำวิธีรักษา motivation ใช้ภาษาไทย อ่อนโยนแต่ตรง"},
+  ];
+
+  var container=document.getElementById("intake-analysis-panels");
+  container.innerHTML="";
+  var results={};
+
+  for(var i=0;i<analysts.length;i++){
+    var a=analysts[i];
+    container.insertAdjacentHTML("beforeend",
+      `<div id="ia-card-${a.key}" class="border ${a.border} rounded-2xl overflow-hidden">
+        <div class="${a.bg} px-4 py-2.5 flex items-center gap-2">
+          <span>${a.icon}</span><span class="font-bold text-sm ${a.textColor}">${a.name} — กำลังอ่าน...</span>
+        </div>
+        <div class="px-4 py-3 text-sm text-gray-400 animate-pulse">กำลังวิเคราะห์...</div>
+      </div>`);
+    try{
+      var resp=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({system:a.system,messages:[{role:"user",content:context+"\n\nกรุณาวิเคราะห์ตามบทบาทของคุณ ตรงไปตรงมา ละเอียด professional"}]})});
+      var data=await resp.json();
+      var text=data.content||"(ไม่ได้รับข้อมูล)";
+      results[a.key]=text;
+      var card=document.getElementById("ia-card-"+a.key);
+      if(card){
+        card.querySelector("."+a.bg).innerHTML=`<span>${a.icon}</span><span class="font-bold text-sm ${a.textColor}">${a.name} — วิเคราะห์เสร็จ ✅</span>`;
+        card.lastElementChild.className="px-4 py-3 text-sm text-gray-700 whitespace-pre-wrap leading-relaxed";
+        card.lastElementChild.textContent=text;
+      }
+    }catch(e){
+      results[a.key]="⚠️ Error: "+e.message;
+    }
+  }
+
+  results.generatedAt=new Date().toISOString();
+  try{localStorage.setItem("walnut_intake_analysis",JSON.stringify(results));}catch(e){}
+  // push to cloud
+  try{fetch("/api/sync",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({walnut_intake_analysis:JSON.stringify(results)})});}catch(e){}
+
+  if(btn){btn.disabled=false;btn.innerHTML="🔄 วิเคราะห์ใหม่";}
+}
+
 // ── REPORT TAB ────────────────────────────────────────────
 function renderReport(){
   // ── รวบรวมข้อมูลทุกวิชา ──
@@ -531,6 +674,9 @@ function renderReport(){
   }
 
   return `<div class="bg-white rounded-b-2xl border border-t-0 border-gray-100">
+
+    <!-- ── Pre-Assessment Section ── -->
+    ${renderPreAssessmentSection()}
 
     <!-- ── Header ── -->
     <div class="p-5 border-b border-gray-100">
