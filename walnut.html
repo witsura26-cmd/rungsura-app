@@ -376,7 +376,7 @@ function renderLessons(){
               <div class="text-xs font-bold mb-1 ${isCurrent?"text-white":"text-amber-600"}">
                 W${wi+1} ${isCurrent?"← ตอนนี้":""}
               </div>
-              ${LESSONS.map(l=>`
+              ${LESSONS.filter(l=>l.week===1).map(l=>`
                 <div class="text-xs truncate mb-0.5 leading-tight">${l.icon} ${l.plan[wi]?.t?.split("+")[0]?.trim()||"—"}</div>
               `).join("")}
               <div class="text-xs mt-1 ${isCurrent?"text-amber-100":"text-gray-300"}">📅 ดูปฏิทิน</div>

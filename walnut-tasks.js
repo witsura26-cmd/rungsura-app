@@ -14,12 +14,14 @@ function syncLessonTasks(){
     var existing=ts.find(function(t){return t.lessonId===l.id;});
     var hwDone=getHwState(l.id).submitted;
     if(!existing){
-      ts.push({id:"lt-"+l.id,lessonId:l.id,title:"📝 การบ้าน"+l.subject,
-        subject:l.subject,icon:l.icon,badge:l.badge,type:"lesson",
+      ts.push({id:"lt-"+l.id,lessonId:l.id,title:"📝 การบ้าน"+l.subject+" W"+l.week,
+        subject:l.subject,icon:l.icon,badge:l.badge,type:"lesson",week:l.week||1,
         status:hwDone?"done":"pending",due:due});
       changed=true;
-    } else if(hwDone&&existing.status!=="done"){
-      existing.status="done";changed=true;
+    } else {
+      // อัปเดต week และ title ถ้ายังไม่มี
+      if(!existing.week){ existing.week=l.week||1; existing.title="📝 การบ้าน"+l.subject+" W"+l.week; changed=true; }
+      if(hwDone&&existing.status!=="done"){ existing.status="done"; changed=true; }
     }
   });
   if(changed)saveLocalTasks(ts);
@@ -113,6 +115,7 @@ function renderTaskList(ts){
             '<div class="text-sm font-medium '+(t.status==="done"&&!needsRetake?"line-through text-gray-300":"text-gray-800")+' truncate">'+t.title+'</div>'+
             '<div class="flex items-center gap-2 mt-0.5">'+
               '<span class="status-badge '+t.badge+'">'+t.subject+'</span>'+
+              (t.week?'<span class="status-badge bg-amber-100 text-amber-700">W'+t.week+'</span>':'')+
               '<span class="text-xs text-gray-400">'+t.due+'</span>'+
             '</div>'+
           '</div>'+
