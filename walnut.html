@@ -464,54 +464,314 @@ function renderLessons(){
 
 // ── REPORT TAB ────────────────────────────────────────────
 function renderReport(){
-  const scores=LESSONS.map(l=>{const s=getHwState(l.id);return{...l,score:s.score??null,submitted:!!s.submitted};});
-  const done=scores.filter(s=>s.submitted).length;
-  const avg=done>0?Math.round(scores.reduce((a,s)=>a+(s.score||0),0)/done):0;
-  const pct=done>0?Math.round((avg/20)*100):0;
-  return `
-    <div class="bg-white rounded-b-2xl border border-t-0 border-gray-100 p-5">
-      <div class="bg-pink-50 border border-pink-200 rounded-2xl p-4 mb-5 flex items-center gap-3">
-        <div class="text-2xl">🌸</div>
-        <div><div class="font-bold text-sm">Rose — Weekly Report</div><div class="text-xs text-gray-500">สัปดาห์ที่ 1 · พฤษภาคม 2026</div></div>
-      </div>
-      <div class="grid grid-cols-3 gap-3 mb-5">
-        <div class="bg-amber-50 border border-amber-200 rounded-2xl p-3 text-center">
-          <div class="text-xl font-bold text-amber-500">${done}/${LESSONS.length}</div>
-          <div class="text-xs text-gray-500">ส่งการบ้าน</div>
+  // ── รวบรวมข้อมูลทุกวิชา ──
+  const SUBJECTS=["thai","math","sci","sing","piano","eng"];
+  const subjectGroups=SUBJECTS.map(s=>{
+    const ls=LESSONS.filter(l=>l.id.startsWith(s));
+    if(!ls.length)return null;
+    return {
+      key:s, subject:ls[0].subject, icon:ls[0].icon,
+      bg:ls[0].bg, border:ls[0].border, badge:ls[0].badge, teacher:ls[0].teacher,
+      lessons:ls.map(l=>{
+        const hw=getHwState(l.id);
+        var hist=[]; try{hist=JSON.parse(localStorage.getItem("hw_hist_"+l.id)||"[]");}catch(e){}
+        return {id:l.id,week:l.week,submitted:hw.submitted,score:hw.score??null,
+          pct:hw.submitted?Math.round((hw.score||0)/20*100):null, hist};
+      })
+    };
+  }).filter(Boolean);
+
+  // ── สถิติรวม ──
+  const allLessons=LESSONS;
+  const submitted=allLessons.filter(l=>getHwState(l.id).submitted);
+  const done=submitted.length;
+  const total=allLessons.length;
+  const avgScore=done>0?Math.round(submitted.reduce((a,l)=>a+(getHwState(l.id).score||0),0)/done):0;
+  const avgPct=done>0?Math.round(avgScore/20*100):0;
+  // หาวิชาที่ดีที่สุดและแย่ที่สุด
+  const scored=subjectGroups.map(sg=>{
+    const s2=sg.lessons.filter(l=>l.submitted);
+    if(!s2.length)return{...sg,avgPct:null};
+    return{...sg,avgPct:Math.round(s2.reduce((a,l)=>a+l.pct,0)/s2.length)};
+  }).filter(sg=>sg.avgPct!==null).sort((a,b)=>b.avgPct-a.avgPct);
+  const best=scored[0]; const worst=scored[scored.length-1];
+  // กำหนดสัปดาห์ปัจจุบัน
+  const curWeek=Math.min(4,Math.ceil(new Date().getDate()/7));
+  // saved analysis
+  var saved={}; try{saved=JSON.parse(localStorage.getItem("walnut_report_v2")||"{}");}catch(e){}
+
+  // ── helper: bar color ──
+  function barColor(pct){return pct>=80?"#22c55e":pct>=60?"#f59e0b":"#ef4444";}
+  function barLabel(pct){return pct>=80?"ดีมาก":"ผ่าน";}
+  function grade(pct){
+    if(pct===null)return '<span class="text-gray-300 text-xs">ยังไม่ส่ง</span>';
+    if(pct>=80)return '<span class="text-green-600 font-bold text-xs">A</span>';
+    if(pct>=70)return '<span class="text-blue-600 font-bold text-xs">B</span>';
+    if(pct>=60)return '<span class="text-amber-600 font-bold text-xs">C</span>';
+    return '<span class="text-red-500 font-bold text-xs">D</span>';
+  }
+
+  return `<div class="bg-white rounded-b-2xl border border-t-0 border-gray-100">
+
+    <!-- ── Header ── -->
+    <div class="p-5 border-b border-gray-100">
+      <div class="flex items-start justify-between">
+        <div>
+          <h3 class="font-bold text-gray-900 text-base">📋 รายงานพัฒนาการ — วอลนัท</h3>
+          <p class="text-xs text-gray-400 mt-0.5">สัปดาห์ที่ ${curWeek} · พฤษภาคม 2026 · วิเคราะห์โดยทีม Rose + Dr.Aim + Ploy</p>
         </div>
-        <div class="bg-blue-50 border border-blue-200 rounded-2xl p-3 text-center">
-          <div class="text-xl font-bold text-blue-600">${avg}/20</div>
-          <div class="text-xs text-gray-500">เฉลี่ย</div>
-        </div>
-        <div class="${pct>=80?"bg-green-50 border-green-200":pct>=60?"bg-yellow-50 border-yellow-200":"bg-red-50 border-red-200"} border rounded-2xl p-3 text-center">
-          <div class="text-xl font-bold ${pct>=80?"text-green-600":pct>=60?"text-yellow-600":"text-red-500"}">${pct}%</div>
-          <div class="text-xs text-gray-500">ภาพรวม</div>
+        <div class="text-right">
+          <div class="text-2xl font-black ${avgPct>=80?"text-green-500":avgPct>=60?"text-amber-500":"text-red-500"}">${done>0?avgPct+"%":"—"}</div>
+          <div class="text-xs text-gray-400">ภาพรวม</div>
         </div>
       </div>
-      <div class="space-y-2 mb-5">
-        ${scores.map(s=>`
-          <div class="${s.bg} border rounded-xl p-3 flex items-center gap-3 cursor-pointer hover:shadow-sm" onclick="openHw('${s.id}')">
-            <div class="text-lg">${s.icon}</div>
-            <div class="flex-1"><div class="text-sm font-medium text-gray-800">${s.subject}</div><div class="text-xs text-gray-400">${s.teacher}</div></div>
-            ${s.submitted?`<div class="text-right">
-              <div class="font-bold text-sm">${s.score}/20</div>
-              <div class="text-xs ${s.score>=16?"text-green-500":s.score>=12?"text-amber-500":"text-red-400"}">${s.score>=16?"ดีมาก 🌟":s.score>=12?"ดี 👍":"ต้องพัฒนา 💪"}</div>
-            </div>`:`<span class="status-badge bg-gray-100 text-gray-400">ยังไม่ส่ง</span>`}
-          </div>`).join("")}
-      </div>
-      <div class="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-4">
-        <div class="text-xs font-bold text-amber-700 mb-2">📅 กำหนดการอัปเดต</div>
-        <div class="space-y-1 text-sm text-gray-700">
-          <div>🗓️ อัปเดตถัดไป: <strong>พุธ ${getNextDay(3)}</strong> เวลา 18:00</div>
-          <div>🗓️ รอบ 2: <strong>เสาร์ ${getNextDay(6)}</strong> เวลา 18:00</div>
-          <div>📝 สอบปลายเดือน: <strong>31 พ.ค. 2026</strong></div>
+      <!-- KPI row -->
+      <div class="grid grid-cols-4 gap-2 mt-4">
+        <div class="bg-gray-50 rounded-xl p-2.5 text-center">
+          <div class="text-lg font-black text-gray-800">${done}<span class="text-sm text-gray-400">/${total}</span></div>
+          <div class="text-xs text-gray-400">ส่งแล้ว</div>
+        </div>
+        <div class="bg-gray-50 rounded-xl p-2.5 text-center">
+          <div class="text-lg font-black text-gray-800">${done>0?avgScore+"/20":"—"}</div>
+          <div class="text-xs text-gray-400">เฉลี่ย</div>
+        </div>
+        <div class="bg-green-50 rounded-xl p-2.5 text-center">
+          <div class="text-base font-black text-green-600 truncate">${best?best.icon+" "+best.subject:"—"}</div>
+          <div class="text-xs text-gray-400">วิชาเด่น</div>
+        </div>
+        <div class="bg-red-50 rounded-xl p-2.5 text-center">
+          <div class="text-base font-black text-red-500 truncate">${worst?worst.icon+" "+worst.subject:"—"}</div>
+          <div class="text-xs text-gray-400">ต้องเร่ง</div>
         </div>
       </div>
-      <div class="bg-pink-50 border border-pink-200 rounded-2xl p-4">
-        <div class="text-xs font-bold text-pink-700 mb-1">🌸 หมายเหตุจาก Rose</div>
-        <div class="text-sm text-gray-700">${done===0?"วอลนัทยังไม่ได้เริ่มทำการบ้านสัปดาห์แรก เริ่มวันนี้เลยนะคะ!":pct>=80?`ดีมากเลยค่ะ! ${pct}% สัปดาห์หน้าจะปรับให้ยากขึ้นนิดนึง 🌟`:pct>=60?`ทำได้ดีนะคะ ${pct}% ครูจะช่วยดูส่วนที่ยังต้องพัฒนาค่ะ`:`พยายามดีแล้วนะคะ ครูจะปรับแนวทางให้เหมาะกับวอลนัทมากขึ้น 💪`}</div>
+    </div>
+
+    <!-- ── กราฟพัฒนาการรายวิชา ── -->
+    <div class="p-5 border-b border-gray-100">
+      <div class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4">📈 กราฟคะแนนรายวิชา (W1 → W2)</div>
+      <div class="space-y-4">
+        ${subjectGroups.map(sg=>{
+          return `<div>
+            <div class="flex items-center gap-2 mb-1.5">
+              <span class="text-base">${sg.icon}</span>
+              <span class="text-sm font-semibold text-gray-700">${sg.subject}</span>
+              <span class="text-xs text-gray-400">${sg.teacher}</span>
+              <div class="ml-auto flex gap-1">${sg.lessons.map(l=>grade(l.pct)).join("")}</div>
+            </div>
+            <div class="space-y-1.5">
+              ${sg.lessons.map(l=>{
+                if(!l.submitted) return `<div class="flex items-center gap-2">
+                  <span class="text-xs text-gray-400 w-6">W${l.week}</span>
+                  <div class="flex-1 bg-gray-100 rounded-full h-5 flex items-center px-2">
+                    <span class="text-xs text-gray-300">ยังไม่ส่ง</span>
+                  </div>
+                </div>`;
+                const w=Math.max(4,l.pct);
+                const col=barColor(l.pct);
+                // attempt trend
+                const trendHtml=l.hist.length>1?`<div class="flex gap-0.5 ml-2">${l.hist.map((h,i)=>{
+                  const hp=Math.round((h.score||0)/20*100);
+                  const hc=hp>=60?"#22c55e":"#ef4444";
+                  return `<div title="ครั้งที่ ${i+1}: ${hp}%" style="width:8px;height:16px;background:${hc};border-radius:2px;opacity:0.8"></div>`;
+                }).join("")}</div>`:"";
+                return `<div class="flex items-center gap-2">
+                  <span class="text-xs font-bold text-gray-400 w-6">W${l.week}</span>
+                  <div class="flex-1 bg-gray-100 rounded-full h-5 overflow-hidden relative">
+                    <div style="width:${l.pct}%;background:${col};height:100%;border-radius:9999px;transition:width 0.5s;display:flex;align-items:center;padding-left:8px;">
+                      <span style="color:white;font-size:10px;font-weight:700;white-space:nowrap">${l.score}/20 · ${l.pct}%</span>
+                    </div>
+                  </div>
+                  ${trendHtml}
+                  ${l.hist.length>1?`<span class="text-xs ${l.hist[l.hist.length-1].passed?"text-green-500":"text-red-400"}">${l.hist.length}×</span>`:""}
+                </div>`;
+              }).join("")}
+            </div>
+          </div>`;
+        }).join("")}
       </div>
-    </div>`;
+      <div class="mt-3 flex gap-3 text-xs text-gray-400">
+        <span><span style="color:#22c55e">■</span> ≥80%</span>
+        <span><span style="color:#f59e0b">■</span> 60-79%</span>
+        <span><span style="color:#ef4444">■</span> &lt;60%</span>
+        <span class="ml-2">แถบเล็กสี = ประวัติ retake แต่ละครั้ง</span>
+      </div>
+    </div>
+
+    <!-- ── ตารางสรุปคะแนน ── -->
+    <div class="p-5 border-b border-gray-100">
+      <div class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">📊 ตารางคะแนนละเอียด</div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-xs">
+          <thead>
+            <tr class="border-b border-gray-100">
+              <th class="text-left py-2 text-gray-400 font-semibold">วิชา</th>
+              <th class="text-center py-2 text-gray-400 font-semibold">W1</th>
+              <th class="text-center py-2 text-gray-400 font-semibold">W2</th>
+              <th class="text-center py-2 text-gray-400 font-semibold">Trend</th>
+              <th class="text-center py-2 text-gray-400 font-semibold">Retake</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${subjectGroups.map(sg=>{
+              const w1=sg.lessons.find(l=>l.week===1);
+              const w2=sg.lessons.find(l=>l.week===2);
+              const trend=w1?.pct!==null&&w2?.pct!==null?(w2.pct-w1.pct):null;
+              const totalRetakes=sg.lessons.reduce((a,l)=>a+(l.hist.length>1?l.hist.length-1:0),0);
+              return `<tr class="border-b border-gray-50">
+                <td class="py-2.5"><span class="mr-1">${sg.icon}</span>${sg.subject}</td>
+                <td class="text-center py-2.5">${w1?.submitted?`<span class="font-bold" style="color:${barColor(w1.pct)}">${w1.score}/20</span>`:'<span class="text-gray-300">—</span>'}</td>
+                <td class="text-center py-2.5">${w2?.submitted?`<span class="font-bold" style="color:${barColor(w2.pct)}">${w2.score}/20</span>`:'<span class="text-gray-300">—</span>'}</td>
+                <td class="text-center py-2.5">${trend===null?'<span class="text-gray-300">—</span>':trend>0?`<span class="text-green-500 font-bold">▲${trend}%</span>`:trend<0?`<span class="text-red-400 font-bold">▼${Math.abs(trend)}%</span>`:'<span class="text-gray-400">→</span>'}</td>
+                <td class="text-center py-2.5">${totalRetakes>0?`<span class="text-orange-500 font-bold">${totalRetakes}×</span>`:'<span class="text-gray-300">—</span>'}</td>
+              </tr>`;
+            }).join("")}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── ปุ่มวิเคราะห์ ── -->
+    <div class="p-5 border-b border-gray-100">
+      <div class="flex items-center justify-between mb-3">
+        <div class="text-xs font-bold text-gray-500 uppercase tracking-wider">🧠 วิเคราะห์โดยทีมหลัก</div>
+        ${saved.generatedAt?`<span class="text-xs text-gray-400">อัปเดต: ${new Date(saved.generatedAt).toLocaleString("th-TH",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}</span>`:""}
+      </div>
+      <button onclick="generateTeamReport()" id="gen-report-btn"
+        class="w-full py-3 bg-gray-900 hover:bg-gray-700 text-white rounded-xl font-bold text-sm transition-colors flex items-center justify-center gap-2">
+        🔍 ให้ Rose · Dr.Aim · Ploy วิเคราะห์ตอนนี้
+      </button>
+      <!-- analysis panels -->
+      <div id="report-analysis" class="mt-4 space-y-4">
+        ${saved.rose?`
+          <div class="border border-pink-200 rounded-2xl overflow-hidden">
+            <div class="bg-pink-50 px-4 py-2.5 flex items-center gap-2">
+              <span>🌸</span><span class="font-bold text-sm text-pink-800">Rose — หัวหน้าแผนก</span>
+              <span class="ml-auto text-xs text-pink-400">ภาพรวม + การจัดการ</span>
+            </div>
+            <div class="px-4 py-3 text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">${saved.rose}</div>
+          </div>`:""}
+        ${saved.aim?`
+          <div class="border border-blue-200 rounded-2xl overflow-hidden">
+            <div class="bg-blue-50 px-4 py-2.5 flex items-center gap-2">
+              <span>📊</span><span class="font-bold text-sm text-blue-800">Dr.Aim — วิเคราะห์วิชาการ</span>
+              <span class="ml-auto text-xs text-blue-400">Learning Gap + Pattern</span>
+            </div>
+            <div class="px-4 py-3 text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">${saved.aim}</div>
+          </div>`:""}
+        ${saved.ploy?`
+          <div class="border border-green-200 rounded-2xl overflow-hidden">
+            <div class="bg-green-50 px-4 py-2.5 flex items-center gap-2">
+              <span>🌱</span><span class="font-bold text-sm text-green-800">Ploy — พัฒนาการและ Mindset</span>
+              <span class="ml-auto text-xs text-green-400">Motivation + Wellbeing</span>
+            </div>
+            <div class="px-4 py-3 text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">${saved.ploy}</div>
+          </div>`:""}
+        ${!saved.rose&&!saved.aim&&!saved.ploy?`<div class="text-center text-gray-300 text-sm py-4">กด "วิเคราะห์ตอนนี้" เพื่อรับรายงานจากทีมค่ะ</div>`:""}
+      </div>
+    </div>
+
+    <!-- ── กำหนดการอัปเดต ── -->
+    <div class="p-5">
+      <div class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">📅 กำหนดการอัปเดต</div>
+      <div class="bg-amber-50 border border-amber-200 rounded-2xl p-4 space-y-2 text-sm text-gray-700">
+        <div class="flex items-center gap-2">🗓️ อัปเดตเนื้อหาถัดไป: <strong>อาทิตย์ที่จะถึง 23:30</strong> (ระบบอัตโนมัติ)</div>
+        <div class="flex items-center gap-2">📝 สอบปลายเดือน: <strong>31 พ.ค. 2026</strong></div>
+        <div class="flex items-center gap-2 text-xs text-gray-400">🤖 ระบบ weekly agent จะวิเคราะห์ผล + อัปเดตเนื้อหา W3 โดยอัตโนมัติ</div>
+      </div>
+    </div>
+
+  </div>`;
+}
+
+// ── TEAM REPORT GENERATOR ─────────────────────────────────
+async function generateTeamReport(){
+  const btn=document.getElementById("gen-report-btn");
+  if(btn){btn.disabled=true;btn.innerHTML='<span class="animate-spin inline-block mr-2">⏳</span> ทีมกำลังวิเคราะห์...';}
+
+  // สร้าง data summary สำหรับส่งให้ AI
+  const SUBJECTS=["thai","math","sci","sing","piano","eng"];
+  var dataLines=[];
+  SUBJECTS.forEach(s=>{
+    const ls=LESSONS.filter(l=>l.id.startsWith(s));
+    ls.forEach(l=>{
+      const hw=getHwState(l.id);
+      var hist=[]; try{hist=JSON.parse(localStorage.getItem("hw_hist_"+l.id)||"[]");}catch(e){}
+      const pct=hw.submitted?Math.round((hw.score||0)/20*100):null;
+      dataLines.push(l.subject+" W"+l.week+": "+(hw.submitted?(l.score||hw.score||0)+"/20 ("+pct+"%) attempts="+hist.length:"ยังไม่ส่ง"));
+    });
+  });
+  const dataSummary=dataLines.join("\n");
+  const curWeek=Math.min(4,Math.ceil(new Date().getDate()/7));
+  const context=`วอลนัท อายุ 8 ขวบ ป.4 โรงเรียนไทยคริสเตียน พระโขนง
+ร้องเพลง 3 ปี วง Last Minute Band เปียโน 2 ปี
+สัปดาห์ที่ ${curWeek} ของเดือน พฤษภาคม 2026
+ผลคะแนนแต่ละวิชา:
+${dataSummary}`;
+
+  const container=document.getElementById("report-analysis");
+  container.innerHTML='';
+
+  // วิเคราะห์ทั้ง 3 คน
+  const analysts=[
+    {key:"rose",icon:"🌸",name:"Rose",role:"หัวหน้าแผนก",bg:"bg-pink-50",border:"border-pink-200",textColor:"text-pink-800",note:"ภาพรวม + การจัดการ",
+     system:`คุณคือ Rose หัวหน้าแผนก Walnut Learning รายงานในฐานะหัวหน้าทีม
+ดูภาพรวมทั้งหมด: ผลการเรียน ความสม่ำเสมอ จุดที่ต้องปรับแผน
+ตรงไปตรงมา ไม่ประนีประนอม ไม่สปอย บอกความจริง
+รูปแบบ: สรุปภาพรวม → จุดแข็ง → จุดอ่อนเร่งด่วน → action plan สัปดาห์หน้า
+ใช้ภาษาไทย มืออาชีพ กระชับ`},
+    {key:"aim",icon:"📊",name:"Dr.Aim",role:"วิเคราะห์วิชาการ",bg:"bg-blue-50",border:"border-blue-200",textColor:"text-blue-800",note:"Learning Gap + Pattern",
+     system:`คุณคือ Dr.Aim นักวิเคราะห์วิชาการเด็ก
+วิเคราะห์ learning gap จากคะแนน หา pattern ว่าวอลนัทอ่อนเรื่องอะไรจริงๆ
+ดูจำนวน retake — บอกว่าจุดไหนที่ยังไม่เข้าใจจริง
+ตรงไปตรงมา ข้อมูลนำ ไม่ปลอบใจ
+รูปแบบ: diagnosis → root cause → specific recommendations ต่อวิชา
+ใช้ภาษาไทย เฉียบ กระชับ`},
+    {key:"ploy",icon:"🌱",name:"Ploy",role:"พัฒนาการและ Mindset",bg:"bg-green-50",border:"border-green-200",textColor:"text-green-800",note:"Motivation + Wellbeing",
+     system:`คุณคือ Ploy นักพัฒนาศักยภาพเด็ก
+วิเคราะห์ด้าน mindset motivation ความสม่ำเสมอของวอลนัท
+บอกความจริงว่าวอลนัทเหนื่อยไหม กดดันไหม burn out risk ไหม
+พร้อมกับวิธีรักษา motivation ให้ไปต่อได้โดยไม่พัง
+ตรงไปตรงมา ไม่ปลอบใจเกิน แต่ยังอ่อนโยน
+รูปแบบ: mindset assessment → risk → strategy
+ใช้ภาษาไทย`},
+  ];
+
+  var results={};
+  for(var i=0;i<analysts.length;i++){
+    const a=analysts[i];
+    // แสดง loading card
+    container.insertAdjacentHTML("beforeend",
+      `<div id="card-${a.key}" class="border ${a.border} rounded-2xl overflow-hidden">
+        <div class="${a.bg} px-4 py-2.5 flex items-center gap-2">
+          <span>${a.icon}</span><span class="font-bold text-sm ${a.textColor}">${a.name} — ${a.role}</span>
+          <span class="ml-auto text-xs opacity-60">${a.note}</span>
+        </div>
+        <div class="px-4 py-3 text-sm text-gray-400 animate-pulse">กำลังวิเคราะห์...</div>
+      </div>`);
+    try{
+      const resp=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+          system:a.system,
+          messages:[{role:"user",content:"นี่คือข้อมูลวอลนัทสัปดาห์นี้:\n"+context+"\n\nกรุณาวิเคราะห์ตามบทบาทของคุณ ตรงไปตรงมา professional ไม่อ้อมค้อม"}]
+        })});
+      const data=await resp.json();
+      const text=data.content||data.error||"(ไม่ได้รับข้อมูล)";
+      results[a.key]=text;
+      const card=document.getElementById("card-"+a.key);
+      if(card) card.querySelector(".px-4.py-3").outerHTML=
+        `<div class="px-4 py-3 text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">${text}</div>`;
+    }catch(e){
+      results[a.key]="⚠️ เชื่อมต่อ API ไม่ได้: "+e.message;
+      const card=document.getElementById("card-"+a.key);
+      if(card) card.querySelector(".px-4.py-3").outerHTML=
+        `<div class="px-4 py-3 text-sm text-red-400">${results[a.key]}</div>`;
+    }
+  }
+
+  // บันทึกผล
+  results.generatedAt=new Date().toISOString();
+  try{localStorage.setItem("walnut_report_v2",JSON.stringify(results));}catch(e){}
+  if(btn){btn.disabled=false;btn.innerHTML='🔄 วิเคราะห์ใหม่';}
 }
 
 // ── TEAM TAB ──────────────────────────────────────────────
