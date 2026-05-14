@@ -762,11 +762,11 @@ async function designCurriculumFromInterview(interviewContext, analysis){
     // ── CALL 1: เนื้อหา (title + goal + rationale + reading) ──
     var call1Msg=brief+"\n\n===\nคุณคือ"+tc.teacher+" วิชา"+tc.subject+" สัปดาห์ที่ "+curWeek+
       "\nตอบ JSON object เท่านั้น เริ่ม { จบ }:\n"+
-      '{"title":"ชื่อบทเรียน","goal":"เป้าหมาย 1 ประโยค","rationale":"เหตุผลอ้างอิงคำตอบ interview จริงของวอลนัท","reading":"เนื้อหา 4-5 ย่อหน้า เชื่อมกับชีวิตและสิ่งที่วอลนัทชอบ"}';
+      '{"title":"ชื่อบทเรียน","goal":"เป้าหมาย 1 ประโยค","rationale":"เหตุผลอ้างอิงคำตอบ interview จริงของวอลนัท","reading":"เนื้อหา 3-4 ย่อหน้า เชื่อมกับชีวิตและสิ่งที่วอลนัทชอบ (ไม่เกิน 400 คำ)"}';
 
     var card=document.getElementById(cardId);
     try{
-      var t1=await callChat(tc.system,call1Msg,2048);
+      var t1=await callChat(tc.system,call1Msg,3000);
       var part1=parseObj(t1);
       if(!part1||!part1.title){throw new Error("part1 parse fail: "+t1.slice(0,100));}
 
@@ -817,7 +817,7 @@ async function designCurriculumFromInterview(interviewContext, analysis){
   if(generatedLessons.length>0){
     var pkg={lessons:generatedLessons,createdAt:new Date().toISOString(),week:curWeek};
     try{localStorage.setItem("walnut_custom_curriculum",JSON.stringify(pkg));}catch(e){}
-    applyFullLessons(generatedLessons);
+    applyFullLessons(generatedLessons, true); // silent — panel ยังแสดงอยู่
     // push cloud
     try{await fetch("/api/sync",{method:"POST",headers:{"Content-Type":"application/json"},
       body:JSON.stringify({walnut_custom_curriculum:JSON.stringify(pkg)})});}catch(e){}
@@ -832,15 +832,12 @@ async function designCurriculumFromInterview(interviewContext, analysis){
   }
 }
 
-function applyFullLessons(generated){
+function applyFullLessons(generated, silentMode){
+  // silentMode=true → แค่อัปเดตข้อมูลใน memory ไม่ re-render (ใช้ตอน pipeline กำลังรัน)
   var curWeek=Math.min(4,Math.ceil(new Date().getDate()/7));
   generated.forEach(function(g){
-    // หา lesson ที่ตรง week + subject
     var existing=LESSONS.find(function(l){return l.id===g.subjectKey+"-w"+curWeek;});
-    if(!existing){
-      // หา lesson ที่ใกล้ที่สุด
-      existing=LESSONS.find(function(l){return l.id.startsWith(g.subjectKey+"-");});
-    }
+    if(!existing) existing=LESSONS.find(function(l){return l.id.startsWith(g.subjectKey+"-");});
     if(existing){
       if(g.title) existing.title=g.title;
       if(g.goal) existing.goal=g.goal;
@@ -850,10 +847,10 @@ function applyFullLessons(generated){
       if(g.written&&g.written.length>=3) existing.written=g.written;
     }
   });
-  // re-render
-  if(typeof activeTab!=="undefined"){
-    if(activeTab==="lessons"){var ta=document.getElementById("tab-area");if(ta)ta.innerHTML=renderLessons();}
-    else{renderPage();}
+  if(silentMode) return; // pipeline กำลังแสดง panel อยู่ — ยังไม่ re-render
+  // re-render เฉพาะถ้าถูกเรียกตอน load / manual
+  if(typeof activeTab!=="undefined"&&activeTab==="lessons"){
+    var ta=document.getElementById("tab-area");if(ta)ta.innerHTML=renderLessons();
   }
 }
 
@@ -1719,9 +1716,15 @@ async function runFullLessonPipeline(){
 
   await designCurriculumFromInterview(context, analysis);
 
-  // หลัง generate เสร็จ → sync tasks + book calendar
+  // หลัง generate เสร็จทุกวิชา → sync tasks + book calendar
   if(typeof syncLessonTasks==="function") syncLessonTasks();
   await autoBookLessonCalendar();
+
+  // re-render หน้า report ใหม่เพื่อแสดงปุ่มและผลล่าสุด
+  var tabArea=document.getElementById("tab-area");
+  if(tabArea&&typeof activeTab!=="undefined"&&activeTab==="report"){
+    tabArea.innerHTML=renderReport();
+  }
 
   if(btn){btn.disabled=false;btn.innerHTML='🔄 อัปเดตบทเรียนใหม่อีกครั้ง';}
 }
