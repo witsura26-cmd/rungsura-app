@@ -435,6 +435,12 @@ function renderLessons(){
 
           return `
           <div class="border ${l.border} rounded-2xl overflow-hidden">
+            <!-- Mission Scene Banner -->
+            ${l.scene?`<div class="bg-gradient-to-r from-gray-900 to-gray-700 px-4 py-3 text-center">
+              <div class="text-3xl tracking-widest mb-0.5">${l.scene}</div>
+              ${l.missionBrief?`<div class="text-xs text-gray-300 italic leading-relaxed">${l.missionBrief}</div>`:""}
+            </div>`:""}
+
             <!-- Lesson Header -->
             <div class="${l.bg} px-4 py-3 flex items-center gap-3">
               <span class="text-2xl">${l.icon}</span>
@@ -442,9 +448,10 @@ function renderLessons(){
                 <div class="flex items-center gap-2 flex-wrap">
                   <span class="font-bold text-gray-900">${l.subject}</span>
                   <span class="status-badge ${l.badge}">${l.teacher}</span>
+                  <span class="status-badge bg-gray-100 text-gray-500 text-xs">W${l.week}</span>
                   ${submitted?`<span class="status-badge ${needsRetake?"bg-red-100 text-red-700":"bg-green-100 text-green-700"}">${needsRetake?"🔄":"✅"} ${st.score??0}/20</span>`:'<span class="status-badge bg-gray-100 text-gray-500">⏳ รอทำ</span>'}
                 </div>
-                <div class="text-xs text-gray-600 mt-0.5 font-medium">${l.title}</div>
+                <div class="text-xs text-gray-600 mt-0.5 font-bold">${l.title||"รอเนื้อหาจากทีมครู..."}</div>
               </div>
             </div>
 
@@ -454,7 +461,7 @@ function renderLessons(){
                 <span class="text-sm">🌸</span>
                 <div>
                   <div class="text-xs font-bold text-blue-700 mb-1">Rose + Dr.Aim ประชุมครู — เลือกเนื้อหานี้เพราะ</div>
-                  <div class="text-xs text-gray-600 leading-relaxed">${l.rationale||l.goal}</div>
+                  <div class="text-xs text-gray-600 leading-relaxed">${l.rationale||l.goal||"กด 🎓 ให้ทีมครูออกแบบฝึกหัดในหน้ารายงาน"}</div>
                 </div>
               </div>
             </div>
@@ -691,25 +698,42 @@ async function generateIntakeAnalysis(){
 }
 
 // ── FULL LESSON GENERATION PIPELINE ──────────────────────
+var THAI_CURRICULUM_CONTEXT="หลักสูตรแกนกลางการศึกษาขั้นพื้นฐาน พ.ศ.2551 (ปรับปรุง พ.ศ.2560) ชั้น ป.4\n"+
+"สาระและมาตรฐานการเรียนรู้: เน้นให้ผู้เรียนคิดวิเคราะห์ สื่อสารได้ มีทักษะชีวิต\n"+
+"ต้องสอดคล้องตัวชี้วัดชั้นปี ป.4 ของวิชานั้นๆ\n";
+
+var GAME_DESIGN_CONTEXT="ออกแบบให้เป็น Mission-based Learning สำหรับเด็ก 8 ขวบ:\n"+
+"- มี 'scene' เป็น emoji ขนาดใหญ่ประกอบ (ใช้หลายๆ emoji สร้าง scene เช่น 🌳🦋✨ หรือ 🚀⭐🌙)\n"+
+"- เนื้อหาเล่าเป็นเรื่องราว เหมือน mission ของเกม\n"+
+"- มีตัวละครที่วอลนัทรู้จัก (ใช้ชื่อวอลนัทในเนื้อหา)\n"+
+"- แต่ละ MCQ เป็น 'ด่าน' มีบริบทสนุก\n"+
+"- ภาษาเป็นกันเอง ไม่เป็นทางการ เหมือนพูดคุยกับน้อง\n";
+
 var TEACHER_CONFIG=[
   {subjectKey:"thai", subject:"ภาษาไทย", icon:"✍️", teacherId:"kru-nim", teacher:"ครูนิ่ม",
    bg:"bg-yellow-50",border:"border-yellow-200",badge:"bg-yellow-100 text-yellow-700",
-   system:"คุณคือครูนิ่ม ครูภาษาไทยที่เนี้ยบที่สุด สอนวอลนัท ป.4\nออกแบบบทเรียนภาษาไทยที่เหมาะกับวอลนัทจาก brief ของทีม\nตอบ JSON object เท่านั้น ไม่มี markdown"},
+   system:"คุณคือครูนิ่ม ครูภาษาไทยที่เนี้ยบที่สุด\n"+THAI_CURRICULUM_CONTEXT+GAME_DESIGN_CONTEXT+
+   "วิชาภาษาไทย ป.4: มาตรฐาน ท1-ท5 เน้นการอ่าน การเขียน การฟัง การพูด หลักภาษา\nตอบ JSON เท่านั้น ไม่มี markdown"},
   {subjectKey:"math", subject:"คณิตศาสตร์", icon:"🎮", teacherId:"kru-o", teacher:"ครูโอ๋",
    bg:"bg-orange-50",border:"border-orange-200",badge:"bg-orange-100 text-orange-700",
-   system:"คุณคือครูโอ๋ ครูเลขที่ขี้เล่น ใจดี มีทริค เลขคือเกม\nออกแบบบทเรียนคณิตศาสตร์ที่เหมาะกับวอลนัทจาก brief ของทีม\nตอบ JSON object เท่านั้น ไม่มี markdown"},
+   system:"คุณคือครูโอ๋ ครูเลขที่ขี้เล่น เลขคือเกม\n"+THAI_CURRICULUM_CONTEXT+GAME_DESIGN_CONTEXT+
+   "วิชาคณิตศาสตร์ ป.4: มาตรฐาน ค1-ค6 จำนวนนับ เศษส่วน ทศนิยม การวัด เรขาคณิต\nตอบ JSON เท่านั้น ไม่มี markdown"},
   {subjectKey:"sci", subject:"วิทยาศาสตร์", icon:"🔭", teacherId:"kru-kai", teacher:"ครูไก่",
    bg:"bg-cyan-50",border:"border-cyan-200",badge:"bg-cyan-100 text-cyan-700",
-   system:"คุณคือครูไก่ ครูวิทย์ที่ตื่นเต้นกับทุกอย่าง ชอบตั้งคำถาม สอนผ่านเรื่องเล่า\nออกแบบบทเรียนวิทยาศาสตร์ที่เหมาะกับวอลนัทจาก brief ของทีม\nตอบ JSON object เท่านั้น ไม่มี markdown"},
+   system:"คุณคือครูไก่ ครูวิทย์ที่ตื่นเต้นกับทุกอย่าง\n"+THAI_CURRICULUM_CONTEXT+GAME_DESIGN_CONTEXT+
+   "วิชาวิทยาศาสตร์ ป.4: มาตรฐาน ว1-ว8 ชีวิตและสิ่งแวดล้อม สสารและสมบัติ แรงและการเคลื่อนที่\nตอบ JSON เท่านั้น ไม่มี markdown"},
   {subjectKey:"sing", subject:"ร้องเพลง", icon:"🎤", teacherId:"kru-mint", teacher:"ครูมิ้นท์",
    bg:"bg-rose-50",border:"border-rose-200",badge:"bg-rose-100 text-rose-700",
-   system:"คุณคือครูมิ้นท์ ครูร้องเพลง passionate มาก\nออกแบบบทเรียนร้องเพลงที่เหมาะกับวอลนัทจาก brief ของทีม\nตอบ JSON object เท่านั้น ไม่มี markdown"},
+   system:"คุณคือครูมิ้นท์ ครูร้องเพลง passionate\n"+THAI_CURRICULUM_CONTEXT+GAME_DESIGN_CONTEXT+
+   "วิชาดนตรี ป.4: มาตรฐาน ศ2 ทักษะทางดนตรี การร้องเพลง การแสดงออก ความซาบซึ้ง\nตอบ JSON เท่านั้น ไม่มี markdown"},
   {subjectKey:"piano", subject:"เปียโน", icon:"🎹", teacherId:"kru-big", teacher:"ครูบิ๊ก",
    bg:"bg-violet-50",border:"border-violet-200",badge:"bg-violet-100 text-violet-700",
-   system:"คุณคือครูบิ๊ก ครูเปียโนที่แม่นทฤษฎี ใจเย็น\nออกแบบบทเรียนเปียโนที่เหมาะกับวอลนัทจาก brief ของทีม\nตอบ JSON object เท่านั้น ไม่มี markdown"},
+   system:"คุณคือครูบิ๊ก ครูเปียโนที่แม่นทฤษฎี\n"+THAI_CURRICULUM_CONTEXT+GAME_DESIGN_CONTEXT+
+   "วิชาดนตรี ป.4 (เปียโน): ทฤษฎีดนตรีเบื้องต้น การอ่านโน้ต เทคนิคเปียโน\nตอบ JSON เท่านั้น ไม่มี markdown"},
   {subjectKey:"eng", subject:"ภาษาอังกฤษ", icon:"🇬🇧", teacherId:"kru-jen", teacher:"ครูเจน",
    bg:"bg-indigo-50",border:"border-indigo-200",badge:"bg-indigo-100 text-indigo-700",
-   system:"คุณคือครูเจน ครูภาษาอังกฤษที่สนุกและ passionate Communication first\nออกแบบบทเรียนภาษาอังกฤษที่เหมาะกับวอลนัทจาก brief ของทีม\nตอบ JSON object เท่านั้น ไม่มี markdown"},
+   system:"คุณคือครูเจน ครูอังกฤษ Communication first\n"+THAI_CURRICULUM_CONTEXT+GAME_DESIGN_CONTEXT+
+   "วิชาภาษาอังกฤษ ป.4: มาตรฐาน ต1-ต3 ฟัง พูด อ่าน เขียน ไวยากรณ์พื้นฐาน คำศัพท์ชีวิตประจำวัน\nตอบ JSON เท่านั้น ไม่มี markdown"},
 ];
 
 // ── helper: call API แล้วคืน string ──
@@ -761,8 +785,9 @@ async function designCurriculumFromInterview(interviewContext, analysis){
 
     // ── CALL 1: เนื้อหา (title + goal + rationale + reading) ──
     var call1Msg=brief+"\n\n===\nคุณคือ"+tc.teacher+" วิชา"+tc.subject+" สัปดาห์ที่ "+curWeek+
-      "\nตอบ JSON object เท่านั้น เริ่ม { จบ }:\n"+
-      '{"title":"ชื่อบทเรียน","goal":"เป้าหมาย 1 ประโยค","rationale":"เหตุผลอ้างอิงคำตอบ interview จริงของวอลนัท","reading":"เนื้อหา 3-4 ย่อหน้า เชื่อมกับชีวิตและสิ่งที่วอลนัทชอบ (ไม่เกิน 400 คำ)"}';
+      "\nออกแบบแบบ Mission/เกม อิงหลักสูตรไทย ป.4\n"+
+      "ตอบ JSON object เท่านั้น เริ่ม { จบ } ห้ามมี markdown:\n"+
+      '{"title":"ชื่อ Mission สนุกๆ เช่น Mission 3: ปริศนาอักษรวิเศษ","scene":"emoji หลายตัวสร้างภาพประกอบ เช่น 🌟📚✨🦋","missionBrief":"บทนำเรื่องราว 2-3 ประโยค เหมือนเริ่มเกม ใช้ชื่อวอลนัท","goal":"เป้าหมาย 1 ประโยค ระบุตัวชี้วัด ป.4","rationale":"เหตุผลจาก interview + หลักสูตรไทย","reading":"เนื้อหา 3 ย่อหน้า เล่าเป็นเรื่องราว mission ไม่เกิน 350 คำ"}';
 
     var card=document.getElementById(cardId);
     try{
@@ -773,9 +798,9 @@ async function designCurriculumFromInterview(interviewContext, analysis){
       if(card) card.lastElementChild.textContent="📖 ได้เนื้อหาแล้ว กำลัง generate คำถาม...";
 
       // ── CALL 2: MCQ 10 ข้อ ──
-      var call2Msg="วิชา"+tc.subject+" บทเรียน: "+part1.title+"\nเนื้อหา: "+part1.reading+
-        "\nออกแบบ 10 MCQ 4 ตัวเลือก จาก เนื้อหานี้\n"+
-        'ตอบ JSON array เท่านั้น: [{"q":"คำถาม","c":["ก. ","ข. ","ค. ","ง. "],"a":0}]';
+      var call2Msg="วิชา"+tc.subject+" Mission: "+part1.title+"\nเนื้อหา: "+part1.reading+
+        "\nออกแบบ 10 'ด่าน' (MCQ) สไตล์เกม มีบริบทสนุก คำถามอิงหลักสูตร ป.4\n"+
+        'ตอบ JSON array เท่านั้น: [{"q":"ด่านที่ X: คำถาม...","c":["ก. ","ข. ","ค. ","ง. "],"a":0}]';
       var t2=await callChat(tc.system,call2Msg,3000);
       var mcq=parseObj(t2);
       if(!Array.isArray(mcq)||mcq.length<5){throw new Error("mcq parse fail (got "+(Array.isArray(mcq)?mcq.length:0)+"): "+t2.slice(0,100));}
@@ -797,7 +822,8 @@ async function designCurriculumFromInterview(interviewContext, analysis){
       var lesson=Object.assign({},part1,{mcq:mcq,written:written,
         subjectKey:tc.subjectKey,subject:tc.subject,icon:tc.icon,
         teacher:tc.teacher,teacherId:tc.teacherId,
-        bg:tc.bg,border:tc.border,badge:tc.badge,week:curWeek});
+        bg:tc.bg,border:tc.border,badge:tc.badge,week:curWeek,
+        scene:part1.scene||tc.icon+"✨",missionBrief:part1.missionBrief||""});
       generatedLessons.push(lesson);
 
       if(card){
@@ -843,6 +869,8 @@ function applyFullLessons(generated, silentMode){
       if(g.goal) existing.goal=g.goal;
       if(g.rationale) existing.rationale=g.rationale;
       if(g.reading) existing.reading=g.reading;
+      if(g.scene) existing.scene=g.scene;
+      if(g.missionBrief) existing.missionBrief=g.missionBrief;
       if(g.mcq&&g.mcq.length>=10) existing.mcq=g.mcq;
       if(g.written&&g.written.length>=3) existing.written=g.written;
     }
