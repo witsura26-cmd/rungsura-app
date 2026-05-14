@@ -32,7 +32,13 @@ export default async function handler(req, res) {
       });
     }
 
-    return res.status(200).json(data);
+    // normalise: ส่ง content เป็น string เสมอ
+    const raw = data.content;
+    const text = Array.isArray(raw)
+      ? raw.map(b => b.text || '').join('')
+      : (typeof raw === 'string' ? raw : JSON.stringify(raw));
+
+    return res.status(200).json({ ...data, content: text });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }

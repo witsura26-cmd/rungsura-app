@@ -601,13 +601,13 @@ async function generateIntakeAnalysis(){
       </div>`);
     try{
       var resp=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({system:a.system,messages:[{role:"user",content:context+"\n\nกรุณาวิเคราะห์ตามบทบาทของคุณ ตรงไปตรงมา ละเอียด professional"}]})});
+        body:JSON.stringify({system:a.system,max_tokens:4096,messages:[{role:"user",content:context+"\n\nกรุณาวิเคราะห์ตามบทบาทของคุณ ตรงไปตรงมา ละเอียด professional"}]})});
       var data=await resp.json();
-      var text=data.content||"(ไม่ได้รับข้อมูล)";
+      var text=typeof data.content==="string"?data.content:(data.error||"(ไม่ได้รับข้อมูล)");
       results[a.key]=text;
       var card=document.getElementById("ia-card-"+a.key);
       if(card){
-        card.querySelector("."+a.bg).innerHTML=`<span>${a.icon}</span><span class="font-bold text-sm ${a.textColor}">${a.name} — วิเคราะห์เสร็จ ✅</span>`;
+        card.querySelector("div:first-child").innerHTML='<span>'+a.icon+'</span><span class="font-bold text-sm '+a.textColor+'">'+a.name+' — วิเคราะห์เสร็จ ✅</span>';
         card.lastElementChild.className="px-4 py-3 text-sm text-gray-700 whitespace-pre-wrap leading-relaxed";
         card.lastElementChild.textContent=text;
       }
@@ -618,10 +618,104 @@ async function generateIntakeAnalysis(){
 
   results.generatedAt=new Date().toISOString();
   try{localStorage.setItem("walnut_intake_analysis",JSON.stringify(results));}catch(e){}
-  // push to cloud
   try{fetch("/api/sync",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({walnut_intake_analysis:JSON.stringify(results)})});}catch(e){}
 
   if(btn){btn.disabled=false;btn.innerHTML="🔄 วิเคราะห์ใหม่";}
+
+  // ── Auto design curriculum ──
+  var container2=document.getElementById("intake-analysis-panels");
+  if(container2){
+    container2.insertAdjacentHTML("beforeend",
+      '<div id="curriculum-design-panel" class="border border-amber-200 rounded-2xl overflow-hidden">'+
+        '<div class="bg-amber-50 px-4 py-2.5 flex items-center gap-2">'+
+          '<span>🎓</span><span class="font-bold text-sm text-amber-800">ทีมกำลังออกแบบหลักสูตรใหม่สำหรับวอลนัท...</span>'+
+        '</div>'+
+        '<div class="px-4 py-3 text-sm text-gray-400 animate-pulse">Rose + Dr.Aim + ครูทุกท่าน ประชุมออกแบบเนื้อหาที่เหมาะกับวอลนัทโดยเฉพาะ...</div>'+
+      '</div>');
+  }
+  await designCurriculumFromInterview(context, results);
+}
+
+// ── AUTO CURRICULUM DESIGN ────────────────────────────────
+async function designCurriculumFromInterview(interviewContext, analysis){
+  var panel=document.getElementById("curriculum-design-panel");
+
+  var sysPrompt="คุณคือทีม Walnut Learning: Rose (หัวหน้า), Dr.Aim (วิชาการ), Ploy (พัฒนาการ) "+
+"และครูทุกท่าน (ครูนิ่ม-ไทย, ครูโอ๋-เลข, ครูไก่-วิทย์, ครูเจน-อังกฤษ, ครูมิ้นท์-ร้องเพลง, ครูบิ๊ก-เปียโน)\n"+
+"จากข้อมูล interview ของวอลนัท ออกแบบหลักสูตรสัปดาห์แรกที่เหมาะกับวอลนัทโดยเฉพาะ\n"+
+"ตอบเป็น JSON array ล้วนๆ ไม่มี markdown ไม่มีข้อความอื่น:\n"+
+'[{"subject":"ภาษาไทย","icon":"✍️","teacherId":"kru-nim","week":1,'+
+'"title":"ชื่อบทเรียน","goal":"เป้าหมาย","rationale":"เหตุผลที่ทีมเลือก (อ้างอิงจาก interview ของวอลนัทจริงๆ)",'+
+'"readingSummary":"สรุปเนื้อหาที่จะสอน 3-4 ประโยค"}]\n'+
+"ออกแบบให้ครบทั้ง 6 วิชา: ภาษาไทย, คณิตศาสตร์, วิทยาศาสตร์, ร้องเพลง, เปียโน, ภาษาอังกฤษ\n"+
+"สำคัญ: rationale ต้องอ้างอิงคำตอบจริงของวอลนัทจาก interview เพื่อให้เห็นว่าออกแบบมาเพื่อวอลนัทจริงๆ";
+
+  var userMsg=interviewContext+"\n\nผลวิเคราะห์ทีม:\n"+
+    (analysis.rose||"")+(analysis.aim||"")+(analysis.ploy||"")+
+    "\n\nออกแบบหลักสูตร 6 วิชาตาม JSON format ข้างต้น";
+
+  try{
+    var resp=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({system:sysPrompt,max_tokens:4096,messages:[{role:"user",content:userMsg}]})});
+    var data=await resp.json();
+    var text=typeof data.content==="string"?data.content:"";
+    var curriculum=parseJSONSafe(text);
+
+    if(curriculum&&curriculum.length){
+      // อัปเดต LESSONS ใน memory
+      applyCustomCurriculum(curriculum);
+      // save
+      try{localStorage.setItem("walnut_custom_curriculum",JSON.stringify({lessons:curriculum,createdAt:new Date().toISOString()}));}catch(e){}
+      try{fetch("/api/sync",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({walnut_custom_curriculum:JSON.stringify({lessons:curriculum,createdAt:new Date().toISOString()})})});}catch(e){}
+
+      if(panel){
+        panel.querySelector("div:first-child").innerHTML='<span>🎓</span><span class="font-bold text-sm text-amber-800">หลักสูตรใหม่พร้อมแล้ว ✅</span>';
+        panel.lastElementChild.className="px-4 py-3 text-sm text-gray-700";
+        panel.lastElementChild.innerHTML='<div class="space-y-2">'+
+          curriculum.map(function(c){
+            return '<div class="bg-white border border-amber-100 rounded-xl p-3">'+
+              '<div class="font-bold text-sm text-gray-800 mb-1">'+c.icon+' '+c.subject+' — '+c.title+'</div>'+
+              '<div class="text-xs text-gray-500 mb-1">🎯 '+c.goal+'</div>'+
+              '<div class="text-xs text-blue-600">🌸 '+c.rationale+'</div>'+
+            '</div>';
+          }).join("")+
+          '<div class="mt-3 pt-3 border-t border-amber-100 text-center">'+
+            '<button onclick="switchTab(\'lessons\')" class="bg-amber-400 hover:bg-amber-500 text-white font-bold px-6 py-2.5 rounded-xl text-sm">'+
+              '📚 ดูบทเรียนใหม่ →'+
+            '</button>'+
+          '</div>'+
+        '</div>';
+      }
+    } else {
+      if(panel) panel.lastElementChild.textContent="⚠️ ออกแบบหลักสูตรไม่สำเร็จ — ลองกด วิเคราะห์ใหม่";
+    }
+  }catch(e){
+    if(panel) panel.lastElementChild.textContent="⚠️ Error: "+e.message;
+  }
+}
+
+function applyCustomCurriculum(curriculum){
+  // เก็บ plan และ mcq/written จาก lesson เดิม แค่อัปเดต title/goal/rationale
+  curriculum.forEach(function(c){
+    var subjectKey=c.subject==="ภาษาไทย"?"thai":
+                   c.subject==="คณิตศาสตร์"?"math":
+                   c.subject==="วิทยาศาสตร์"?"sci":
+                   c.subject==="ร้องเพลง"?"sing":
+                   c.subject==="เปียโน"?"piano":"eng";
+    var existing=LESSONS.find(function(l){return l.id===subjectKey+"-w1";});
+    if(existing){
+      existing.title=c.title||existing.title;
+      existing.goal=c.goal||existing.goal;
+      existing.rationale=c.rationale||existing.rationale;
+    }
+  });
+}
+
+function loadCustomCurriculumIfExists(){
+  try{
+    var saved=JSON.parse(localStorage.getItem("walnut_custom_curriculum")||"null");
+    if(saved&&saved.lessons&&saved.lessons.length) applyCustomCurriculum(saved.lessons);
+  }catch(e){}
 }
 
 // ── REPORT TAB ────────────────────────────────────────────
@@ -1308,6 +1402,7 @@ async function doSync(manual){
 
 async function init(){
   initSb();
+  loadCustomCurriculumIfExists(); // โหลด curriculum ที่ออกแบบจาก interview ถ้ามี
   renderPage();
   doSync();
 }
