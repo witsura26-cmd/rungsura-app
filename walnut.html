@@ -412,7 +412,7 @@ function renderLessons(){
                 }).join("")}
               </div>
               ${hist.length>1?`<div class="mt-2 text-xs text-blue-600 font-medium">📈 ${hist.length} ครั้ง — ${hist[hist.length-1].passed||Math.round(((hist[hist.length-1].score||0)/20)*100)>=RETAKE_THRESHOLD?"ผ่านแล้ว 🎉":"ยังไม่ผ่าน"}</div>`:""}
-            </div>`:"";}
+            </div>`:"";
 
           return `
           <div class="border ${l.border} rounded-2xl overflow-hidden">
