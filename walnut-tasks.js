@@ -122,32 +122,25 @@ function renderTaskList(ts){
           }
         }
         var isOverdue=(t.status!=="done")&&t.due<TODAY;
-        var cardBg=isOverdue?"border-red-200 bg-red-50":needsRetake?"border-orange-200 bg-orange-50":"border-transparent hover:bg-amber-50";
-        // คำนวณจำนวนวันที่ค้าง
-        var overdueDays=0;
-        if(isOverdue){var d1=new Date(TODAY);var d2=new Date(t.due);overdueDays=Math.round((d1-d2)/86400000);}
-        return '<div class="rounded-xl border '+cardBg+' transition-colors mb-1 overflow-hidden">'+
-          // overdue banner
-          (isOverdue?'<div class="bg-red-500 text-white text-xs font-bold px-3 py-1.5 flex items-center gap-1.5">'+
-            '🚨 ค้างมา '+overdueDays+' วัน! ยังไม่ได้ส่งตั้งแต่ '+t.due+' — รีบทำด่วน ไม่งั้นยิ่งค้างสะสม'+
-          '</div>':"")+
-          '<div class="flex items-center gap-3 p-3">'+
+        var cardBg=isOverdue?"border-red-100 bg-red-50":needsRetake?"border-orange-200 bg-orange-50":"border-transparent hover:bg-amber-50";
+        return '<div class="flex items-center gap-3 p-3 rounded-xl border '+cardBg+' transition-colors mb-1">'+
           '<button onclick="toggleLocalTask(\''+t.id+'\')" '+
             'class="w-6 h-6 rounded-full border-2 flex-shrink-0 flex items-center justify-center text-xs font-bold transition-colors '+
-            (t.status==="done"?(needsRetake?"bg-orange-200 border-orange-300 text-orange-600":"bg-green-400 border-green-400 text-white"):(isOverdue?"border-red-300 hover:border-red-500":"border-gray-300 hover:border-amber-400")+" text-transparent")+'">'+
+            (t.status==="done"?(needsRetake?"bg-orange-200 border-orange-300 text-orange-600":"bg-green-400 border-green-400 text-white"):"border-gray-300 hover:border-amber-400 text-transparent")+'">'+
             (t.status==="done"?(needsRetake?"!":"✓"):"✓")+'</button>'+
           '<span class="text-base">'+t.icon+'</span>'+
           '<div class="flex-1 min-w-0">'+
-            '<div class="text-sm font-medium '+(t.status==="done"&&!needsRetake?"line-through text-gray-300":isOverdue?"text-red-700 font-bold":"text-gray-800")+' truncate">'+t.title+'</div>'+
+            '<div class="text-sm font-medium '+(t.status==="done"&&!needsRetake?"line-through text-gray-300":"text-gray-800")+' truncate">'+t.title+'</div>'+
             '<div class="flex items-center gap-2 mt-0.5 flex-wrap">'+
               '<span class="status-badge '+t.badge+'">'+t.subject+'</span>'+
               (t.week?'<span class="status-badge bg-amber-100 text-amber-700">W'+t.week+'</span>':'')+
-              '<span class="text-xs '+(isOverdue?"text-red-400 font-semibold":"text-gray-400")+'">กำหนด '+t.due+' ก่อน 21:00</span>'+
+              (isOverdue
+                ?'<span class="text-xs text-red-500 font-semibold">🔥 รีบทำด่วน — กำหนดส่ง '+t.due+' 21:00</span>'
+                :'<span class="text-xs text-gray-400">กำหนดส่ง '+t.due+' 21:00</span>')+
             '</div>'+
           '</div>'+
           actionBtn+
           (t.type==="manual"?'<button onclick="deleteLocalTask(\''+t.id+'\')" class="text-gray-300 hover:text-red-400 text-lg transition-colors ml-1 shrink-0">×</button>':'')+
-          '</div>'+
         '</div>';
       }).join("")+
     '</div>';
