@@ -1061,22 +1061,24 @@ function _renderReportInner(){
           <thead>
             <tr class="border-b border-gray-100">
               <th class="text-left py-2 text-gray-400 font-semibold">วิชา</th>
-              <th class="text-center py-2 text-gray-400 font-semibold">W1</th>
-              <th class="text-center py-2 text-gray-400 font-semibold">W2</th>
+              <th class="text-center py-2 text-gray-400 font-semibold">W</th>
+              <th class="text-center py-2 text-gray-400 font-semibold">คะแนน</th>
               <th class="text-center py-2 text-gray-400 font-semibold">Trend</th>
               <th class="text-center py-2 text-gray-400 font-semibold">Retake</th>
             </tr>
           </thead>
           <tbody>
             ${subjectGroups.map(sg=>{
-              const w1=sg.lessons.find(l=>l.week===1);
-              const w2=sg.lessons.find(l=>l.week===2);
-              const trend=w1?.pct!==null&&w2?.pct!==null?(w2.pct-w1.pct):null;
+              const w1=sg.lessons.find(l=>l.week===1)||null;
+              const w2=sg.lessons.find(l=>l.week===2)||null;
+              const w3=sg.lessons.find(l=>l.week===3)||null;
+              const wLatest=w3||w2||w1||sg.lessons[0]||null;
+              const trend=(w1&&w1.pct!=null&&w2&&w2.pct!=null)?(w2.pct-w1.pct):null;
               const totalRetakes=sg.lessons.reduce((a,l)=>a+(l.hist.length>1?l.hist.length-1:0),0);
               return `<tr class="border-b border-gray-50">
                 <td class="py-2.5"><span class="mr-1">${sg.icon}</span>${sg.subject}</td>
-                <td class="text-center py-2.5">${w1?.submitted?`<span class="font-bold" style="color:${barColor(w1.pct)}">${w1.score}/20</span>`:'<span class="text-gray-300">—</span>'}</td>
-                <td class="text-center py-2.5">${w2?.submitted?`<span class="font-bold" style="color:${barColor(w2.pct)}">${w2.score}/20</span>`:'<span class="text-gray-300">—</span>'}</td>
+                <td class="text-center py-2.5 text-xs text-gray-400">W${wLatest?wLatest.week:"?"}</td>
+                <td class="text-center py-2.5">${wLatest&&wLatest.submitted?`<span class="font-bold" style="color:${barColor(wLatest.pct)}">${wLatest.score}/20</span>`:'<span class="text-gray-300">—</span>'}</td>
                 <td class="text-center py-2.5">${trend===null?'<span class="text-gray-300">—</span>':trend>0?`<span class="text-green-500 font-bold">▲${trend}%</span>`:trend<0?`<span class="text-red-400 font-bold">▼${Math.abs(trend)}%</span>`:'<span class="text-gray-400">→</span>'}</td>
                 <td class="text-center py-2.5">${totalRetakes>0?`<span class="text-orange-500 font-bold">${totalRetakes}×</span>`:'<span class="text-gray-300">—</span>'}</td>
               </tr>`;
@@ -1512,16 +1514,16 @@ async function doSync(manual){
   setSyncStatus("⏳ sync...","");
   try{
     if(manual){
-      // ล้าง hw_ ที่ไม่ตรงกับ LESSONS ปัจจุบัน (W1/W2 orphans)
+      // ล้าง hw_ local ที่ไม่ตรง LESSONS ปัจจุบัน
       var validLessonIds=LESSONS.map(function(l){return l.id;});
-      var oldKeys=[];
+      var oldLocalKeys=[];
       for(var i=0;i<localStorage.length;i++){
         var k=localStorage.key(i);
         if(!k||!k.startsWith("hw_")) continue;
         var lid=k.replace("hw_hist_","").replace("hw_","");
-        if(validLessonIds.indexOf(lid)===-1) oldKeys.push(k);
+        if(validLessonIds.indexOf(lid)===-1) oldLocalKeys.push(k);
       }
-      oldKeys.forEach(function(k){localStorage.removeItem(k);});
+      oldLocalKeys.forEach(function(k){localStorage.removeItem(k);});
     }
     var r=await fetch("/api/sync");
     if(!r.ok) throw new Error("HTTP "+r.status);
@@ -1617,6 +1619,16 @@ async function doSync(manual){
       var cloudAt=cloudObj.completedAt||cloudObj.generatedAt||cloudObj.createdAt||"";
       if(localAt>=cloudAt) mergedPush[cloudKey]=v; // local wins if newer or equal
     });
+
+    // ถ้า manual sync → null ทับ hw_ key เก่าใน cloud ด้วย
+    if(manual){
+      var validIds=LESSONS.map(function(l){return l.id;});
+      Object.keys(mergedPush).forEach(function(k){
+        if(!k.startsWith("hw_")) return;
+        var lid=k.replace("hw_hist_","").replace("hw_","");
+        if(validIds.indexOf(lid)===-1) mergedPush[k]=null;
+      });
+    }
 
     await fetch("/api/sync",{method:"POST",headers:{"Content-Type":"application/json"},
       body:JSON.stringify(mergedPush)});

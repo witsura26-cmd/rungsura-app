@@ -31,7 +31,9 @@ export default async function handler(req, res) {
         .then(d => d.result ? JSON.parse(d.result) : {})
         .catch(() => ({}));
       // Merge: incoming body wins for its keys, existing preserved for others
+      // Keys with null value = delete that key
       const merged = Object.assign({}, existing, req.body);
+      Object.keys(merged).forEach(k => { if (merged[k] === null) delete merged[k]; });
       const payload = JSON.stringify(merged);
       await fetch(`${url}/pipeline`, {
         method: 'POST',
