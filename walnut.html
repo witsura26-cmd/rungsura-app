@@ -695,20 +695,21 @@ async function designCurriculumFromInterview(interviewContext, analysis){
 }
 
 function applyCustomCurriculum(curriculum){
-  // เก็บ plan และ mcq/written จาก lesson เดิม แค่อัปเดต title/goal/rationale
+  var subjectMap={"ภาษาไทย":"thai","คณิตศาสตร์":"math","วิทยาศาสตร์":"sci","ร้องเพลง":"sing","เปียโน":"piano","ภาษาอังกฤษ":"eng"};
   curriculum.forEach(function(c){
-    var subjectKey=c.subject==="ภาษาไทย"?"thai":
-                   c.subject==="คณิตศาสตร์"?"math":
-                   c.subject==="วิทยาศาสตร์"?"sci":
-                   c.subject==="ร้องเพลง"?"sing":
-                   c.subject==="เปียโน"?"piano":"eng";
-    var existing=LESSONS.find(function(l){return l.id===subjectKey+"-w1";});
-    if(existing){
-      existing.title=c.title||existing.title;
-      existing.goal=c.goal||existing.goal;
-      existing.rationale=c.rationale||existing.rationale;
-    }
+    var key=subjectMap[c.subject]||"eng";
+    // อัปเดตทุก week ของวิชานั้น
+    LESSONS.filter(function(l){return l.id.startsWith(key+"-");}).forEach(function(l){
+      if(c.title) l.title=c.title;
+      if(c.goal) l.goal=c.goal;
+      if(c.rationale) l.rationale=c.rationale;
+    });
   });
+  // re-render ถ้า lessons tab กำลังแสดงอยู่
+  if(typeof activeTab!=="undefined"&&activeTab==="lessons"){
+    var ta=document.getElementById("tab-area");
+    if(ta) ta.innerHTML=renderLessons();
+  }
 }
 
 function loadCustomCurriculumIfExists(){
@@ -1327,11 +1328,30 @@ async function doSync(manual){
     setSyncStatus("⏳ พบ "+cloudKeys.length+" รายการ...","");
     var changed=false;
 
-    // 2a. pull walnut_events จาก cloud — cloud คือ source of truth (มีทุก event จากทุกเครื่อง)
+    // 2a. pull walnut_events
     if(cloud.walnut_events&&Array.isArray(cloud.walnut_events)&&cloud.walnut_events.length>0){
       safeSetItem("walnut_events",JSON.stringify(cloud.walnut_events));
       changed=true;
     }
+    // 2a2. pull intake + analysis + curriculum จาก cloud
+    ["walnut_intake","walnut_intake_analysis","walnut_custom_curriculum"].forEach(function(k){
+      if(!cloud[k]) return;
+      var cloudVal=typeof cloud[k]==="string"?cloud[k]:JSON.stringify(cloud[k]);
+      var localVal=localStorage.getItem(k==="walnut_intake"?"walnut_intake_v1":k)||null;
+      // parse timestamps เพื่อเทียบ
+      var cloudObj={}; try{cloudObj=JSON.parse(cloudVal);}catch(e){}
+      var localObj={}; try{if(localVal)localObj=JSON.parse(localVal);}catch(e){}
+      var cloudAt=cloudObj.completedAt||cloudObj.generatedAt||cloudObj.createdAt||"";
+      var localAt=localObj.completedAt||localObj.generatedAt||localObj.createdAt||"";
+      if(cloudAt>localAt||(!localAt&&cloudAt)){
+        var storeKey=k==="walnut_intake"?"walnut_intake_v1":k;
+        safeSetItem(storeKey,cloudVal);
+        if(k==="walnut_custom_curriculum"&&cloudObj.lessons){
+          applyCustomCurriculum(cloudObj.lessons);
+        }
+        changed=true;
+      }
+    });
     // 2b. pull จาก cloud: รวม history array + hw states
     // — pull hw_hist_ (merge arrays, no duplicates by submittedAt)
     Object.keys(cloud).forEach(function(k){
@@ -1380,15 +1400,27 @@ async function doSync(manual){
     var localEvtsForPush=Array.isArray(localHw.walnut_events)?localHw.walnut_events:[];
     var cloudEvts=Array.isArray(mergedPush.walnut_events)?mergedPush.walnut_events:[];
     var evtMap={}; cloudEvts.forEach(function(e){if(e.id)evtMap[e.id]=e;});
-    localEvtsForPush.forEach(function(e){if(e.id)evtMap[e.id]=e;}); // local wins on conflict
+    localEvtsForPush.forEach(function(e){if(e.id)evtMap[e.id]=e;});
     mergedPush.walnut_events=Object.values(evtMap);
+
+    // push intake + analysis + curriculum
+    ["walnut_intake_v1","walnut_intake_analysis","walnut_custom_curriculum"].forEach(function(k){
+      var v=localStorage.getItem(k);
+      if(!v) return;
+      var cloudKey=k==="walnut_intake_v1"?"walnut_intake":k;
+      var localObj={}; try{localObj=JSON.parse(v);}catch(e){}
+      var cloudObj={}; try{cloudObj=typeof mergedPush[cloudKey]==="string"?JSON.parse(mergedPush[cloudKey]):(mergedPush[cloudKey]||{});}catch(e){}
+      var localAt=localObj.completedAt||localObj.generatedAt||localObj.createdAt||"";
+      var cloudAt=cloudObj.completedAt||cloudObj.generatedAt||cloudObj.createdAt||"";
+      if(localAt>=cloudAt) mergedPush[cloudKey]=v; // local wins if newer or equal
+    });
+
     await fetch("/api/sync",{method:"POST",headers:{"Content-Type":"application/json"},
       body:JSON.stringify(mergedPush)});
 
     if(manual){
       setSyncStatus("✅ sync แล้ว!",true);
-      if(typeof refreshCalTop==="function") refreshCalTop(); // อัพเดต calendar
-      if(activeTab==="tasks") switchTab("tasks"); // อัพเดต tasks ถ้าอยู่หน้านั้น
+      renderPage(); // re-render ทั้งหมด — ดึงข้อมูลใหม่จาก localStorage
     } else if(changed){
       syncLessonTasks();
       setSyncStatus("✅ มีข้อมูลใหม่",true);
