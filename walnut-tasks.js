@@ -5,23 +5,40 @@ function getLocalTasks(){return JSON.parse(localStorage.getItem("walnut_tasks")|
 function saveLocalTasks(ts){localStorage.setItem("walnut_tasks",JSON.stringify(ts));}
 function getFriday(){var d=new Date();var diff=(5-d.getDay()+7)%7||7;d.setDate(d.getDate()+diff);return d.toISOString().slice(0,10);}
 function getSaturday(){var d=new Date();var diff=(6-d.getDay()+7)%7||7;d.setDate(d.getDate()+diff);return d.toISOString().slice(0,10);}
+// กำหนดส่งของแต่ละสัปดาห์ = วันอาทิตย์ก่อน 21:00 ของสัปดาห์นั้น
+function getSundayOfWeek(weekNum){
+  var now=new Date();
+  var year=now.getFullYear(); var month=now.getMonth();
+  var startDay=(weekNum-1)*7+1; var endDay=weekNum*7;
+  for(var d=startDay;d<=endDay;d++){
+    var dt=new Date(year,month,d);
+    if(dt.getDay()===0) return dt.toISOString().slice(0,10);
+  }
+  // ถ้าไม่มีวันอาทิตย์ในช่วงนั้น ใช้วันสุดท้ายของช่วง
+  return new Date(year,month,endDay).toISOString().slice(0,10);
+}
 
 function syncLessonTasks(){
   var ts=getLocalTasks();var changed=false;
   LESSONS.forEach(function(l){
-    var music=l.id.startsWith("sing")||l.id.startsWith("piano");
-    var due=music?getSaturday():getFriday();
+    // กำหนดส่ง = วันอาทิตย์ก่อน 21:00 ของสัปดาห์ที่บทเรียนนั้นอยู่
+    var due=getSundayOfWeek(l.week||1);
     var existing=ts.find(function(t){return t.lessonId===l.id;});
     var hwDone=getHwState(l.id).submitted;
     if(!existing){
-      ts.push({id:"lt-"+l.id,lessonId:l.id,title:"📝 การบ้าน"+l.subject+" W"+l.week,
+      ts.push({id:"lt-"+l.id,lessonId:l.id,title:"📝 การบ้าน"+l.subject+" W"+(l.week||1),
         subject:l.subject,icon:l.icon,badge:l.badge,type:"lesson",week:l.week||1,
         status:hwDone?"done":"pending",due:due});
       changed=true;
     } else {
-      // อัปเดต week และ title ถ้ายังไม่มี
-      if(!existing.week){ existing.week=l.week||1; existing.title="📝 การบ้าน"+l.subject+" W"+l.week; changed=true; }
-      if(hwDone&&existing.status!=="done"){ existing.status="done"; changed=true; }
+      // อัปเดต week, title, due ให้ถูกต้องเสมอ
+      var needsUpdate=false;
+      if(!existing.week||existing.week!==(l.week||1)){existing.week=l.week||1;needsUpdate=true;}
+      if(existing.due!==due){existing.due=due;needsUpdate=true;}
+      var correctTitle="📝 การบ้าน"+l.subject+" W"+(l.week||1);
+      if(existing.title!==correctTitle){existing.title=correctTitle;needsUpdate=true;}
+      if(hwDone&&existing.status!=="done"){existing.status="done";needsUpdate=true;}
+      if(needsUpdate)changed=true;
     }
   });
   if(changed)saveLocalTasks(ts);
@@ -104,32 +121,42 @@ function renderTaskList(ts){
               '📝 ทำเลย</button>';
           }
         }
-        var cardBg=needsRetake?"border-red-200 bg-red-50":"border-transparent hover:bg-amber-50";
-        return '<div class="flex items-center gap-3 p-3 rounded-xl border '+cardBg+' transition-colors mb-1">'+
+        var isOverdue=(t.status!=="done")&&t.due<TODAY;
+        var cardBg=isOverdue?"border-red-200 bg-red-50":needsRetake?"border-orange-200 bg-orange-50":"border-transparent hover:bg-amber-50";
+        // คำนวณจำนวนวันที่ค้าง
+        var overdueDays=0;
+        if(isOverdue){var d1=new Date(TODAY);var d2=new Date(t.due);overdueDays=Math.round((d1-d2)/86400000);}
+        return '<div class="rounded-xl border '+cardBg+' transition-colors mb-1 overflow-hidden">'+
+          // overdue banner
+          (isOverdue?'<div class="bg-red-500 text-white text-xs font-bold px-3 py-1.5 flex items-center gap-1.5">'+
+            '🚨 ค้างมา '+overdueDays+' วัน! ยังไม่ได้ส่งตั้งแต่ '+t.due+' — รีบทำด่วน ไม่งั้นยิ่งค้างสะสม'+
+          '</div>':"")+
+          '<div class="flex items-center gap-3 p-3">'+
           '<button onclick="toggleLocalTask(\''+t.id+'\')" '+
             'class="w-6 h-6 rounded-full border-2 flex-shrink-0 flex items-center justify-center text-xs font-bold transition-colors '+
-            (t.status==="done"?(needsRetake?"bg-red-200 border-red-300 text-red-600":"bg-green-400 border-green-400 text-white"):"border-gray-300 hover:border-amber-400 text-transparent")+'">'+
+            (t.status==="done"?(needsRetake?"bg-orange-200 border-orange-300 text-orange-600":"bg-green-400 border-green-400 text-white"):(isOverdue?"border-red-300 hover:border-red-500":"border-gray-300 hover:border-amber-400")+" text-transparent")+'">'+
             (t.status==="done"?(needsRetake?"!":"✓"):"✓")+'</button>'+
           '<span class="text-base">'+t.icon+'</span>'+
           '<div class="flex-1 min-w-0">'+
-            '<div class="text-sm font-medium '+(t.status==="done"&&!needsRetake?"line-through text-gray-300":"text-gray-800")+' truncate">'+t.title+'</div>'+
-            '<div class="flex items-center gap-2 mt-0.5">'+
+            '<div class="text-sm font-medium '+(t.status==="done"&&!needsRetake?"line-through text-gray-300":isOverdue?"text-red-700 font-bold":"text-gray-800")+' truncate">'+t.title+'</div>'+
+            '<div class="flex items-center gap-2 mt-0.5 flex-wrap">'+
               '<span class="status-badge '+t.badge+'">'+t.subject+'</span>'+
               (t.week?'<span class="status-badge bg-amber-100 text-amber-700">W'+t.week+'</span>':'')+
-              '<span class="text-xs text-gray-400">'+t.due+'</span>'+
+              '<span class="text-xs '+(isOverdue?"text-red-400 font-semibold":"text-gray-400")+'">กำหนด '+t.due+' ก่อน 21:00</span>'+
             '</div>'+
           '</div>'+
           actionBtn+
           (t.type==="manual"?'<button onclick="deleteLocalTask(\''+t.id+'\')" class="text-gray-300 hover:text-red-400 text-lg transition-colors ml-1 shrink-0">×</button>':'')+
+          '</div>'+
         '</div>';
       }).join("")+
     '</div>';
   }
 
-  return renderGroup("⚠️ ค้างจากที่แล้ว","text-red-400",groups.overdue)+
-         renderGroup("📌 วันนี้","text-amber-600",groups.today)+
-         renderGroup("📅 สัปดาห์นี้","text-gray-500",groups.week)+
-         renderGroup("🔄 ต้องทำใหม่ (คะแนนต่ำกว่า "+RETAKE_THRESHOLD+"%)","text-red-500",groups.needsRetake)+
+  return renderGroup("🚨 ค้างเกินกำหนด — ต้องรีบทำ","text-red-500",groups.overdue)+
+         renderGroup("📌 ครบกำหนดวันนี้","text-amber-600",groups.today)+
+         renderGroup("📅 ยังไม่ครบกำหนด","text-gray-500",groups.week)+
+         renderGroup("🔄 ต้องทำใหม่ (คะแนนต่ำกว่า "+RETAKE_THRESHOLD+"%)","text-orange-500",groups.needsRetake)+
          renderGroup("✅ เสร็จแล้ว","text-green-500",groups.done);
 }
 
