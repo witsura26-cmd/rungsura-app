@@ -1678,7 +1678,15 @@ async function doSync(manual){
         var storeKey=k==="walnut_intake"?"walnut_intake_v1":k;
         safeSetItem(storeKey,cloudVal);
         if(k==="walnut_custom_curriculum"&&cloudObj.lessons){
-          applyCustomCurriculum(cloudObj.lessons);
+          // ถ้า LESSONS ใน code มี content ครบ (hardcoded) → ไม่ apply จาก cloud
+          var _hc=LESSONS.every(function(l){return l.mcq&&l.mcq.length>=10;});
+          if(_hc){
+            // ล้าง cloud ด้วย เพื่อไม่ให้ sync กลับมาอีก
+            localStorage.removeItem("walnut_custom_curriculum");
+            try{fetch("/api/sync",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({walnut_custom_curriculum:null})});}catch(e){}
+          } else {
+            applyCustomCurriculum(cloudObj.lessons);
+          }
         }
         changed=true;
       }
