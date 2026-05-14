@@ -981,6 +981,8 @@ function applyFullLessons(generated, silentMode){
     var existing=LESSONS.find(function(l){return l.id===g.subjectKey+"-w"+curWeek;});
     if(!existing) existing=LESSONS.find(function(l){return l.id.startsWith(g.subjectKey+"-");});
     if(existing){
+      // ถ้า lesson มี hardcoded content (mcq>=10) → ไม่ทับด้วยข้อมูลเก่า
+      if(existing.mcq && existing.mcq.length>=10) return;
       if(g.title) existing.title=g.title;
       if(g.goal) existing.goal=g.goal;
       if(g.rationale) existing.rationale=g.rationale;
@@ -989,7 +991,6 @@ function applyFullLessons(generated, silentMode){
       if(g.missionBrief) existing.missionBrief=g.missionBrief;
       if(g.mcq&&g.mcq.length>=5) existing.mcq=g.mcq;
       if(g.written&&g.written.length>=3) existing.written=g.written;
-      // อัปเดต plan[curWeek-1].t ให้แสดงชื่อบทเรียนใหม่ใน 4-week overview
       if(g.title&&existing.plan&&existing.plan[curWeek-1]){
         existing.plan[curWeek-1].t=g.title;
       }
