@@ -550,7 +550,7 @@ function renderPreAssessmentSection(){
         </div>
       </div>
 
-      <div id="intake-analysis-panels" class="space-y-2">
+      <div id="intake-analysis-cards" class="space-y-2">
         ${hasAnalysis?`
           <!-- Rose -->
           <details class="border border-pink-200 rounded-2xl overflow-hidden">
@@ -605,6 +605,32 @@ function renderPreAssessmentSection(){
         </button>
         <div class="text-xs text-gray-400 text-center mt-1.5">อัปเดต บทเรียน + Tasks + ปฏิทิน พร้อมกัน</div>
       </div>
+
+      <!-- ผลการออกแบบครั้งล่าสุด (persistent) -->
+      ${(function(){
+        if(!curPkg||!curPkg.lessons||!curPkg.lessons.length) return "";
+        return '<div class="mt-4 border border-gray-100 rounded-2xl overflow-hidden">'+
+          '<div class="bg-gray-50 px-4 py-2 flex items-center justify-between">'+
+            '<span class="text-xs font-bold text-gray-500">📋 บทเรียนที่ออกแบบล่าสุด (W'+curPkg.week+')</span>'+
+            '<button onclick="switchTab(\'lessons\')" class="text-xs text-amber-600 font-semibold">ดูบทเรียน →</button>'+
+          '</div>'+
+          '<div class="divide-y divide-gray-50">'+
+            curPkg.lessons.map(function(l){
+              return '<div class="px-4 py-2.5 flex items-center gap-2">'+
+                '<span class="text-base">'+l.icon+'</span>'+
+                '<div class="flex-1 min-w-0">'+
+                  '<div class="text-xs font-bold text-gray-700 truncate">'+(l.title||l.subject)+'</div>'+
+                  '<div class="text-xs text-gray-400 truncate">'+(l.goal||"")+'</div>'+
+                '</div>'+
+                '<span class="text-xs text-green-500 flex-shrink-0">'+(l.mcq&&l.mcq.length?"✅ "+l.mcq.length+" MCQ":"⏳")+'</span>'+
+              '</div>';
+            }).join("")+
+          '</div>'+
+        '</div>';
+      })()}
+
+      <!-- inline panel สำหรับ pipeline ที่กำลังรัน -->
+      <div id="intake-pipeline-panel"></div>
     </div>
   </div>`;
 }
@@ -633,7 +659,7 @@ async function generateIntakeAnalysis(){
      system:"คุณคือ Ploy นักพัฒนาศักยภาพเด็ก\nวิเคราะห์ emotional state, motivation, mindset และ wellbeing ของวอลนัทจาก interview\nบอกว่าวอลนัทพร้อมแค่ไหน มี pressure ไหม และแนะนำวิธีรักษา motivation ใช้ภาษาไทย อ่อนโยนแต่ตรง"},
   ];
 
-  var container=document.getElementById("intake-analysis-panels");
+  var container=document.getElementById("intake-pipeline-panel");
   container.innerHTML="";
   var results={};
 
@@ -684,7 +710,7 @@ async function generateIntakeAnalysis(){
   if(btn){btn.disabled=false;btn.innerHTML="🔄 วิเคราะห์ใหม่";}
 
   // ── Auto design curriculum ──
-  var container2=document.getElementById("intake-analysis-panels");
+  var container2=document.getElementById("intake-pipeline-panel");
   if(container2){
     container2.insertAdjacentHTML("beforeend",
       '<div id="curriculum-design-panel" class="border border-amber-200 rounded-2xl overflow-hidden">'+
@@ -787,26 +813,37 @@ async function designCurriculumFromInterview(interviewContext, analysis){
       '</div>');
 
     // ── CALL 1: เนื้อหา (title + goal + rationale + reading) ──
-    var call1Msg=brief+"\n\n===\nคุณคือ"+tc.teacher+" วิชา"+tc.subject+" สัปดาห์ที่ "+curWeek+
-      "\nออกแบบแบบ Mission/เกม อิงหลักสูตรไทย ป.4\n"+
-      "ตอบ JSON object เท่านั้น เริ่ม { จบ } ห้ามมี markdown:\n"+
-      '{"title":"ชื่อ Mission สนุกๆ เช่น Mission 3: ปริศนาอักษรวิเศษ","scene":"emoji หลายตัวสร้างภาพประกอบ เช่น 🌟📚✨🦋","missionBrief":"บทนำเรื่องราว 2-3 ประโยค เหมือนเริ่มเกม ใช้ชื่อวอลนัท","goal":"เป้าหมาย 1 ประโยค ระบุตัวชี้วัด ป.4","rationale":"เหตุผลจาก interview + หลักสูตรไทย","reading":"เนื้อหา 3 ย่อหน้า เล่าเป็นเรื่องราว mission ไม่เกิน 350 คำ"}';
+    // brief สั้นลง — ส่งแค่ Q&A summary ไม่ส่ง full analysis text
+    var shortBrief="=== Brief วอลนัท ===\n"+interviewContext.split("\n").slice(0,30).join("\n");
+
+    var call1Msg=shortBrief+"\n\n===\nคุณคือ"+tc.teacher+" วิชา"+tc.subject+" W"+curWeek+
+      "\nตอบ JSON object เดียว เริ่มด้วย { จบด้วย } ห้ามมี markdown ข้อความอื่น:\n"+
+      '{"title":"Mission X: ชื่อสั้นๆสนุก","scene":"emoji 4-6 ตัว","missionBrief":"2 ประโยคนำเรื่อง ใช้ชื่อวอลนัท","goal":"เป้าหมาย 1 ประโยค","rationale":"เหตุผล 1 ประโยคอ้าง interview","reading":"เนื้อหา 2 ย่อหน้า ไม่เกิน 200 คำ เล่าเป็น mission"}';
 
     var card=document.getElementById(cardId);
     try{
-      var t1=await callChat(tc.system,call1Msg,3000);
+      var t1=await callChat(tc.system,call1Msg,2048);
       var part1=parseObj(t1);
-      if(!part1||!part1.title){throw new Error("part1 parse fail: "+t1.slice(0,100));}
+      if(!part1||!part1.title){
+        // retry ครั้งที่ 2 ด้วย prompt สั้นกว่า
+        var retryMsg="คุณคือ"+tc.teacher+"\nตอบ JSON เดียว เริ่ม { จบ }:\n"+
+          '{"title":"ชื่อบทเรียน","scene":"🌟✨","missionBrief":"นำเรื่อง","goal":"เป้าหมาย","rationale":"เหตุผล","reading":"เนื้อหา 2 ย่อหน้า"}\n'+
+          "วิชา: "+tc.subject+" W"+curWeek+" สำหรับวอลนัท 8 ขวบ";
+        var t1b=await callChat(tc.system,retryMsg,2048);
+        part1=parseObj(t1b);
+        if(!part1||!part1.title) throw new Error("part1 fail: "+t1b.slice(0,80));
+      }
 
       if(card) card.lastElementChild.textContent="📖 ได้เนื้อหาแล้ว กำลัง generate คำถาม...";
 
-      // ── CALL 2: MCQ 10 ข้อ ──
-      var call2Msg="วิชา"+tc.subject+" Mission: "+part1.title+"\nเนื้อหา: "+part1.reading+
-        "\nออกแบบ 10 'ด่าน' (MCQ) สไตล์เกม มีบริบทสนุก คำถามอิงหลักสูตร ป.4\n"+
-        'ตอบ JSON array เท่านั้น: [{"q":"ด่านที่ X: คำถาม...","c":["ก. ","ข. ","ค. ","ง. "],"a":0}]';
-      var t2=await callChat(tc.system,call2Msg,3000);
+      // ── CALL 2: MCQ 10 ข้อ — ส่ง reading สั้นๆ ──
+      var readingShort=(part1.reading||"").slice(0,400);
+      var call2Msg="วิชา"+tc.subject+": "+part1.title+"\nเนื้อหา: "+readingShort+
+        "\nออกแบบ 10 ด่าน MCQ สไตล์เกมสำหรับเด็ก 4 ตัวเลือก\n"+
+        'ตอบ JSON array เท่านั้น เริ่ม [ จบ ]:\n[{"q":"ด่าน 1: คำถาม","c":["ก. ","ข. ","ค. ","ง. "],"a":0}]';
+      var t2=await callChat(tc.system,call2Msg,2500);
       var mcq=parseObj(t2);
-      if(!Array.isArray(mcq)||mcq.length<5){throw new Error("mcq parse fail (got "+(Array.isArray(mcq)?mcq.length:0)+"): "+t2.slice(0,100));}
+      if(!Array.isArray(mcq)||mcq.length<5){throw new Error("mcq fail ("+( Array.isArray(mcq)?mcq.length:0)+"): "+t2.slice(0,80));}
 
       // ── CALL 3: Written 5 ข้อ ──
       var call3Msg="วิชา"+tc.subject+" บทเรียน: "+part1.title+
@@ -874,8 +911,12 @@ function applyFullLessons(generated, silentMode){
       if(g.reading) existing.reading=g.reading;
       if(g.scene) existing.scene=g.scene;
       if(g.missionBrief) existing.missionBrief=g.missionBrief;
-      if(g.mcq&&g.mcq.length>=10) existing.mcq=g.mcq;
+      if(g.mcq&&g.mcq.length>=5) existing.mcq=g.mcq;
       if(g.written&&g.written.length>=3) existing.written=g.written;
+      // อัปเดต plan[curWeek-1].t ให้แสดงชื่อบทเรียนใหม่ใน 4-week overview
+      if(g.title&&existing.plan&&existing.plan[curWeek-1]){
+        existing.plan[curWeek-1].t=g.title;
+      }
     }
   });
   if(silentMode) return; // pipeline กำลังแสดง panel อยู่ — ยังไม่ re-render
@@ -1782,7 +1823,7 @@ async function runFullLessonPipeline(){
   }).join("\n");
 
   // แสดง panel ใน intake-analysis-panels
-  var container=document.getElementById("intake-analysis-panels");
+  var container=document.getElementById("intake-pipeline-panel");
   if(container){
     container.insertAdjacentHTML("beforeend",
       '<div id="curriculum-design-panel" class="border border-amber-200 rounded-2xl overflow-hidden mt-2">'+
