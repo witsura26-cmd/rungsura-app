@@ -613,49 +613,69 @@ function addAnalysisTasks(){
 }
 
 function bookToCalendar(){
-  if(!calAnalysisTasks.length){
-    alert("กด 🔍 วิเคราะห์ก่อน แล้วค่อยบุ๊คปฏิทินครับ");
-    return;
+  // ดู LESSONS ที่ยังไม่ได้ทำ (หรือ tasks ที่แนะนำจาก AI ถ้ามี)
+  var pending=[];
+  if(calAnalysisTasks.length){
+    // ใช้ tasks จาก AI analysis
+    calAnalysisTasks.forEach(function(t){
+      if(t.due) pending.push({subject:t.subject||t.title,icon:t.icon||"📚",due:t.due});
+    });
+  } else {
+    // ไม่มี AI tasks — ใช้ LESSONS ที่ยังไม่ submit
+    var pendingLessons=LESSONS.filter(function(l){return !getHwState(l.id).submitted;});
+    if(!pendingLessons.length){
+      alert("ทำการบ้านครบทุกวิชาแล้วครับ ไม่มีอะไรต้องบุ๊ค");
+      return;
+    }
+    // กระจาย LESSONS ไปทั่วสัปดาห์นี้ (จันทร์-ศุกร์)
+    var dates=getWeekDates(calWeekOffset);
+    var weekdays=dates.slice(0,5); // จ-ศ
+    pendingLessons.forEach(function(l,i){
+      var d=weekdays[i%5];
+      pending.push({subject:l.subject,icon:l.icon,due:dStr(d)});
+    });
   }
+
+  if(!pending.length){alert("ไม่มีวิชาที่ต้องบุ๊คครับ");return;}
+
   var evts=getCalEvents();
   var booked=[];
-  calAnalysisTasks.forEach(function(t){
-    if(!t.due) return;
-    // หาช่วงเวลาว่างในวันนั้น: เริ่มจาก 16:00 เพิ่มครั้งละ 30 นาที
-    var d=new Date(t.due);
+
+  pending.forEach(function(p){
+    var d=new Date(p.due);
     var dow=d.getDay();
-    var dateStr=dStr(d);
+    var dateStr=p.due;
     var dayEvts=evts.filter(function(e){return eventOnDay(e,dateStr,dow);})
       .sort(function(a,b){return a.startTime.localeCompare(b.startTime);});
-    // หา slot ว่าง (30 นาที) ตั้งแต่ 16:00
-    var slotStart="16:00";
-    var slotEnd="16:30";
-    for(var h=16;h<=20;h++){
-      for(var m=0;m<60;m+=30){
+
+    // หา slot ว่าง 30 นาที ตั้งแต่ 16:00 - 21:00
+    var slotStart="16:00",slotEnd="16:30",found=false;
+    for(var h=16;h<=20&&!found;h++){
+      for(var m=0;m<60&&!found;m+=30){
         var ts=String(h).padStart(2,"0")+":"+String(m).padStart(2,"0");
-        var te=String(m+30>=60?h+1:h).padStart(2,"0")+":"+String((m+30)%60).padStart(2,"0");
-        var busy=dayEvts.some(function(e){
-          return e.startTime<te&&e.endTime>ts;
-        });
-        if(!busy){slotStart=ts;slotEnd=te;break;}
+        var endH=m+30>=60?h+1:h, endM=(m+30)%60;
+        var te=String(endH).padStart(2,"0")+":"+String(endM).padStart(2,"0");
+        var busy=dayEvts.some(function(e){return e.startTime<te&&e.endTime>ts;});
+        if(!busy){slotStart=ts;slotEnd=te;found=true;}
       }
-      if(slotStart!=="16:00"||!dayEvts.some(function(e){return e.startTime<"16:30"&&e.endTime>"16:00";})) break;
     }
+
     var newEvt={
-      id:"ev_"+Date.now()+"-"+Math.random().toString(36).slice(2,5),
-      title:(t.icon||"📚")+" "+t.subject+" test",
+      id:"ev_"+Date.now()+"-"+Math.random().toString(36).slice(2,6),
+      title:p.icon+" แบบทดสอบ"+p.subject,
       type:"learning",
       date:dateStr,
       startTime:slotStart,
       endTime:slotEnd
     };
     evts.push(newEvt);
-    booked.push(t.subject+" "+dateStr+" "+slotStart);
+    booked.push(p.subject+" ("+dateStr+" "+slotStart+")");
   });
+
   saveCalEvents(evts);
-  if(typeof saveToCloud==="function") saveToCloud(); // sync ขึ้น cloud
+  if(typeof saveToCloud==="function") saveToCloud();
   calAnalysisTasks=[];
-  calAnalysisResult="✅ บุ๊คลงปฏิทินแล้ว "+booked.length+" รายการ!\n"+booked.join("\n");
+  calAnalysisResult="✅ บุ๊คลงปฏิทินแล้ว "+booked.length+" วิชา!\n"+booked.join("\n");
   refreshCalTop();
 }
 
