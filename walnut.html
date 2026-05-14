@@ -130,6 +130,13 @@
       <button onclick="saveSettings()" class="flex-1 bg-amber-400 hover:bg-amber-500 text-white py-2.5 rounded-xl font-semibold">บันทึกและ Reload</button>
       <button onclick="document.getElementById('settings-modal').classList.add('hidden')" class="px-5 py-2.5 rounded-xl border text-gray-600">ยกเลิก</button>
     </div>
+    <!-- Admin Zone -->
+    <div class="mt-5 pt-4 border-t border-gray-100">
+      <div class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">🔧 Admin Zone</div>
+      <button onclick="clearAllHwData()" class="w-full py-2.5 rounded-xl border-2 border-red-200 text-red-500 hover:bg-red-50 font-semibold text-sm transition-colors">
+        🗑️ ล้างข้อมูลแบบทดสอบทั้งหมด (รีเซ็ตก่อนให้วอลนัททำจริง)
+      </button>
+    </div>
   </div>
 </div>
 
@@ -880,6 +887,95 @@ async function testApiConnection(){
     el.innerHTML="❌ <strong>Network Error:</strong> "+e.message+"<br><span class='text-xs'>อาจเป็นเพราะเปิดจาก file:// หรือ localhost โดยไม่มี proxy</span>";
   }
 }
+async function clearAllHwData(){
+  if(!confirm("🗑️ ล้างข้อมูลการทำแบบทดสอบทั้งหมด?\n\nรวมถึงคะแนน ประวัติ retake และสถานะส่งทุกวิชา\nข้อมูลนี้จะหายทั้งใน device นี้และ cloud\n\nกด OK เพื่อยืนยัน")) return;
+
+  // ล้าง localStorage ทุก hw_ และ hw_hist_ key
+  var keysToRemove=[];
+  for(var i=0;i<localStorage.length;i++){
+    var k=localStorage.key(i);
+    if(k&&(k.startsWith("hw_")||k.startsWith("walnut_report")||k.startsWith("walnut_survey")))
+      keysToRemove.push(k);
+  }
+  keysToRemove.forEach(function(k){localStorage.removeItem(k);});
+
+  // ล้าง task list ที่ generate จาก lesson (เพื่อ sync ใหม่)
+  var tasks=JSON.parse(localStorage.getItem("walnut_tasks")||"[]");
+  tasks=tasks.filter(function(t){return t.type!=="lesson";}); // เก็บแค่ manual task
+  localStorage.setItem("walnut_tasks",JSON.stringify(tasks));
+
+  // push ไปลบบน cloud ด้วย
+  try{
+    var clearPayload={};
+    // ส่ง empty object สำหรับ hw keys — sync.js จะ merge แต่ไม่ลบ key อื่น
+    // ดังนั้นต้องส่ง null ไปแต่ละ key แทน — ใช้ pipeline DELETE
+    const url=window._syncUrl||(window._syncUrl="/api/sync");
+    // POST cleared hw state — ส่ง empty hw_ states ทุก lesson
+    var hwClear={};
+    LESSONS.forEach(function(l){
+      hwClear["hw_"+l.id]=null;
+      hwClear["hw_hist_"+l.id]=null;
+    });
+    hwClear["walnut_report_v2"]=null;
+    hwClear["walnut_survey_w1"]=null;
+    await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(hwClear)});
+  }catch(e){}
+
+  document.getElementById("settings-modal").classList.add("hidden");
+
+  // แสดงประกาศจากทีม
+  document.getElementById("app").innerHTML=`
+    <div class="max-w-lg mx-auto space-y-4 py-4">
+      <div class="bg-gray-900 text-white rounded-2xl p-5">
+        <div class="text-lg font-black mb-1">✅ ล้างข้อมูลเรียบร้อยแล้ว</div>
+        <div class="text-sm text-gray-300">ข้อมูลการทดสอบทั้งหมดถูกลบออกจาก device และ cloud แล้ว</div>
+      </div>
+
+      <div class="border border-pink-200 rounded-2xl overflow-hidden">
+        <div class="bg-pink-50 px-4 py-2.5 flex items-center gap-2">
+          <span>🌸</span><span class="font-bold text-sm text-pink-800">Rose — ถึงทีมทุกคน</span>
+        </div>
+        <div class="px-4 py-3 text-sm text-gray-700 leading-relaxed">
+          ทีมทุกคนรับทราบนะคะ ตั้งแต่นี้เป็นต้นไปข้อมูลที่เห็นในระบบคือผลจากวอลนัททำจริงทั้งหมด
+          คุณพ่อได้ทดสอบระบบมาแล้ว ตอนนี้ของจริงเริ่มต้นแล้ว
+          ขอให้ทุกคนวิเคราะห์ผลด้วยความเป็นธรรมและตรงไปตรงมาเหมือนเดิมค่ะ 💪
+        </div>
+      </div>
+
+      <div class="border border-blue-200 rounded-2xl overflow-hidden">
+        <div class="bg-blue-50 px-4 py-2.5 flex items-center gap-2">
+          <span>📊</span><span class="font-bold text-sm text-blue-800">Dr.Aim — บันทึก</span>
+        </div>
+        <div class="px-4 py-3 text-sm text-gray-700 leading-relaxed">
+          รับทราบครับ ข้อมูล baseline จะเริ่มนับจากครั้งนี้
+          ผลครั้งแรกของวอลนัทจะบอกได้เยอะมากว่าจุดไหนที่ยังขาด
+          ทีมวิเคราะห์จะเริ่มติดตามทันทีที่มีผลเข้ามาครับ
+        </div>
+      </div>
+
+      <div class="border border-green-200 rounded-2xl overflow-hidden">
+        <div class="bg-green-50 px-4 py-2.5 flex items-center gap-2">
+          <span>🌱</span><span class="font-bold text-sm text-green-800">Ploy — บันทึก</span>
+        </div>
+        <div class="px-4 py-3 text-sm text-gray-700 leading-relaxed">
+          ดีใจที่วอลนัทจะได้เริ่มทำจริงๆค่ะ
+          อย่าลืมบอกวอลนัทด้วยนะคะว่าไม่ต้องกดดัน ทำเต็มที่ตามที่รู้จริง
+          ผลที่ออกมาจะช่วยให้ทีมช่วยวอลนัทได้ตรงจุดที่สุดค่ะ 🌟
+        </div>
+      </div>
+
+      <div class="grid grid-cols-3 gap-2 text-center text-xs">
+        ${['ครูนิ่ม','ครูโอ๋','ครูไก่','ครูมิ้นท์','ครูบิ๊ก','ครูเจน'].map(function(n){
+          return '<div class="bg-gray-50 rounded-xl py-2 px-1 text-gray-500">'+n+'<br><span class="text-green-500 font-bold">✓ รับทราบ</span></div>';
+        }).join("")}
+      </div>
+
+      <button onclick="renderPage()" class="w-full py-3 bg-amber-400 hover:bg-amber-500 text-white rounded-xl font-bold text-sm">
+        🚀 เริ่มต้นใหม่ — ให้วอลนัททำเลย
+      </button>
+    </div>`;
+}
+
 function openSettings(){
   document.getElementById("s-claude").value=CFG.claude;
   document.getElementById("s-url").value=CFG.sbUrl;
