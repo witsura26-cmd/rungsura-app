@@ -562,6 +562,35 @@ function renderPreAssessmentSection(){
           <div class="px-4 py-3 text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">${savedAnalysis.ploy}</div></div>`:""}
         ${!savedAnalysis.rose&&!savedAnalysis.aim&&!savedAnalysis.ploy?`<div class="text-center text-gray-300 text-sm py-3">กด "วิเคราะห์ตอนนี้" เพื่อรับผลจากทีมค่ะ</div>`:""}
       </div>
+
+      <!-- Analysis History -->
+      ${(function(){
+        var hist=[]; try{hist=JSON.parse(localStorage.getItem("walnut_analysis_history")||"[]");}catch(e){}
+        if(hist.length<=1) return "";
+        return `<details class="mt-4 group">
+          <summary class="cursor-pointer text-xs font-semibold text-gray-400 hover:text-gray-600 flex items-center gap-1 select-none">
+            <span class="group-open:rotate-90 transition-transform inline-block">▶</span>
+            📅 ประวัติการวิเคราะห์ย้อนหลัง (${hist.length} รอบ)
+          </summary>
+          <div class="mt-2 space-y-2 max-h-48 overflow-y-auto">
+            ${hist.map(function(h,i){
+              return '<div class="bg-gray-50 border border-gray-100 rounded-xl p-3">'+
+                '<div class="flex items-center justify-between mb-1">'+
+                  '<span class="text-xs font-bold text-gray-600">รอบที่ '+(hist.length-i)+' — W'+(h.week||"?")+'</span>'+
+                  '<span class="text-xs text-gray-400">'+( h.dateLabel||h.generatedAt?.slice(0,10)||"")+'</span>'+
+                '</div>'+
+                '<details><summary class="text-xs text-blue-500 cursor-pointer">ดูผล Rose · Dr.Aim · Ploy</summary>'+
+                  '<div class="mt-1 text-xs text-gray-600 whitespace-pre-wrap max-h-32 overflow-y-auto bg-white rounded-lg p-2">'+
+                    '🌸 Rose:\n'+(h.rose||"-").slice(0,300)+"...\n\n"+
+                    '📊 Dr.Aim:\n'+(h.aim||"-").slice(0,300)+"...\n\n"+
+                    '🌱 Ploy:\n'+(h.ploy||"-").slice(0,200)+"..."+
+                  '</div>'+
+                '</details>'+
+              '</div>';
+            }).join("")}
+          </div>
+        </details>`;
+      })()}
     </div>
   </div>`;
 }
@@ -620,9 +649,23 @@ async function generateIntakeAnalysis(){
     }
   }
 
-  results.generatedAt=new Date().toISOString();
+  var now=new Date();
+  results.generatedAt=now.toISOString();
+  results.week=Math.min(4,Math.ceil(now.getDate()/7));
+  results.dateLabel=now.toLocaleDateString("th-TH",{day:"numeric",month:"long",year:"numeric",hour:"2-digit",minute:"2-digit"});
+  // เก็บ latest
   try{localStorage.setItem("walnut_intake_analysis",JSON.stringify(results));}catch(e){}
-  try{fetch("/api/sync",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({walnut_intake_analysis:JSON.stringify(results)})});}catch(e){}
+  // เก็บ history — append ไม่ลบของเก่า
+  try{
+    var hist=JSON.parse(localStorage.getItem("walnut_analysis_history")||"[]");
+    hist.unshift(results); // ใหม่สุดอยู่ต้น
+    if(hist.length>10) hist=hist.slice(0,10); // เก็บ 10 รอบล่าสุด
+    localStorage.setItem("walnut_analysis_history",JSON.stringify(hist));
+  }catch(e){}
+  try{fetch("/api/sync",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
+    walnut_intake_analysis:JSON.stringify(results),
+    walnut_analysis_history:JSON.stringify(JSON.parse(localStorage.getItem("walnut_analysis_history")||"[]"))
+  })});}catch(e){}
 
   if(btn){btn.disabled=false;btn.innerHTML="🔄 วิเคราะห์ใหม่";}
 
@@ -662,7 +705,21 @@ var TEACHER_CONFIG=[
    system:"คุณคือครูเจน ครูภาษาอังกฤษที่สนุกและ passionate Communication first\nออกแบบบทเรียนภาษาอังกฤษที่เหมาะกับวอลนัทจาก brief ของทีม\nตอบ JSON object เท่านั้น ไม่มี markdown"},
 ];
 
-var LESSON_JSON_FORMAT='{"title":"ชื่อบทเรียน","goal":"เป้าหมาย","rationale":"เหตุผลอ้างอิง interview จริง","reading":"เนื้อหาอ่าน 4-6 ย่อหน้า รวมทั้งทฤษฎีและตัวอย่างที่เชื่อมกับชีวิตวอลนัท","mcq":[{"q":"คำถาม","c":["ก. ตัวเลือก1","ข. ตัวเลือก2","ค. ตัวเลือก3","ง. ตัวเลือก4"],"a":0}],"written":[{"q":"คำถามข้อเขียน"}]}';
+// ── helper: call API แล้วคืน string ──
+async function callChat(system, userMsg, maxTok){
+  var resp=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({system:system,max_tokens:maxTok||4096,messages:[{role:"user",content:userMsg}]})});
+  var d=await resp.json();
+  return typeof d.content==="string"?d.content:(d.error||"");
+}
+// ── helper: parse JSON object หรือ array จาก text ──
+function parseObj(text){
+  if(!text)return null;
+  var s=text.replace(/```json\s*/gi,"").replace(/```\s*/g,"").trim();
+  try{return JSON.parse(s);}catch(e){}
+  try{var m=s.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);if(m)return JSON.parse(m[0]);}catch(e){}
+  return null;
+}
 
 async function designCurriculumFromInterview(interviewContext, analysis){
   var panel=document.getElementById("curriculum-design-panel");
@@ -695,51 +752,57 @@ async function designCurriculumFromInterview(interviewContext, analysis){
         '<div class="px-3 py-2 text-xs text-gray-400 animate-pulse">รอรับ brief...</div>'+
       '</div>');
 
-    var userMsg=brief+"\n\n===\nคุณคือ"+tc.teacher+" วิชา"+tc.subject+
-      "\nออกแบบบทเรียนสัปดาห์ที่ "+curWeek+" ที่เหมาะกับวอลนัทที่สุด\n"+
-      "ต้องมี 15 MCQ และ 5 ข้อเขียน\nตอบ JSON object เดียวเท่านั้น format:\n"+LESSON_JSON_FORMAT+
-      "\nเริ่มด้วย { และจบด้วย } ห้ามมีข้อความอื่น";
+    // ── CALL 1: เนื้อหา (title + goal + rationale + reading) ──
+    var call1Msg=brief+"\n\n===\nคุณคือ"+tc.teacher+" วิชา"+tc.subject+" สัปดาห์ที่ "+curWeek+
+      "\nตอบ JSON object เท่านั้น เริ่ม { จบ }:\n"+
+      '{"title":"ชื่อบทเรียน","goal":"เป้าหมาย 1 ประโยค","rationale":"เหตุผลอ้างอิงคำตอบ interview จริงของวอลนัท","reading":"เนื้อหา 4-5 ย่อหน้า เชื่อมกับชีวิตและสิ่งที่วอลนัทชอบ"}';
 
+    var card=document.getElementById(cardId);
     try{
-      var resp=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({system:tc.system,max_tokens:4096,messages:[{role:"user",content:userMsg}]})});
-      var data=await resp.json();
-      var text=typeof data.content==="string"?data.content:"";
-      // parse object
-      var lesson=null;
-      try{
-        var stripped=text.replace(/```json\s*/gi,"").replace(/```\s*/g,"").trim();
-        var m=stripped.match(/\{[\s\S]*\}/);
-        if(m) lesson=JSON.parse(m[0]);
-      }catch(e){}
+      var t1=await callChat(tc.system,call1Msg,2048);
+      var part1=parseObj(t1);
+      if(!part1||!part1.title){throw new Error("part1 parse fail: "+t1.slice(0,100));}
 
-      var card=document.getElementById(cardId);
-      if(lesson&&lesson.title&&lesson.mcq&&lesson.mcq.length>=10){
-        lesson.subjectKey=tc.subjectKey;
-        lesson.subject=tc.subject;
-        lesson.icon=tc.icon;
-        lesson.teacher=tc.teacher;
-        lesson.teacherId=tc.teacherId;
-        lesson.bg=tc.bg; lesson.border=tc.border; lesson.badge=tc.badge;
-        lesson.week=curWeek;
-        generatedLessons.push(lesson);
-        if(card){
-          card.querySelector("div:first-child").innerHTML='<span>'+tc.icon+'</span><span class="font-semibold text-sm">'+tc.teacher+' — ✅ เสร็จแล้ว</span><span class="ml-auto text-xs text-gray-500">'+lesson.mcq.length+' MCQ</span>';
-          card.lastElementChild.className="px-3 py-2 text-xs text-gray-600";
-          card.lastElementChild.textContent='📚 '+lesson.title+' — '+lesson.goal;
-        }
-      } else {
-        if(card){
-          card.querySelector("div:first-child").innerHTML='<span>'+tc.icon+'</span><span class="font-semibold text-sm">'+tc.teacher+' — ⚠️ ข้อมูลไม่ครบ ใช้บทเรียนเดิม</span>';
-          card.lastElementChild.className="px-3 py-2 text-xs text-gray-400";
-          card.lastElementChild.textContent="JSON ไม่สมบูรณ์ — ข้ามไปวิชาถัดไป";
-        }
+      if(card) card.lastElementChild.textContent="📖 ได้เนื้อหาแล้ว กำลัง generate คำถาม...";
+
+      // ── CALL 2: MCQ 10 ข้อ ──
+      var call2Msg="วิชา"+tc.subject+" บทเรียน: "+part1.title+"\nเนื้อหา: "+part1.reading+
+        "\nออกแบบ 10 MCQ 4 ตัวเลือก จาก เนื้อหานี้\n"+
+        'ตอบ JSON array เท่านั้น: [{"q":"คำถาม","c":["ก. ","ข. ","ค. ","ง. "],"a":0}]';
+      var t2=await callChat(tc.system,call2Msg,3000);
+      var mcq=parseObj(t2);
+      if(!Array.isArray(mcq)||mcq.length<5){throw new Error("mcq parse fail (got "+(Array.isArray(mcq)?mcq.length:0)+"): "+t2.slice(0,100));}
+
+      // ── CALL 3: Written 5 ข้อ ──
+      var call3Msg="วิชา"+tc.subject+" บทเรียน: "+part1.title+
+        "\nออกแบบ 5 ข้อเขียนที่ต้องใช้ความเข้าใจจริง\n"+
+        'ตอบ JSON array เท่านั้น: [{"q":"คำถาม"}]';
+      var t3=await callChat(tc.system,call3Msg,1024);
+      var written=parseObj(t3);
+      if(!Array.isArray(written)||written.length<3) written=[
+        {q:"สรุปสิ่งที่เรียนมาด้วยคำพูดตัวเอง"},
+        {q:"ยกตัวอย่างจากชีวิตจริงที่เชื่อมกับเนื้อหา"},
+        {q:"สิ่งที่ชอบที่สุดในบทเรียนนี้คืออะไร เพราะอะไร"},
+        {q:"ส่วนไหนที่ยังไม่เข้าใจ หรืออยากเรียนเพิ่ม"},
+        {q:"ถ้าจะบอกเพื่อนเรื่องนี้จะบอกว่าอะไร"},
+      ];
+
+      var lesson=Object.assign({},part1,{mcq:mcq,written:written,
+        subjectKey:tc.subjectKey,subject:tc.subject,icon:tc.icon,
+        teacher:tc.teacher,teacherId:tc.teacherId,
+        bg:tc.bg,border:tc.border,badge:tc.badge,week:curWeek});
+      generatedLessons.push(lesson);
+
+      if(card){
+        card.querySelector("div:first-child").innerHTML='<span>'+tc.icon+'</span><span class="font-semibold text-sm">'+tc.teacher+' — ✅ เสร็จ</span><span class="ml-auto text-xs text-gray-500">'+mcq.length+' MCQ · '+written.length+' เขียน</span>';
+        card.lastElementChild.className="px-3 py-2 text-xs text-gray-600";
+        card.lastElementChild.textContent='📚 '+lesson.title+' — '+lesson.goal;
       }
     }catch(e){
-      var card=document.getElementById(cardId);
       if(card){
-        card.querySelector("div:first-child").innerHTML='<span>'+tc.icon+'</span><span class="font-semibold text-sm text-red-500">'+tc.teacher+' — Error</span>';
-        card.lastElementChild.textContent="⚠️ "+e.message;
+        card.querySelector("div:first-child").innerHTML='<span>'+tc.icon+'</span><span class="font-semibold text-sm text-red-500">'+tc.teacher+' — ⚠️ Error</span>';
+        card.lastElementChild.className="px-3 py-2 text-xs text-red-400";
+        card.lastElementChild.textContent=String(e.message).slice(0,120);
       }
     }
   }
