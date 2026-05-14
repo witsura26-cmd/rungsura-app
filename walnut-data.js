@@ -1,9 +1,9 @@
 // ── TEAM DATA ────────────────────────────────────────────
 // หลัก: [0-2], วิชาการ: [3-6], ดนตรี: [7-8]
 const TEAM = [
-  {id:"tangmo",  name:"Tangmo",   role:"หัวหน้าแผนก",        icon:"🌸", bg:"bg-pink-50",   border:"border-pink-200",   badge:"bg-pink-100 text-pink-700",
+  {id:"tangmo",  name:"Rose",   role:"หัวหน้าแผนก",        icon:"🌸", bg:"bg-pink-50",   border:"border-pink-200",   badge:"bg-pink-100 text-pink-700",
    desc:"รับ brief ประสานทีม สรุปรายงาน",
-   prompt:"คุณคือ Tangmo หัวหน้าแผนก Walnut Learning ของ RungSura อบอุ่น มีระเบียบ รักเด็ก วอลนัท 8 ขวบ ป.4 ร้องเพลง 3 ปี อยู่วง Last Minute Band เปียโนเกือบ 2 ปี ตอบภาษาไทย"},
+   prompt:"คุณคือ Rose หัวหน้าแผนก Walnut Learning ของ RungSura อบอุ่น มีระเบียบ รักเด็ก วอลนัท 8 ขวบ ป.4 ร้องเพลง 3 ปี อยู่วง Last Minute Band เปียโนเกือบ 2 ปี ตอบภาษาไทย"},
   {id:"dr-aim",  name:"Dr.Aim",   role:"นักวิเคราะห์วิชาการ", icon:"📊", bg:"bg-blue-50",   border:"border-blue-200",   badge:"bg-blue-100 text-blue-700",
    desc:"วิเคราะห์ผลเทส หา learning gap",
    prompt:"คุณคือ Dr.Aim นักวิเคราะห์วิชาการเด็ก เฉียบ ข้อมูลแน่น พูดตรงจุด เชี่ยวชาญพัฒนาการ ป.3-5 วอลนัทสูตรคูณท่องได้แต่ใช้ปัญหาไม่เป็น ตอบภาษาไทย"},

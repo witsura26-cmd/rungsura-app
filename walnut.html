@@ -138,7 +138,7 @@
   <div class="max-w-xl mx-auto px-4 py-8">
     <div class="bg-pink-50 border border-pink-200 rounded-2xl p-5 mb-5 flex items-center gap-3">
       <span class="text-3xl">🌟</span>
-      <div><div class="font-bold">แบบสอบถามพัฒนาการ — จินตนาการและความคิดสร้างสรรค์</div><div class="text-xs text-gray-500">โดย Tangmo · สัปดาห์ที่ 1</div></div>
+      <div><div class="font-bold">แบบสอบถามพัฒนาการ — จินตนาการและความคิดสร้างสรรค์</div><div class="text-xs text-gray-500">โดย Rose · สัปดาห์ที่ 1</div></div>
       <button onclick="document.getElementById('survey-modal').classList.add('hidden')" class="ml-auto text-gray-400 text-2xl">✕</button>
     </div>
     <div class="space-y-4">
@@ -149,7 +149,7 @@
       <div class="bg-white border rounded-2xl p-4"><div class="text-sm font-semibold mb-2">5. เขียนอธิบายสิ่งที่วอลนัทจินตนาการอยู่ตอนนี้ (อะไรก็ได้!)</div><textarea id="sq5" rows="4" placeholder="วาดเป็นคำพูดได้เลย..." class="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-pink-400 resize-none"></textarea></div>
     </div>
     <div id="survey-result" class="hidden bg-pink-50 border border-pink-200 rounded-2xl p-4 mt-4"></div>
-    <button onclick="submitCreativeSurvey()" id="survey-btn" class="w-full mt-5 bg-pink-400 hover:bg-pink-500 text-white py-3 rounded-2xl font-bold text-base">ส่งให้ Tangmo วิเคราะห์ →</button>
+    <button onclick="submitCreativeSurvey()" id="survey-btn" class="w-full mt-5 bg-pink-400 hover:bg-pink-500 text-white py-3 rounded-2xl font-bold text-base">ส่งให้ Rose วิเคราะห์ →</button>
     <button onclick="resetCreativeSurvey()" id="survey-reset-btn" class="hidden w-full mt-2 bg-gray-100 hover:bg-gray-200 text-gray-500 py-2 rounded-2xl text-sm">🗑 ล้างคำตอบ (ให้วอลนัททำใหม่)</button>
   </div>
 </div>
@@ -349,7 +349,7 @@ function renderLessons(){
         <div class="flex items-center justify-between">
           <div>
             <h3 class="font-bold text-gray-900 text-base">📚 แผนการเรียนสัปดาห์ที่ ${week}</h3>
-            <p class="text-xs text-gray-400 mt-0.5">ออกแบบโดยทีมครูร่วมกับ Dr.Aim · อนุมัติโดย 🌸 Tangmo</p>
+            <p class="text-xs text-gray-400 mt-0.5">ออกแบบโดยทีมครูร่วมกับ Dr.Aim · อนุมัติโดย 🌸 Rose</p>
           </div>
           <div class="text-center bg-amber-50 border border-amber-200 rounded-2xl px-4 py-2">
             <div class="text-lg font-bold text-amber-500">${done}/${total}</div>
@@ -434,7 +434,7 @@ function renderLessons(){
               <div class="flex items-start gap-2">
                 <span class="text-sm">🌸</span>
                 <div>
-                  <div class="text-xs font-bold text-blue-700 mb-1">Tangmo + Dr.Aim ประชุมครู — เลือกเนื้อหานี้เพราะ</div>
+                  <div class="text-xs font-bold text-blue-700 mb-1">Rose + Dr.Aim ประชุมครู — เลือกเนื้อหานี้เพราะ</div>
                   <div class="text-xs text-gray-600 leading-relaxed">${l.rationale||l.goal}</div>
                 </div>
               </div>
@@ -472,7 +472,7 @@ function renderReport(){
     <div class="bg-white rounded-b-2xl border border-t-0 border-gray-100 p-5">
       <div class="bg-pink-50 border border-pink-200 rounded-2xl p-4 mb-5 flex items-center gap-3">
         <div class="text-2xl">🌸</div>
-        <div><div class="font-bold text-sm">Tangmo — Weekly Report</div><div class="text-xs text-gray-500">สัปดาห์ที่ 1 · พฤษภาคม 2026</div></div>
+        <div><div class="font-bold text-sm">Rose — Weekly Report</div><div class="text-xs text-gray-500">สัปดาห์ที่ 1 · พฤษภาคม 2026</div></div>
       </div>
       <div class="grid grid-cols-3 gap-3 mb-5">
         <div class="bg-amber-50 border border-amber-200 rounded-2xl p-3 text-center">
@@ -508,7 +508,7 @@ function renderReport(){
         </div>
       </div>
       <div class="bg-pink-50 border border-pink-200 rounded-2xl p-4">
-        <div class="text-xs font-bold text-pink-700 mb-1">🌸 หมายเหตุจาก Tangmo</div>
+        <div class="text-xs font-bold text-pink-700 mb-1">🌸 หมายเหตุจาก Rose</div>
         <div class="text-sm text-gray-700">${done===0?"วอลนัทยังไม่ได้เริ่มทำการบ้านสัปดาห์แรก เริ่มวันนี้เลยนะคะ!":pct>=80?`ดีมากเลยค่ะ! ${pct}% สัปดาห์หน้าจะปรับให้ยากขึ้นนิดนึง 🌟`:pct>=60?`ทำได้ดีนะคะ ${pct}% ครูจะช่วยดูส่วนที่ยังต้องพัฒนาค่ะ`:`พยายามดีแล้วนะคะ ครูจะปรับแนวทางให้เหมาะกับวอลนัทมากขึ้น 💪`}</div>
       </div>
     </div>`;

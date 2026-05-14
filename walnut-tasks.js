@@ -183,7 +183,7 @@ function openCreativeSurvey(){
     if(saved.feedback){
       var r=document.getElementById("survey-result");
       r.classList.remove("hidden");
-      r.innerHTML='<div class="text-xs font-bold text-pink-700 mb-2">🌸 Tangmo วิเคราะห์</div>'+
+      r.innerHTML='<div class="text-xs font-bold text-pink-700 mb-2">🌸 Rose วิเคราะห์</div>'+
         '<div class="text-sm text-gray-700 whitespace-pre-wrap">'+saved.feedback+'</div>';
     }
     var btn=document.getElementById("survey-btn");
@@ -203,7 +203,7 @@ function resetCreativeSurvey(){
   });
   var r=document.getElementById("survey-result");if(r)r.classList.add("hidden");
   var btn=document.getElementById("survey-btn");
-  if(btn){btn.textContent="ส่งให้ Tangmo วิเคราะห์ →";btn.disabled=false;
+  if(btn){btn.textContent="ส่งให้ Rose วิเคราะห์ →";btn.disabled=false;
     btn.className="w-full mt-5 bg-pink-400 hover:bg-pink-500 text-white py-3 rounded-2xl font-bold text-base";}
   var resetBtn=document.getElementById("survey-reset-btn");
   if(resetBtn) resetBtn.classList.add("hidden");
@@ -213,7 +213,7 @@ async function submitCreativeSurvey(){
     var el=document.getElementById(id);return el?el.value.trim():"";
   });
   var btn=document.getElementById("survey-btn");
-  btn.textContent="Tangmo กำลังวิเคราะห์...";btn.disabled=true;
+  btn.textContent="Rose กำลังวิเคราะห์...";btn.disabled=true;
   var feedback="(ไม่ได้เชื่อมต่อ Claude — บันทึกคำตอบแล้ว)";
   if(CFG.claude){
     try{
@@ -221,7 +221,7 @@ async function submitCreativeSurvey(){
       var body=qs.map(function(q,i){return "คำถาม: "+q+"\nคำตอบวอลนัท: "+(answers[i]||"(ไม่ได้ตอบ)");}).join("\n\n");
       var res=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},
         body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:600,
-          system:"คุณคือ Tangmo หัวหน้าแผนก Walnut Learning วิเคราะห์พัฒนาการจินตนาการและความคิดสร้างสรรค์ของวอลนัท (8 ขวบ) ตอบภาษาไทย อบอุ่น 3-4 ย่อหน้า เน้น insight ที่น่าสนใจ + แนะนำกิจกรรมเสริม",
+          system:"คุณคือ Rose หัวหน้าแผนก Walnut Learning วิเคราะห์พัฒนาการจินตนาการและความคิดสร้างสรรค์ของวอลนัท (8 ขวบ) ตอบภาษาไทย อบอุ่น 3-4 ย่อหน้า เน้น insight ที่น่าสนใจ + แนะนำกิจกรรมเสริม",
           messages:[{role:"user",content:body}]})});
       var d=await res.json();
       feedback=d.content?.[0]?.text||feedback;
@@ -230,7 +230,7 @@ async function submitCreativeSurvey(){
   localStorage.setItem("walnut_survey_w1",JSON.stringify({submitted:true,answers:answers,feedback:feedback}));
   var r=document.getElementById("survey-result");
   r.classList.remove("hidden");
-  r.innerHTML='<div class="text-xs font-bold text-pink-700 mb-2">🌸 Tangmo วิเคราะห์</div>'+
+  r.innerHTML='<div class="text-xs font-bold text-pink-700 mb-2">🌸 Rose วิเคราะห์</div>'+
     '<div class="text-sm text-gray-700 whitespace-pre-wrap">'+feedback+'</div>';
   btn.textContent="ส่งแล้ว ✅";
   btn.className="w-full mt-5 bg-green-400 text-white py-3 rounded-2xl font-bold cursor-not-allowed";
@@ -555,7 +555,7 @@ async function analyzeSchedule(){
   if(resDiv){resDiv.innerHTML='<div class="text-gray-400 text-sm text-center py-4">ทีมกำลังวิเคราะห์...</div>';resDiv.classList.remove("hidden");}
   var summary=buildCalendarSummary();
   try{
-    var sysPrompt="คุณคือ Tangmo (หัวหน้า) ประชุมร่วมกับ Dr.Aim (วิชาการ) เพื่อวางแผนการเรียนของวอลนัท\n"+
+    var sysPrompt="คุณคือ Rose (หัวหน้า) ประชุมร่วมกับ Dr.Aim (วิชาการ) เพื่อวางแผนการเรียนของวอลนัท\n"+
       "ดูตารางด้านล่าง แล้วช่วยตอบ 2 ส่วน:\n\n"+
       "ส่วนที่ 1 — วิเคราะห์และแนะนำ (ภาษาไทยธรรมชาติ อ่านง่าย):\n"+
       "• วันไหนมีเวลาว่างเหมาะทำการบ้าน\n"+
@@ -759,7 +759,7 @@ function renderCalendarTab(){
   if(calAnalysisResult){
     analysisHtml='<div class="mt-4 space-y-3">'+
       '<div class="bg-blue-50 border border-blue-200 rounded-2xl p-4">'+
-        '<div class="flex items-center gap-2 mb-2"><span>🔍</span><strong class="text-sm text-blue-800">Tangmo + Dr.Aim ประชุมวิเคราะห์</strong></div>'+
+        '<div class="flex items-center gap-2 mb-2"><span>🔍</span><strong class="text-sm text-blue-800">Rose + Dr.Aim ประชุมวิเคราะห์</strong></div>'+
         '<div class="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">'+calAnalysisResult+'</div>'+
       '</div>'+
       (calAnalysisTasks.length?
@@ -978,7 +978,7 @@ function buildCalAnalysis(){
   if(!calAnalysisResult) return "";
   return '<div style="padding:12px;border-top:1px solid #e5e7eb">'+
     '<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:12px;margin-bottom:10px">'+
-      '<div style="font-size:13px;font-weight:700;color:#1e40af;margin-bottom:6px">🔍 Tangmo + Dr.Aim วิเคราะห์</div>'+
+      '<div style="font-size:13px;font-weight:700;color:#1e40af;margin-bottom:6px">🔍 Rose + Dr.Aim วิเคราะห์</div>'+
       '<div style="font-size:12px;color:#374151;line-height:1.6;white-space:pre-wrap">'+calAnalysisResult+'</div>'+
     '</div>'+
     (calAnalysisTasks.length?
