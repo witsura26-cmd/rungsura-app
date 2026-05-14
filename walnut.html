@@ -1023,12 +1023,16 @@ function applyCustomCurriculum(curriculum){
 
 function loadCustomCurriculumIfExists(){
   try{
+    // ถ้า LESSONS ใน code มีเนื้อหาครบแล้ว (hardcoded, mcq>=10 ทุกวิชา)
+    // → ลบ key เก่าออกจาก localStorage + Redis เพื่อไม่ให้ทับเนื้อหาใหม่
+    var allHardcoded=LESSONS.every(function(l){return l.mcq&&l.mcq.length>=10;});
+    if(allHardcoded){
+      localStorage.removeItem("walnut_custom_curriculum");
+      try{fetch("/api/sync",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({walnut_custom_curriculum:null})});}catch(e){}
+      return;
+    }
     var saved=JSON.parse(localStorage.getItem("walnut_custom_curriculum")||"null");
     if(!saved||!saved.lessons||!saved.lessons.length) return;
-    // ถ้า LESSONS ใน code มีเนื้อหาครบแล้ว (hardcoded) → skip localStorage override
-    // เพื่อให้เนื้อหาที่เขียนใน walnut-data.js มีผลทันที
-    var allHardcoded=LESSONS.every(function(l){return l.mcq&&l.mcq.length>=10;});
-    if(allHardcoded) return;
     applyCustomCurriculum(saved.lessons);
   }catch(e){}
 }
