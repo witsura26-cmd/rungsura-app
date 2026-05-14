@@ -1024,7 +1024,12 @@ function applyCustomCurriculum(curriculum){
 function loadCustomCurriculumIfExists(){
   try{
     var saved=JSON.parse(localStorage.getItem("walnut_custom_curriculum")||"null");
-    if(saved&&saved.lessons&&saved.lessons.length) applyCustomCurriculum(saved.lessons);
+    if(!saved||!saved.lessons||!saved.lessons.length) return;
+    // ถ้า LESSONS ใน code มีเนื้อหาครบแล้ว (hardcoded) → skip localStorage override
+    // เพื่อให้เนื้อหาที่เขียนใน walnut-data.js มีผลทันที
+    var allHardcoded=LESSONS.every(function(l){return l.mcq&&l.mcq.length>=10;});
+    if(allHardcoded) return;
+    applyCustomCurriculum(saved.lessons);
   }catch(e){}
 }
 
