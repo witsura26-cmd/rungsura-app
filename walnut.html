@@ -636,79 +636,169 @@ async function generateIntakeAnalysis(){
   await designCurriculumFromInterview(context, results);
 }
 
-// ── AUTO CURRICULUM DESIGN ────────────────────────────────
+// ── FULL LESSON GENERATION PIPELINE ──────────────────────
+var TEACHER_CONFIG=[
+  {subjectKey:"thai", subject:"ภาษาไทย", icon:"✍️", teacherId:"kru-nim", teacher:"ครูนิ่ม",
+   bg:"bg-yellow-50",border:"border-yellow-200",badge:"bg-yellow-100 text-yellow-700",
+   system:"คุณคือครูนิ่ม ครูภาษาไทยที่เนี้ยบที่สุด สอนวอลนัท ป.4\nออกแบบบทเรียนภาษาไทยที่เหมาะกับวอลนัทจาก brief ของทีม\nตอบ JSON object เท่านั้น ไม่มี markdown"},
+  {subjectKey:"math", subject:"คณิตศาสตร์", icon:"🎮", teacherId:"kru-o", teacher:"ครูโอ๋",
+   bg:"bg-orange-50",border:"border-orange-200",badge:"bg-orange-100 text-orange-700",
+   system:"คุณคือครูโอ๋ ครูเลขที่ขี้เล่น ใจดี มีทริค เลขคือเกม\nออกแบบบทเรียนคณิตศาสตร์ที่เหมาะกับวอลนัทจาก brief ของทีม\nตอบ JSON object เท่านั้น ไม่มี markdown"},
+  {subjectKey:"sci", subject:"วิทยาศาสตร์", icon:"🔭", teacherId:"kru-kai", teacher:"ครูไก่",
+   bg:"bg-cyan-50",border:"border-cyan-200",badge:"bg-cyan-100 text-cyan-700",
+   system:"คุณคือครูไก่ ครูวิทย์ที่ตื่นเต้นกับทุกอย่าง ชอบตั้งคำถาม สอนผ่านเรื่องเล่า\nออกแบบบทเรียนวิทยาศาสตร์ที่เหมาะกับวอลนัทจาก brief ของทีม\nตอบ JSON object เท่านั้น ไม่มี markdown"},
+  {subjectKey:"sing", subject:"ร้องเพลง", icon:"🎤", teacherId:"kru-mint", teacher:"ครูมิ้นท์",
+   bg:"bg-rose-50",border:"border-rose-200",badge:"bg-rose-100 text-rose-700",
+   system:"คุณคือครูมิ้นท์ ครูร้องเพลง passionate มาก\nออกแบบบทเรียนร้องเพลงที่เหมาะกับวอลนัทจาก brief ของทีม\nตอบ JSON object เท่านั้น ไม่มี markdown"},
+  {subjectKey:"piano", subject:"เปียโน", icon:"🎹", teacherId:"kru-big", teacher:"ครูบิ๊ก",
+   bg:"bg-violet-50",border:"border-violet-200",badge:"bg-violet-100 text-violet-700",
+   system:"คุณคือครูบิ๊ก ครูเปียโนที่แม่นทฤษฎี ใจเย็น\nออกแบบบทเรียนเปียโนที่เหมาะกับวอลนัทจาก brief ของทีม\nตอบ JSON object เท่านั้น ไม่มี markdown"},
+  {subjectKey:"eng", subject:"ภาษาอังกฤษ", icon:"🇬🇧", teacherId:"kru-jen", teacher:"ครูเจน",
+   bg:"bg-indigo-50",border:"border-indigo-200",badge:"bg-indigo-100 text-indigo-700",
+   system:"คุณคือครูเจน ครูภาษาอังกฤษที่สนุกและ passionate Communication first\nออกแบบบทเรียนภาษาอังกฤษที่เหมาะกับวอลนัทจาก brief ของทีม\nตอบ JSON object เท่านั้น ไม่มี markdown"},
+];
+
+var LESSON_JSON_FORMAT='{"title":"ชื่อบทเรียน","goal":"เป้าหมาย","rationale":"เหตุผลอ้างอิง interview จริง","reading":"เนื้อหาอ่าน 4-6 ย่อหน้า รวมทั้งทฤษฎีและตัวอย่างที่เชื่อมกับชีวิตวอลนัท","mcq":[{"q":"คำถาม","c":["ก. ตัวเลือก1","ข. ตัวเลือก2","ค. ตัวเลือก3","ง. ตัวเลือก4"],"a":0}],"written":[{"q":"คำถามข้อเขียน"}]}';
+
 async function designCurriculumFromInterview(interviewContext, analysis){
   var panel=document.getElementById("curriculum-design-panel");
+  if(panel){
+    panel.querySelector("div:first-child").innerHTML='<span>🎓</span><span class="font-bold text-sm text-amber-800">ทีมส่ง Brief ให้ครูแต่ละท่าน...</span>';
+    panel.lastElementChild.className="px-4 py-3 text-sm text-gray-700";
+    panel.lastElementChild.innerHTML='<div id="teacher-gen-log" class="space-y-2"></div>';
+  }
 
-  var sysPrompt="คุณคือทีม Walnut Learning: Rose (หัวหน้า), Dr.Aim (วิชาการ), Ploy (พัฒนาการ) "+
-"และครูทุกท่าน (ครูนิ่ม-ไทย, ครูโอ๋-เลข, ครูไก่-วิทย์, ครูเจน-อังกฤษ, ครูมิ้นท์-ร้องเพลง, ครูบิ๊ก-เปียโน)\n"+
-"จากข้อมูล interview ของวอลนัท ออกแบบหลักสูตรสัปดาห์แรกที่เหมาะกับวอลนัทโดยเฉพาะ\n"+
-"ตอบเป็น JSON array ล้วนๆ ไม่มี markdown ไม่มีข้อความอื่น:\n"+
-'[{"subject":"ภาษาไทย","icon":"✍️","teacherId":"kru-nim","week":1,'+
-'"title":"ชื่อบทเรียน","goal":"เป้าหมาย","rationale":"เหตุผลที่ทีมเลือก (อ้างอิงจาก interview ของวอลนัทจริงๆ)",'+
-'"readingSummary":"สรุปเนื้อหาที่จะสอน 3-4 ประโยค"}]\n'+
-"ออกแบบให้ครบทั้ง 6 วิชา: ภาษาไทย, คณิตศาสตร์, วิทยาศาสตร์, ร้องเพลง, เปียโน, ภาษาอังกฤษ\n"+
-"สำคัญ: rationale ต้องอ้างอิงคำตอบจริงของวอลนัทจาก interview เพื่อให้เห็นว่าออกแบบมาเพื่อวอลนัทจริงๆ";
+  var brief="=== BRIEF จากทีม Walnut Learning ===\n"+
+    "ข้อมูล Interview วอลนัท:\n"+interviewContext+
+    "\n\nผล Rose:\n"+(analysis.rose||"ยังไม่มี")+
+    "\n\nผล Dr.Aim:\n"+(analysis.aim||"ยังไม่มี")+
+    "\n\nผล Ploy:\n"+(analysis.ploy||"ยังไม่มี");
 
-  var userMsg=interviewContext+"\n\nผลวิเคราะห์ทีม:\n"+
-    (analysis.rose||"")+(analysis.aim||"")+(analysis.ploy||"")+
-    "\n\nออกแบบหลักสูตร 6 วิชาตาม JSON format ข้างต้น";
+  var generatedLessons=[];
+  var curWeek=Math.min(4,Math.ceil(new Date().getDate()/7));
 
-  try{
-    var resp=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({system:sysPrompt,max_tokens:4096,messages:[{role:"user",content:userMsg}]})});
-    var data=await resp.json();
-    var text=typeof data.content==="string"?data.content:"";
-    var curriculum=parseJSONSafe(text);
+  for(var i=0;i<TEACHER_CONFIG.length;i++){
+    var tc=TEACHER_CONFIG[i];
+    var log=document.getElementById("teacher-gen-log");
+    var cardId="tg-"+tc.subjectKey;
 
-    if(curriculum&&curriculum.length){
-      // อัปเดต LESSONS ใน memory
-      applyCustomCurriculum(curriculum);
-      // save
-      try{localStorage.setItem("walnut_custom_curriculum",JSON.stringify({lessons:curriculum,createdAt:new Date().toISOString()}));}catch(e){}
-      try{fetch("/api/sync",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({walnut_custom_curriculum:JSON.stringify({lessons:curriculum,createdAt:new Date().toISOString()})})});}catch(e){}
+    if(log) log.insertAdjacentHTML("beforeend",
+      '<div id="'+cardId+'" class="border '+tc.border+' rounded-xl overflow-hidden">'+
+        '<div class="'+tc.bg+' px-3 py-2 flex items-center gap-2">'+
+          '<span>'+tc.icon+'</span><span class="font-semibold text-sm">'+tc.teacher+' — กำลังออกแบบ...</span>'+
+          '<div class="ml-auto spinner" style="width:16px;height:16px;border-width:2px"></div>'+
+        '</div>'+
+        '<div class="px-3 py-2 text-xs text-gray-400 animate-pulse">รอรับ brief...</div>'+
+      '</div>');
 
-      if(panel){
-        panel.querySelector("div:first-child").innerHTML='<span>🎓</span><span class="font-bold text-sm text-amber-800">หลักสูตรใหม่พร้อมแล้ว ✅</span>';
-        panel.lastElementChild.className="px-4 py-3 text-sm text-gray-700";
-        panel.lastElementChild.innerHTML='<div class="space-y-2">'+
-          curriculum.map(function(c){
-            return '<div class="bg-white border border-amber-100 rounded-xl p-3">'+
-              '<div class="font-bold text-sm text-gray-800 mb-1">'+c.icon+' '+c.subject+' — '+c.title+'</div>'+
-              '<div class="text-xs text-gray-500 mb-1">🎯 '+c.goal+'</div>'+
-              '<div class="text-xs text-blue-600">🌸 '+c.rationale+'</div>'+
-            '</div>';
-          }).join("")+
-          '<div class="mt-3 pt-3 border-t border-amber-100 text-center">'+
-            '<button onclick="switchTab(\'lessons\')" class="bg-amber-400 hover:bg-amber-500 text-white font-bold px-6 py-2.5 rounded-xl text-sm">'+
-              '📚 ดูบทเรียนใหม่ →'+
-            '</button>'+
-          '</div>'+
-        '</div>';
+    var userMsg=brief+"\n\n===\nคุณคือ"+tc.teacher+" วิชา"+tc.subject+
+      "\nออกแบบบทเรียนสัปดาห์ที่ "+curWeek+" ที่เหมาะกับวอลนัทที่สุด\n"+
+      "ต้องมี 15 MCQ และ 5 ข้อเขียน\nตอบ JSON object เดียวเท่านั้น format:\n"+LESSON_JSON_FORMAT+
+      "\nเริ่มด้วย { และจบด้วย } ห้ามมีข้อความอื่น";
+
+    try{
+      var resp=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({system:tc.system,max_tokens:4096,messages:[{role:"user",content:userMsg}]})});
+      var data=await resp.json();
+      var text=typeof data.content==="string"?data.content:"";
+      // parse object
+      var lesson=null;
+      try{
+        var stripped=text.replace(/```json\s*/gi,"").replace(/```\s*/g,"").trim();
+        var m=stripped.match(/\{[\s\S]*\}/);
+        if(m) lesson=JSON.parse(m[0]);
+      }catch(e){}
+
+      var card=document.getElementById(cardId);
+      if(lesson&&lesson.title&&lesson.mcq&&lesson.mcq.length>=10){
+        lesson.subjectKey=tc.subjectKey;
+        lesson.subject=tc.subject;
+        lesson.icon=tc.icon;
+        lesson.teacher=tc.teacher;
+        lesson.teacherId=tc.teacherId;
+        lesson.bg=tc.bg; lesson.border=tc.border; lesson.badge=tc.badge;
+        lesson.week=curWeek;
+        generatedLessons.push(lesson);
+        if(card){
+          card.querySelector("div:first-child").innerHTML='<span>'+tc.icon+'</span><span class="font-semibold text-sm">'+tc.teacher+' — ✅ เสร็จแล้ว</span><span class="ml-auto text-xs text-gray-500">'+lesson.mcq.length+' MCQ</span>';
+          card.lastElementChild.className="px-3 py-2 text-xs text-gray-600";
+          card.lastElementChild.textContent='📚 '+lesson.title+' — '+lesson.goal;
+        }
+      } else {
+        if(card){
+          card.querySelector("div:first-child").innerHTML='<span>'+tc.icon+'</span><span class="font-semibold text-sm">'+tc.teacher+' — ⚠️ ข้อมูลไม่ครบ ใช้บทเรียนเดิม</span>';
+          card.lastElementChild.className="px-3 py-2 text-xs text-gray-400";
+          card.lastElementChild.textContent="JSON ไม่สมบูรณ์ — ข้ามไปวิชาถัดไป";
+        }
       }
-    } else {
-      if(panel) panel.lastElementChild.textContent="⚠️ ออกแบบหลักสูตรไม่สำเร็จ — ลองกด วิเคราะห์ใหม่";
+    }catch(e){
+      var card=document.getElementById(cardId);
+      if(card){
+        card.querySelector("div:first-child").innerHTML='<span>'+tc.icon+'</span><span class="font-semibold text-sm text-red-500">'+tc.teacher+' — Error</span>';
+        card.lastElementChild.textContent="⚠️ "+e.message;
+      }
     }
-  }catch(e){
-    if(panel) panel.lastElementChild.textContent="⚠️ Error: "+e.message;
+  }
+
+  if(generatedLessons.length>0){
+    var pkg={lessons:generatedLessons,createdAt:new Date().toISOString(),week:curWeek};
+    try{localStorage.setItem("walnut_custom_curriculum",JSON.stringify(pkg));}catch(e){}
+    applyFullLessons(generatedLessons);
+    // push cloud
+    try{await fetch("/api/sync",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({walnut_custom_curriculum:JSON.stringify(pkg)})});}catch(e){}
+
+    var log=document.getElementById("teacher-gen-log");
+    if(log) log.insertAdjacentHTML("beforeend",
+      '<div class="mt-3 pt-3 border-t border-amber-100 bg-amber-50 rounded-xl p-3 text-center">'+
+        '<div class="font-bold text-sm text-amber-800 mb-2">🎉 บทเรียนใหม่ '+generatedLessons.length+' วิชาพร้อมแล้ว!</div>'+
+        '<div class="text-xs text-gray-500 mb-3">เนื้อหา reading + MCQ + ข้อเขียนออกแบบมาเฉพาะวอลนัท sync ขึ้น cloud แล้ว</div>'+
+        '<button onclick="switchTab(\'lessons\')" class="bg-amber-400 hover:bg-amber-500 text-white font-bold px-6 py-2.5 rounded-xl text-sm">📚 ดูบทเรียนใหม่ →</button>'+
+      '</div>');
+  }
+}
+
+function applyFullLessons(generated){
+  var curWeek=Math.min(4,Math.ceil(new Date().getDate()/7));
+  generated.forEach(function(g){
+    // หา lesson ที่ตรง week + subject
+    var existing=LESSONS.find(function(l){return l.id===g.subjectKey+"-w"+curWeek;});
+    if(!existing){
+      // หา lesson ที่ใกล้ที่สุด
+      existing=LESSONS.find(function(l){return l.id.startsWith(g.subjectKey+"-");});
+    }
+    if(existing){
+      if(g.title) existing.title=g.title;
+      if(g.goal) existing.goal=g.goal;
+      if(g.rationale) existing.rationale=g.rationale;
+      if(g.reading) existing.reading=g.reading;
+      if(g.mcq&&g.mcq.length>=10) existing.mcq=g.mcq;
+      if(g.written&&g.written.length>=3) existing.written=g.written;
+    }
+  });
+  // re-render
+  if(typeof activeTab!=="undefined"){
+    if(activeTab==="lessons"){var ta=document.getElementById("tab-area");if(ta)ta.innerHTML=renderLessons();}
+    else{renderPage();}
   }
 }
 
 function applyCustomCurriculum(curriculum){
+  // compat: รองรับทั้ง full lessons (มี mcq) และ summary-only (มีแค่ title/goal/rationale)
+  if(curriculum&&curriculum.length&&curriculum[0].mcq&&curriculum[0].mcq.length>=10){
+    applyFullLessons(curriculum); return;
+  }
   var subjectMap={"ภาษาไทย":"thai","คณิตศาสตร์":"math","วิทยาศาสตร์":"sci","ร้องเพลง":"sing","เปียโน":"piano","ภาษาอังกฤษ":"eng"};
-  curriculum.forEach(function(c){
-    var key=subjectMap[c.subject]||"eng";
-    // อัปเดตทุก week ของวิชานั้น
+  (curriculum||[]).forEach(function(c){
+    var key=c.subjectKey||subjectMap[c.subject]||"eng";
     LESSONS.filter(function(l){return l.id.startsWith(key+"-");}).forEach(function(l){
       if(c.title) l.title=c.title;
       if(c.goal) l.goal=c.goal;
       if(c.rationale) l.rationale=c.rationale;
     });
   });
-  // re-render ถ้า lessons tab กำลังแสดงอยู่
   if(typeof activeTab!=="undefined"&&activeTab==="lessons"){
-    var ta=document.getElementById("tab-area");
-    if(ta) ta.innerHTML=renderLessons();
+    var ta=document.getElementById("tab-area");if(ta)ta.innerHTML=renderLessons();
   }
 }
 
