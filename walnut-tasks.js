@@ -20,8 +20,14 @@ function getSundayOfWeek(weekNum){
 
 function syncLessonTasks(){
   var ts=getLocalTasks();var changed=false;
+  // ลบ task ที่ lessonId ไม่มีใน LESSONS ปัจจุบัน (W1/W2 orphans)
+  var validIds=LESSONS.map(function(l){return l.id;});
+  var filtered=ts.filter(function(t){
+    return t.type!=="lesson"||validIds.indexOf(t.lessonId)!==-1;
+  });
+  if(filtered.length!==ts.length){ts=filtered;changed=true;}
+
   LESSONS.forEach(function(l){
-    // กำหนดส่ง = วันอาทิตย์ก่อน 21:00 ของสัปดาห์ที่บทเรียนนั้นอยู่
     var due=getSundayOfWeek(l.week||1);
     var existing=ts.find(function(t){return t.lessonId===l.id;});
     var hwDone=getHwState(l.id).submitted;
@@ -31,7 +37,6 @@ function syncLessonTasks(){
         status:hwDone?"done":"pending",due:due});
       changed=true;
     } else {
-      // อัปเดต week, title, due ให้ถูกต้องเสมอ
       var needsUpdate=false;
       if(!existing.week||existing.week!==(l.week||1)){existing.week=l.week||1;needsUpdate=true;}
       if(existing.due!==due){existing.due=due;needsUpdate=true;}

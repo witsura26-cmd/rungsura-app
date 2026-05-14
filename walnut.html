@@ -698,42 +698,45 @@ async function generateIntakeAnalysis(){
 }
 
 // ── FULL LESSON GENERATION PIPELINE ──────────────────────
-var THAI_CURRICULUM_CONTEXT="หลักสูตรแกนกลางการศึกษาขั้นพื้นฐาน พ.ศ.2551 (ปรับปรุง พ.ศ.2560) ชั้น ป.4\n"+
-"สาระและมาตรฐานการเรียนรู้: เน้นให้ผู้เรียนคิดวิเคราะห์ สื่อสารได้ มีทักษะชีวิต\n"+
-"ต้องสอดคล้องตัวชี้วัดชั้นปี ป.4 ของวิชานั้นๆ\n";
+// หลักสูตรไทย: ภาษาไทย เลข วิทย์ สังคม
+var THAI_CURRICULUM="อิงหลักสูตรแกนกลางการศึกษาขั้นพื้นฐาน พ.ศ.2551 (ปรับปรุง 2560) ชั้น ป.4\n"+
+"ต้องสอดคล้องตัวชี้วัดและสาระแกนกลาง เน้นคิดวิเคราะห์ สื่อสาร มีทักษะชีวิต\n";
 
-var GAME_DESIGN_CONTEXT="ออกแบบให้เป็น Mission-based Learning สำหรับเด็ก 8 ขวบ:\n"+
-"- มี 'scene' เป็น emoji ขนาดใหญ่ประกอบ (ใช้หลายๆ emoji สร้าง scene เช่น 🌳🦋✨ หรือ 🚀⭐🌙)\n"+
-"- เนื้อหาเล่าเป็นเรื่องราว เหมือน mission ของเกม\n"+
-"- มีตัวละครที่วอลนัทรู้จัก (ใช้ชื่อวอลนัทในเนื้อหา)\n"+
-"- แต่ละ MCQ เป็น 'ด่าน' มีบริบทสนุก\n"+
-"- ภาษาเป็นกันเอง ไม่เป็นทางการ เหมือนพูดคุยกับน้อง\n";
+// หลักสูตรต่างประเทศ: อังกฤษ ดนตรี จีน วิชาอื่นๆ
+var INTL_CURRICULUM="อิงหลักสูตร UK National Curriculum / US Common Core Grade 3-4\n"+
+"เน้น Communication, Critical Thinking, Creativity สไตล์ตะวันตก\n";
+
+var GAME_DESIGN="ออกแบบเป็น Mission-based Learning เด็ก 8 ขวบ:\n"+
+"- scene: emoji หลายตัวสร้างภาพ เช่น 🌟🔮✨🦋 หรือ 🚀🌙⭐🪐\n"+
+"- เนื้อหาเล่าเป็นเรื่อง มี missionBrief นำเรื่อง ใช้ชื่อวอลนัท\n"+
+"- แต่ละ MCQ เป็น 'ด่าน' มีบริบทสนุก ภาษากันเอง\n"+
+"- มีความรู้สึกสำเร็จ ผ่านด่าน XP\n";
 
 var TEACHER_CONFIG=[
   {subjectKey:"thai", subject:"ภาษาไทย", icon:"✍️", teacherId:"kru-nim", teacher:"ครูนิ่ม",
    bg:"bg-yellow-50",border:"border-yellow-200",badge:"bg-yellow-100 text-yellow-700",
-   system:"คุณคือครูนิ่ม ครูภาษาไทยที่เนี้ยบที่สุด\n"+THAI_CURRICULUM_CONTEXT+GAME_DESIGN_CONTEXT+
-   "วิชาภาษาไทย ป.4: มาตรฐาน ท1-ท5 เน้นการอ่าน การเขียน การฟัง การพูด หลักภาษา\nตอบ JSON เท่านั้น ไม่มี markdown"},
+   system:"คุณคือครูนิ่ม ครูภาษาไทย\n"+THAI_CURRICULUM+GAME_DESIGN+
+   "ตัวชี้วัด ป.4 ภาษาไทย: ท1.1 อ่านออกเสียง ท2.1 เขียนสื่อสาร ท4.1 หลักภาษา ท5.1 วรรณคดี\nตอบ JSON เท่านั้น ไม่มี markdown"},
   {subjectKey:"math", subject:"คณิตศาสตร์", icon:"🎮", teacherId:"kru-o", teacher:"ครูโอ๋",
    bg:"bg-orange-50",border:"border-orange-200",badge:"bg-orange-100 text-orange-700",
-   system:"คุณคือครูโอ๋ ครูเลขที่ขี้เล่น เลขคือเกม\n"+THAI_CURRICULUM_CONTEXT+GAME_DESIGN_CONTEXT+
-   "วิชาคณิตศาสตร์ ป.4: มาตรฐาน ค1-ค6 จำนวนนับ เศษส่วน ทศนิยม การวัด เรขาคณิต\nตอบ JSON เท่านั้น ไม่มี markdown"},
+   system:"คุณคือครูโอ๋ ครูเลขที่เลขคือเกม\n"+THAI_CURRICULUM+GAME_DESIGN+
+   "ตัวชี้วัด ป.4 คณิต: ค1.1 จำนวนนับ เศษส่วน ทศนิยม ค2.1 การวัด ค3.1 เรขาคณิต ค5.1 สถิติ\nตอบ JSON เท่านั้น ไม่มี markdown"},
   {subjectKey:"sci", subject:"วิทยาศาสตร์", icon:"🔭", teacherId:"kru-kai", teacher:"ครูไก่",
    bg:"bg-cyan-50",border:"border-cyan-200",badge:"bg-cyan-100 text-cyan-700",
-   system:"คุณคือครูไก่ ครูวิทย์ที่ตื่นเต้นกับทุกอย่าง\n"+THAI_CURRICULUM_CONTEXT+GAME_DESIGN_CONTEXT+
-   "วิชาวิทยาศาสตร์ ป.4: มาตรฐาน ว1-ว8 ชีวิตและสิ่งแวดล้อม สสารและสมบัติ แรงและการเคลื่อนที่\nตอบ JSON เท่านั้น ไม่มี markdown"},
+   system:"คุณคือครูไก่ ครูวิทย์\n"+THAI_CURRICULUM+GAME_DESIGN+
+   "ตัวชี้วัด ป.4 วิทย์: ว1.2 ชีวิตสิ่งมีชีวิต ว2.1 สสารและสมบัติ ว4.1 แรงและการเคลื่อนที่ ว3.1 โลก\nตอบ JSON เท่านั้น ไม่มี markdown"},
   {subjectKey:"sing", subject:"ร้องเพลง", icon:"🎤", teacherId:"kru-mint", teacher:"ครูมิ้นท์",
    bg:"bg-rose-50",border:"border-rose-200",badge:"bg-rose-100 text-rose-700",
-   system:"คุณคือครูมิ้นท์ ครูร้องเพลง passionate\n"+THAI_CURRICULUM_CONTEXT+GAME_DESIGN_CONTEXT+
-   "วิชาดนตรี ป.4: มาตรฐาน ศ2 ทักษะทางดนตรี การร้องเพลง การแสดงออก ความซาบซึ้ง\nตอบ JSON เท่านั้น ไม่มี markdown"},
+   system:"คุณคือครูมิ้นท์ ครูร้องเพลง\n"+INTL_CURRICULUM+GAME_DESIGN+
+   "อิง UK/US Music Curriculum Grade 3-4: Vocal technique, Pitch, Rhythm, Performance, Music theory basics\nตอบ JSON เท่านั้น ไม่มี markdown"},
   {subjectKey:"piano", subject:"เปียโน", icon:"🎹", teacherId:"kru-big", teacher:"ครูบิ๊ก",
    bg:"bg-violet-50",border:"border-violet-200",badge:"bg-violet-100 text-violet-700",
-   system:"คุณคือครูบิ๊ก ครูเปียโนที่แม่นทฤษฎี\n"+THAI_CURRICULUM_CONTEXT+GAME_DESIGN_CONTEXT+
-   "วิชาดนตรี ป.4 (เปียโน): ทฤษฎีดนตรีเบื้องต้น การอ่านโน้ต เทคนิคเปียโน\nตอบ JSON เท่านั้น ไม่มี markdown"},
+   system:"คุณคือครูบิ๊ก ครูเปียโน\n"+INTL_CURRICULUM+GAME_DESIGN+
+   "อิง ABRSM Grade 1-2 / Royal Conservatory: Note reading, Scales, Pieces, Theory, Ear training\nตอบ JSON เท่านั้น ไม่มี markdown"},
   {subjectKey:"eng", subject:"ภาษาอังกฤษ", icon:"🇬🇧", teacherId:"kru-jen", teacher:"ครูเจน",
    bg:"bg-indigo-50",border:"border-indigo-200",badge:"bg-indigo-100 text-indigo-700",
-   system:"คุณคือครูเจน ครูอังกฤษ Communication first\n"+THAI_CURRICULUM_CONTEXT+GAME_DESIGN_CONTEXT+
-   "วิชาภาษาอังกฤษ ป.4: มาตรฐาน ต1-ต3 ฟัง พูด อ่าน เขียน ไวยากรณ์พื้นฐาน คำศัพท์ชีวิตประจำวัน\nตอบ JSON เท่านั้น ไม่มี markdown"},
+   system:"คุณคือครูเจน ครูอังกฤษ Communication first\n"+INTL_CURRICULUM+GAME_DESIGN+
+   "อิง US Common Core ELA Grade 3-4: Reading comprehension, Grammar, Vocabulary, Writing, Speaking\nตอบ JSON เท่านั้น ไม่มี markdown"},
 ];
 
 // ── helper: call API แล้วคืน string ──
@@ -910,6 +913,10 @@ function loadCustomCurriculumIfExists(){
 
 // ── REPORT TAB ────────────────────────────────────────────
 function renderReport(){
+  try{ return _renderReportInner(); }
+  catch(e){ return '<div class="bg-white rounded-b-2xl border border-t-0 border-gray-100 p-8 text-center text-red-400 text-sm">⚠️ renderReport error: '+e.message+'</div>'; }
+}
+function _renderReportInner(){
   // ── รวบรวมข้อมูลทุกวิชา ──
   const SUBJECTS=["thai","math","sci","sing","piano","eng"];
   const subjectGroups=SUBJECTS.map(s=>{
@@ -1504,9 +1511,16 @@ function setSyncStatus(msg,ok){
 async function doSync(manual){
   setSyncStatus("⏳ sync...","");
   try{
-    if(manual){ // ล้างเฉพาะ hw_ เก่าเพื่อเปิดพื้นที่ ไม่ลบ events
+    if(manual){
+      // ล้าง hw_ ที่ไม่ตรงกับ LESSONS ปัจจุบัน (W1/W2 orphans)
+      var validLessonIds=LESSONS.map(function(l){return l.id;});
       var oldKeys=[];
-      for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(k&&k.startsWith("hw_")&&!k.startsWith("hw_hist_"))oldKeys.push(k);}
+      for(var i=0;i<localStorage.length;i++){
+        var k=localStorage.key(i);
+        if(!k||!k.startsWith("hw_")) continue;
+        var lid=k.replace("hw_hist_","").replace("hw_","");
+        if(validLessonIds.indexOf(lid)===-1) oldKeys.push(k);
+      }
       oldKeys.forEach(function(k){localStorage.removeItem(k);});
     }
     var r=await fetch("/api/sync");
@@ -1623,9 +1637,34 @@ async function doSync(manual){
 
 async function init(){
   initSb();
-  loadCustomCurriculumIfExists(); // โหลด curriculum ที่ออกแบบจาก interview ถ้ามี
+  cleanupOldLessonData(); // ลบ hw_ ของ W1/W2 ที่ไม่มีใน LESSONS แล้ว
+  loadCustomCurriculumIfExists();
   renderPage();
   doSync();
+}
+
+function cleanupOldLessonData(){
+  // หา lesson ids ที่ยังมีอยู่
+  var validIds=LESSONS.map(function(l){return l.id;});
+  var toRemove=[];
+  for(var i=0;i<localStorage.length;i++){
+    var k=localStorage.key(i);
+    if(!k)continue;
+    // hw_ หรือ hw_hist_ ที่ lesson id ไม่อยู่ใน LESSONS ปัจจุบัน
+    if(k.startsWith("hw_")){
+      var lid=k.replace("hw_hist_","").replace("hw_","");
+      if(validIds.indexOf(lid)===-1) toRemove.push(k);
+    }
+  }
+  toRemove.forEach(function(k){localStorage.removeItem(k);});
+  // ล้าง old curriculum ที่อาจ conflict
+  try{
+    var saved=JSON.parse(localStorage.getItem("walnut_custom_curriculum")||"null");
+    if(saved&&saved.lessons){
+      var hasOldWeek=saved.lessons.some(function(l){return (l.week||1)<3;});
+      if(hasOldWeek) localStorage.removeItem("walnut_custom_curriculum");
+    }
+  }catch(e){}
 }
 init();
 
