@@ -325,7 +325,10 @@ function renderTab(){
 // ── LESSONS TAB ───────────────────────────────────────────
 function renderLessons(){
   const done=LESSONS.filter(l=>getHwState(l.id).submitted).length;
-  const week=LESSONS[0]?.week||1;
+  // คำนวณสัปดาห์ปัจจุบันของเดือน (1-4)
+  const todayDate=new Date().getDate();
+  const currentWeekOfMonth=Math.min(4,Math.ceil(todayDate/7));
+  const week=currentWeekOfMonth;
   return `
     <div class="bg-white rounded-b-2xl border border-t-0 border-gray-100">
 
@@ -351,13 +354,22 @@ function renderLessons(){
       <div class="px-5 py-4 bg-amber-50 border-b border-amber-100">
         <div class="text-xs font-bold text-amber-700 mb-3">📅 แผน 4 สัปดาห์ — พฤษภาคม 2026</div>
         <div class="grid grid-cols-4 gap-2">
-          ${[0,1,2,3].map(wi=>`
-            <div class="rounded-xl p-2.5 ${wi===week-1?"bg-amber-400 text-white shadow":"bg-white text-gray-500 border border-amber-100"}">
-              <div class="text-xs font-bold mb-1.5 ${wi===week-1?"text-white":"text-amber-600"}">W${wi+1}</div>
+          ${[0,1,2,3].map(wi=>{
+            const isCurrent=wi===week-1;
+            // คำนวณ calWeekOffset สำหรับสัปดาห์นั้น
+            const weekOffset=wi-(week-1);
+            return `
+            <div onclick="switchTab('tasks');calWeekOffset=${weekOffset};setTimeout(function(){document.querySelector('.walnut-tab[data-tab=tasks]')?.click();},10);window.scrollTo({top:0,behavior:'smooth'});calView='week';refreshCalTop();"
+              class="rounded-xl p-2.5 cursor-pointer transition-all ${isCurrent?"bg-amber-400 text-white shadow-md":"bg-white text-gray-500 border border-amber-100 hover:border-amber-300"}">
+              <div class="text-xs font-bold mb-1 ${isCurrent?"text-white":"text-amber-600"}">
+                W${wi+1} ${isCurrent?"← ตอนนี้":""}
+              </div>
               ${LESSONS.map(l=>`
                 <div class="text-xs truncate mb-0.5 leading-tight">${l.icon} ${l.plan[wi]?.t?.split("+")[0]?.trim()||"—"}</div>
               `).join("")}
-            </div>`).join("")}
+              <div class="text-xs mt-1 ${isCurrent?"text-amber-100":"text-gray-300"}">📅 ดูปฏิทิน</div>
+            </div>`;
+          }).join("")}
         </div>
       </div>
 
