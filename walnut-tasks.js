@@ -162,7 +162,30 @@ function renderTasks(){
   var doneLessons=LESSONS.filter(function(l){return getHwState(l.id).submitted;}).length;
   var allDone=doneLessons===LESSONS.length;
 
+  // Pre-Assessment banner
+  var intakeData=null;try{intakeData=JSON.parse(localStorage.getItem("walnut_intake_v1")||"null");}catch(e){}
+  var intakeBanner="";
+  if(!intakeData||!intakeData.complete){
+    intakeBanner='<div class="bg-gradient-to-r from-violet-500 to-purple-600 rounded-2xl p-4 text-white">'+
+      '<div class="flex items-center gap-3">'+
+        '<div class="text-3xl">🎯</div>'+
+        '<div class="flex-1">'+
+          '<div class="font-black text-sm">Pre-Assessment Interview</div>'+
+          '<div class="text-xs opacity-80 mt-0.5">ให้วอลนัทตอบคำถามก่อน ทีมจะได้ออกแบบบทเรียนที่เหมาะที่สุด</div>'+
+        '</div>'+
+        '<button onclick="openIntakeFlow()" class="bg-white text-purple-600 font-black text-sm px-4 py-2 rounded-xl hover:bg-purple-50 flex-shrink-0">เริ่ม →</button>'+
+      '</div>'+
+    '</div>';
+  } else {
+    intakeBanner='<div class="bg-green-50 border border-green-200 rounded-2xl p-3 flex items-center gap-3">'+
+      '<span class="text-xl">✅</span>'+
+      '<div class="flex-1 text-xs text-green-700 font-semibold">Interview เสร็จแล้ว — ทีมได้ข้อมูลวอลนัทครบแล้วค่ะ</div>'+
+      '<button onclick="openIntakeFlow()" class="text-xs text-green-600 underline">ดู/ทำใหม่</button>'+
+    '</div>';
+  }
+
   return '<div class="bg-white rounded-b-2xl border border-t-0 border-gray-100 p-5 space-y-4">'+
+    intakeBanner+
     // Progress
     '<div class="bg-amber-50 border border-amber-200 rounded-2xl p-4">'+
       '<div class="flex items-center justify-between mb-2">'+

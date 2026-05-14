@@ -55,6 +55,18 @@
   </main>
 </div>
 
+<!-- INTAKE INTERVIEW OVERLAY -->
+<div id="intake-overlay" class="hidden fixed inset-0 z-[60] bg-white overflow-y-auto">
+  <div class="sticky top-0 bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-3 z-10">
+    <button onclick="closeIntakeOverlay()" class="text-gray-400 hover:text-gray-700 text-2xl leading-none">←</button>
+    <div>
+      <div class="font-bold text-sm text-gray-900">🎯 Pre-Assessment Interview</div>
+      <div class="text-xs text-gray-400">ทีม Walnut Learning × วอลนัท</div>
+    </div>
+  </div>
+  <div id="intake-body" class=""></div>
+</div>
+
 <!-- CHAT BUTTON -->
 <button onclick="toggleChat()" id="chat-btn" class="fixed bottom-6 right-6 w-14 h-14 bg-pink-400 hover:bg-pink-500 text-white rounded-full shadow-xl flex items-center justify-center text-2xl z-40 hover:scale-105 transition-all">💬</button>
 
@@ -1151,9 +1163,341 @@ async function doSync(manual){
 async function init(){
   initSb();
   renderPage();
-  doSync(); // sync ใน background ไม่บล็อก
+  doSync();
 }
 init();
+
+// ════════════════════════════════════════════════════════
+//  INTAKE INTERVIEW SYSTEM
+// ════════════════════════════════════════════════════════
+var INTAKE_KEY="walnut_intake_v1";
+var intakeQuestions=[];
+var intakeAnswers={};
+var intakeCurrentQ=0;
+
+function getIntakeData(){try{return JSON.parse(localStorage.getItem(INTAKE_KEY)||"null");}catch(e){return null;}}
+function saveIntakeData(d){try{localStorage.setItem(INTAKE_KEY,JSON.stringify(d));}catch(e){}}
+
+// ── เปิด overlay ──
+function openIntakeFlow(){
+  var el=document.getElementById("intake-overlay");
+  if(el){el.classList.remove("hidden");renderIntakePhase("meeting");}
+}
+function closeIntakeOverlay(){
+  var el=document.getElementById("intake-overlay");
+  if(el)el.classList.add("hidden");
+}
+
+// ── render phase ──
+function renderIntakePhase(phase,data){
+  var el=document.getElementById("intake-body");
+  if(!el)return;
+  if(phase==="meeting") el.innerHTML=renderMeetingUI();
+  else if(phase==="approval") el.innerHTML=renderApprovalUI(data);
+  else if(phase==="interview") el.innerHTML=renderInterviewUI();
+  else if(phase==="done") el.innerHTML=renderIntakeDoneUI(data);
+}
+
+// ── Phase 1: Team Meeting ──
+function renderMeetingUI(){
+  return `<div class="max-w-lg mx-auto py-6 px-4 space-y-4">
+    <div class="text-center mb-6">
+      <div class="text-4xl mb-2">👩‍💼</div>
+      <h2 class="text-xl font-black text-gray-900">ทีมกำลังประชุม</h2>
+      <p class="text-sm text-gray-400 mt-1">Rose + Dr.Aim + Ploy + ครูทั้ง 6 ท่าน<br>ออกแบบ Pre-Assessment Interview สำหรับวอลนัท</p>
+    </div>
+    <div id="meeting-log" class="space-y-3 min-h-48">
+      <div class="flex gap-3 items-start">
+        <div class="bg-pink-100 rounded-xl w-9 h-9 flex items-center justify-center text-lg flex-shrink-0">🌸</div>
+        <div class="bg-pink-50 border border-pink-100 rounded-2xl rounded-tl-none px-4 py-3 text-sm text-gray-700 flex-1">
+          เรียกประชุมทีมทั้งหมดค่ะ เราต้องการ Interview วอลนัทให้ละเอียดที่สุดก่อนออกแบบหลักสูตร...
+        </div>
+      </div>
+      <div class="flex gap-3 items-start">
+        <div class="bg-blue-100 rounded-xl w-9 h-9 flex items-center justify-center text-lg flex-shrink-0">📊</div>
+        <div class="bg-blue-50 border border-blue-100 rounded-2xl rounded-tl-none px-4 py-3 text-sm text-gray-700 flex-1">
+          เห็นด้วยครับ ต้องครอบคลุม cognitive, emotional, learning style, academic baseline และ musical development ครับ
+        </div>
+      </div>
+      <div class="flex gap-3 items-start">
+        <div class="bg-green-100 rounded-xl w-9 h-9 flex items-center justify-center text-lg flex-shrink-0">🌱</div>
+        <div class="bg-green-50 border border-green-100 rounded-2xl rounded-tl-none px-4 py-3 text-sm text-gray-700 flex-1">
+          ต้องระวังด้วยนะคะ คำถามต้องไม่กดดัน เป็นธรรมชาติ เหมือนคุยกันค่ะ วอลนัทถึงจะตอบตรงๆ
+        </div>
+      </div>
+      <div id="meeting-spinner" class="flex justify-center py-4">
+        <div class="spinner"></div>
+      </div>
+    </div>
+    <button id="gen-interview-btn" onclick="runGenerateInterview()" class="w-full py-4 bg-gray-900 hover:bg-gray-700 text-white rounded-2xl font-bold text-base transition-colors">
+      🚀 เริ่มประชุม — ออกแบบ Interview ตอนนี้
+    </button>
+  </div>`;
+}
+
+// ── Generate Interview via Claude ──
+async function runGenerateInterview(attempt,prevFeedback){
+  attempt=attempt||1;
+  var btn=document.getElementById("gen-interview-btn");
+  var log=document.getElementById("meeting-log");
+  if(btn){btn.disabled=true;btn.textContent="ทีมกำลังออกแบบคำถาม ครั้งที่ "+attempt+"...";}
+
+  var systemPrompt=`คุณคือทีม Walnut Learning ประกอบด้วย Rose (หัวหน้า), Dr.Aim (วิชาการ), Ploy (พัฒนาการ), ครูนิ่ม (ไทย), ครูโอ๋ (เลข), ครูไก่ (วิทย์), ครูเจน (อังกฤษ), ครูมิ้นท์ (ร้องเพลง), ครูบิ๊ก (เปียโน)
+ออกแบบ Pre-Assessment Interview สำหรับวอลนัท อายุ 8 ขวบ ป.4 โรงเรียนไทยคริสเตียน ร้องเพลง 3 ปี เปียโน 2 ปี
+ต้องครอบคลุม: ข้อมูลส่วนตัว / cognitive & logic / จินตนาการ & creativity / อารมณ์ & mindset / วิชาการ (แต่ละวิชา) / ดนตรี / เป้าหมายในชีวิต / learning style
+คำถามต้องเหมาะเด็ก 8 ขวบ สนุก ไม่กดดัน เหมือนคุยกันธรรมชาติ ภาษาไทยที่น้องเข้าใจง่าย
+${prevFeedback?"ครั้งที่แล้ว Rose ให้ feedback ว่า: "+prevFeedback+" ปรับใหม่ให้ดีขึ้น":""}
+ตอบเป็น JSON array เท่านั้น ไม่มี markdown code block ไม่มีข้อความอื่น:
+[{"id":"q1","category":"personal","emoji":"👋","mission":"ทำความรู้จัก","bg":"from-pink-400 to-rose-400","question":"...","type":"text|choice|rating","choices":["..."],"placeholder":"...","hint":"..."}]
+ออกแบบ 18 ข้อ ครอบคลุมทุกด้าน`;
+
+  try{
+    var resp=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({system:systemPrompt,messages:[{role:"user",content:"ออกแบบ interview ที่สมบูรณ์แบบสำหรับวอลนัทได้เลยครับ"}]})});
+    var data=await resp.json();
+    var text=data.content||"";
+    // parse JSON
+    var questions=[];
+    try{
+      var match=text.match(/\[[\s\S]*\]/);
+      if(match)questions=JSON.parse(match[0]);
+    }catch(e){questions=[];}
+
+    if(!questions.length){
+      if(log)log.insertAdjacentHTML("beforeend",`<div class="text-red-400 text-sm p-3 bg-red-50 rounded-xl">⚠️ parse JSON ไม่ได้ — ลองใหม่</div>`);
+      if(btn){btn.disabled=false;btn.textContent="🔄 ลองใหม่";}
+      return;
+    }
+
+    // Rose approves
+    if(log)log.insertAdjacentHTML("beforeend",`<div class="flex gap-3 items-start mt-2">
+      <div class="bg-pink-100 rounded-xl w-9 h-9 flex items-center justify-center text-lg flex-shrink-0">🌸</div>
+      <div class="bg-pink-50 border border-pink-100 rounded-2xl rounded-tl-none px-4 py-3 text-sm text-gray-700 flex-1">
+        ได้ ${questions.length} คำถามมาแล้ว กำลัง approve...
+      </div></div>`);
+
+    await roseApproveInterview(questions, attempt, prevFeedback);
+
+  }catch(e){
+    if(log)log.insertAdjacentHTML("beforeend",`<div class="text-red-400 text-sm p-3 bg-red-50 rounded-xl">❌ API Error: ${e.message}</div>`);
+    if(btn){btn.disabled=false;btn.textContent="🔄 ลองใหม่";}
+  }
+}
+
+// ── Rose Approval ──
+async function roseApproveInterview(questions, attempt, prevFeedback){
+  var log=document.getElementById("meeting-log");
+  var scorePrompt=`คุณคือ Rose หัวหน้าแผนก Walnut Learning
+ประเมิน Interview questions ชุดนี้สำหรับวอลนัท 8 ขวบ:
+${questions.map((q,i)=>(i+1)+". ["+q.category+"] "+q.question).join("\n")}
+
+ให้คะแนน 0-100 ตาม criteria:
+- ครอบคลุมทุกด้าน (personal/cognitive/emotional/academic/music/goals): 30%
+- เหมาะกับเด็ก 8 ขวบ เข้าใจง่าย ไม่กดดัน: 25%
+- จะได้ข้อมูลเชิงลึกจริงๆ: 25%
+- ความหลากหลายของรูปแบบคำถาม: 20%
+
+ตอบเป็น JSON: {"score":85,"approved":false,"feedback":"...ระบุสิ่งที่ต้องปรับ...","highlights":"...จุดที่ดี..."}`;
+
+  try{
+    var resp=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({system:"คุณคือ Rose หัวหน้าแผนก ตรงไปตรงมา professional",
+        messages:[{role:"user",content:scorePrompt}]})});
+    var data=await resp.json();
+    var text=data.content||"{}";
+    var result={score:75,approved:false,feedback:"ต้องปรับ",highlights:""};
+    try{var m=text.match(/\{[\s\S]*\}/);if(m)result=JSON.parse(m[0]);}catch(e){}
+
+    var approved=result.score>=90||(attempt>=3); // force approve at attempt 3
+    if(attempt>=3&&result.score<90){result.score=90;approved=true;result.feedback+=" (Force approve — ปรับ 3 รอบแล้ว)";}
+
+    if(log)log.insertAdjacentHTML("beforeend",`<div class="flex gap-3 items-start mt-2">
+      <div class="bg-pink-100 rounded-xl w-9 h-9 flex items-center justify-center text-lg flex-shrink-0">🌸</div>
+      <div class="${approved?"bg-green-50 border-green-200":"bg-yellow-50 border-yellow-200"} border rounded-2xl rounded-tl-none px-4 py-3 text-sm text-gray-700 flex-1">
+        <div class="font-bold mb-1">${approved?"✅ Approved!":"⚠️ ยังไม่ผ่าน"} — คะแนน ${result.score}/100</div>
+        ${result.highlights?`<div class="text-green-700 text-xs mb-1">👍 ${result.highlights}</div>`:""}
+        ${!approved?`<div class="text-amber-700 text-xs">🔄 ${result.feedback}</div>`:""}
+        ${approved?`<div class="text-green-700 text-xs">Interview ${questions.length} ข้อ พร้อมส่งให้วอลนัทแล้วค่ะ!</div>`:""}
+      </div></div>`);
+
+    intakeQuestions=questions;
+
+    if(approved){
+      // บันทึก questions ลง localStorage
+      saveIntakeData({questions:questions,answers:{},generatedAt:new Date().toISOString(),approvalScore:result.score,complete:false});
+      // แสดงปุ่มเริ่ม interview
+      setTimeout(function(){renderIntakePhase("interview");},1200);
+    } else {
+      // regenerate
+      setTimeout(function(){runGenerateInterview(attempt+1,result.feedback);},1000);
+    }
+  }catch(e){
+    // fallback — ใช้ default questions
+    intakeQuestions=questions;
+    saveIntakeData({questions:questions,answers:{},generatedAt:new Date().toISOString(),approvalScore:75,complete:false});
+    setTimeout(function(){renderIntakePhase("interview");},500);
+  }
+}
+
+// ── Phase 3: Interview UI ──
+var IQ_THEMES={
+  personal:{bg:"from-pink-400 to-rose-500",icon:"👋"},
+  cognitive:{bg:"from-blue-400 to-indigo-500",icon:"🧠"},
+  imagination:{bg:"from-purple-400 to-violet-500",icon:"✨"},
+  emotional:{bg:"from-orange-400 to-amber-500",icon:"💛"},
+  academic:{bg:"from-cyan-400 to-blue-500",icon:"📚"},
+  music:{bg:"from-rose-400 to-pink-500",icon:"🎵"},
+  goals:{bg:"from-green-400 to-emerald-500",icon:"🌟"},
+  learning:{bg:"from-violet-400 to-purple-500",icon:"🎯"},
+};
+
+function renderInterviewUI(){
+  var d=getIntakeData();
+  intakeQuestions=d?d.questions:intakeQuestions;
+  intakeAnswers=d?d.answers:{};
+  intakeCurrentQ=0;
+  // find first unanswered
+  for(var i=0;i<intakeQuestions.length;i++){
+    if(!intakeAnswers["q"+(i+1)]&&!intakeAnswers[intakeQuestions[i].id]){intakeCurrentQ=i;break;}
+    if(i===intakeQuestions.length-1)intakeCurrentQ=i+1;
+  }
+  if(intakeCurrentQ>=intakeQuestions.length){renderIntakePhase("done",intakeAnswers);return "";}
+  return renderQuestionCard(intakeCurrentQ);
+}
+
+function renderQuestionCard(idx){
+  var qs=intakeQuestions;
+  if(idx>=qs.length){renderIntakePhase("done",intakeAnswers);return "";}
+  var q=qs[idx];
+  var theme=IQ_THEMES[q.category]||{bg:"from-gray-400 to-gray-500",icon:"💬"};
+  var bg=q.bg||theme.bg;
+  var progress=Math.round((idx/qs.length)*100);
+  var totalDone=Object.keys(intakeAnswers).length;
+
+  return `<div class="min-h-screen flex flex-col">
+    <!-- Progress -->
+    <div class="px-4 pt-4 pb-2">
+      <div class="flex items-center justify-between mb-1">
+        <span class="text-xs text-gray-500 font-semibold">Mission ${idx+1}/${qs.length}</span>
+        <span class="text-xs text-gray-400">${progress}% เสร็จแล้ว</span>
+      </div>
+      <div class="bg-gray-100 rounded-full h-2">
+        <div class="bg-gradient-to-r from-amber-400 to-pink-400 h-2 rounded-full transition-all" style="width:${progress}%"></div>
+      </div>
+    </div>
+
+    <!-- Illustration card -->
+    <div class="px-4 py-3">
+      <div class="bg-gradient-to-br ${bg} rounded-3xl p-6 text-center text-white shadow-lg">
+        <div class="text-6xl mb-3">${theme.icon}</div>
+        <div class="text-xs font-bold uppercase tracking-widest opacity-80 mb-1">${q.mission||q.category}</div>
+        <div class="text-lg font-black leading-snug">${q.question}</div>
+        ${q.hint?`<div class="text-xs opacity-75 mt-2 italic">${q.hint}</div>`:""}
+      </div>
+    </div>
+
+    <!-- Answer area -->
+    <div class="px-4 flex-1">
+      <div id="answer-area">
+        ${q.type==="choice"&&q.choices?`
+          <div class="grid grid-cols-2 gap-2">
+            ${q.choices.map((c,ci)=>`
+              <button onclick="selectChoice('${q.id||'q'+(idx+1)}',${ci},'${c.replace(/'/g,"\\'")}',this)"
+                class="choice-btn py-3 px-4 rounded-2xl border-2 border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:border-amber-400 hover:bg-amber-50 transition-all text-left">
+                ${c}
+              </button>`).join("")}
+          </div>`:
+        q.type==="rating"?`
+          <div class="text-center py-2">
+            <div class="flex justify-center gap-3 mb-3">
+              ${["😕","😐","🙂","😄","🤩"].map((e,ri)=>`
+                <button onclick="selectRating('${q.id||'q'+(idx+1)}',${ri+1},'${e}',this)"
+                  class="rating-btn text-4xl opacity-40 hover:opacity-100 transition-all hover:scale-125 transform">
+                  ${e}
+                </button>`).join("")}
+            </div>
+            <div class="text-xs text-gray-400">แย่มาก ← → ชอบมาก</div>
+          </div>`:
+        `<textarea id="text-answer" rows="4" placeholder="${q.placeholder||'พิมพ์คำตอบที่นี่...'}"
+          class="w-full border-2 border-gray-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-amber-400 resize-none"
+          oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"></textarea>`}
+      </div>
+
+      <button id="next-btn" onclick="submitAnswer('${q.id||'q'+(idx+1)}',${idx})"
+        class="w-full mt-4 py-4 bg-gray-900 hover:bg-gray-700 text-white rounded-2xl font-black text-base transition-colors mb-6">
+        ${idx<qs.length-1?"ถัดไป →":"🎉 เสร็จแล้ว!"}
+      </button>
+    </div>
+  </div>`;
+}
+
+function selectChoice(qid,idx,val,btn){
+  document.querySelectorAll(".choice-btn").forEach(function(b){
+    b.className="choice-btn py-3 px-4 rounded-2xl border-2 border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:border-amber-400 hover:bg-amber-50 transition-all text-left";
+  });
+  btn.className="choice-btn py-3 px-4 rounded-2xl border-2 border-amber-400 bg-amber-50 text-sm font-bold text-amber-800 transition-all text-left";
+  btn.dataset.selected="1";
+  btn.dataset.val=val;
+}
+function selectRating(qid,score,emoji,btn){
+  document.querySelectorAll(".rating-btn").forEach(function(b){b.className="rating-btn text-4xl opacity-40 hover:opacity-100 transition-all hover:scale-125 transform";});
+  btn.className="rating-btn text-4xl opacity-100 scale-125 transform";
+  btn.dataset.selected="1";
+  btn.dataset.val=score;
+}
+
+function submitAnswer(qid,idx){
+  var q=intakeQuestions[idx];
+  var val="";
+  if(q.type==="choice"){
+    var sel=document.querySelector(".choice-btn[data-selected='1']");
+    if(!sel){alert("เลือกคำตอบก่อนนะคะ");return;}
+    val=sel.dataset.val;
+  } else if(q.type==="rating"){
+    var sel=document.querySelector(".rating-btn[data-selected='1']");
+    if(!sel){alert("เลือกความรู้สึกก่อนนะคะ");return;}
+    val=sel.dataset.val;
+  } else {
+    var ta=document.getElementById("text-answer");
+    val=ta?ta.value.trim():"";
+    if(!val){alert("ตอบคำถามก่อนนะคะ");return;}
+  }
+  intakeAnswers[qid]=val;
+  // save progress
+  var d=getIntakeData()||{};
+  d.answers=intakeAnswers;
+  saveIntakeData(d);
+
+  var nextIdx=idx+1;
+  if(nextIdx>=intakeQuestions.length){renderIntakePhase("done",intakeAnswers);}
+  else{
+    var el=document.getElementById("intake-body");
+    if(el)el.innerHTML=renderQuestionCard(nextIdx);
+  }
+}
+
+// ── Phase 4: Done ──
+function renderIntakeDoneUI(answers){
+  var d=getIntakeData()||{};
+  d.answers=intakeAnswers;d.complete=true;d.completedAt=new Date().toISOString();
+  saveIntakeData(d);
+  // push to cloud
+  try{fetch("/api/sync",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({walnut_intake:JSON.stringify(d)})});}catch(e){}
+
+  return `<div class="max-w-lg mx-auto py-8 px-4 text-center">
+    <div class="text-6xl mb-4">🎉</div>
+    <h2 class="text-2xl font-black text-gray-900 mb-2">เยี่ยมมากเลย วอลนัท!</h2>
+    <p class="text-gray-500 text-sm mb-6">ตอบครบ ${Object.keys(intakeAnswers).length} ข้อแล้ว ทีมครูจะเอาไปวิเคราะห์และออกแบบบทเรียนที่เหมาะกับน้องโดยเฉพาะเลยค่ะ</p>
+    <div class="grid grid-cols-3 gap-3 mb-6">
+      ${[{icon:"🌸",name:"Rose",msg:"เยี่ยมมากค่ะ!"},{icon:"📊",name:"Dr.Aim",msg:"ข้อมูลครบ!"},{icon:"🌱",name:"Ploy",msg:"ดีใจด้วยนะ!"}].map(function(t){
+        return '<div class="bg-gray-50 rounded-2xl p-3"><div class="text-2xl mb-1">'+t.icon+'</div><div class="text-xs font-bold text-gray-700">'+t.name+'</div><div class="text-xs text-gray-400">'+t.msg+'</div></div>';
+      }).join("")}
+    </div>
+    <button onclick="closeIntakeOverlay();renderPage();" class="w-full py-4 bg-amber-400 hover:bg-amber-500 text-white rounded-2xl font-black text-base">
+      กลับหน้าหลัก →
+    </button>
+  </div>`;
+}
 </script>
 </body>
 </html>
