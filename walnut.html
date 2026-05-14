@@ -325,52 +325,87 @@ function renderTab(){
 // ── LESSONS TAB ───────────────────────────────────────────
 function renderLessons(){
   const done=LESSONS.filter(l=>getHwState(l.id).submitted).length;
+  const week=LESSONS[0]?.week||1;
   return `
-    <div class="bg-white rounded-b-2xl border border-t-0 border-gray-100 p-5">
-      <div class="flex items-center justify-between mb-5">
-        <div>
-          <h3 class="font-bold text-gray-900">บทเรียนสัปดาห์ที่ 1 — พฤษภาคม 2026</h3>
-          <p class="text-sm text-gray-400">ออกแบบโดยทีมครู · อนุมัติโดย 🌸 Tangmo</p>
+    <div class="bg-white rounded-b-2xl border border-t-0 border-gray-100">
+
+      <!-- Header -->
+      <div class="p-5 border-b border-gray-100">
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="font-bold text-gray-900 text-base">📚 แผนการเรียนสัปดาห์ที่ ${week}</h3>
+            <p class="text-xs text-gray-400 mt-0.5">ออกแบบโดยทีมครูร่วมกับ Dr.Aim · อนุมัติโดย 🌸 Tangmo</p>
+          </div>
+          <div class="text-center bg-amber-50 border border-amber-200 rounded-2xl px-4 py-2">
+            <div class="text-lg font-bold text-amber-500">${done}/${LESSONS.length}</div>
+            <div class="text-xs text-gray-400">ส่งแล้ว</div>
+          </div>
         </div>
-        <div class="text-center bg-amber-50 border border-amber-200 rounded-2xl px-4 py-2">
-          <div class="text-xl font-bold text-amber-500">${done}/${LESSONS.length}</div>
-          <div class="text-xs text-gray-400">ส่งแล้ว</div>
+        <!-- Progress bar -->
+        <div class="mt-3 bg-gray-100 rounded-full h-2">
+          <div class="bg-amber-400 h-2 rounded-full transition-all" style="width:${Math.round(done/LESSONS.length*100)}%"></div>
         </div>
       </div>
-      <div class="mb-5 bg-amber-50 rounded-2xl p-4">
-        <div class="text-xs font-bold text-amber-700 mb-3">📅 แผนการเรียนเดือนพฤษภาคม</div>
+
+      <!-- Monthly Plan Overview -->
+      <div class="px-5 py-4 bg-amber-50 border-b border-amber-100">
+        <div class="text-xs font-bold text-amber-700 mb-3">📅 แผน 4 สัปดาห์ — พฤษภาคม 2026</div>
         <div class="grid grid-cols-4 gap-2">
           ${[0,1,2,3].map(wi=>`
-            <div class="${wi===0?"bg-amber-400 text-white":"bg-white text-gray-600"} rounded-xl p-2 text-center">
-              <div class="text-xs font-bold mb-1">สัปดาห์ ${wi+1}</div>
-              ${LESSONS.map(l=>`<div class="text-xs truncate opacity-80">${l.icon} ${l.plan[wi]?.t?.split(" ")[0]||""}</div>`).join("")}
+            <div class="rounded-xl p-2.5 ${wi===week-1?"bg-amber-400 text-white shadow":"bg-white text-gray-500 border border-amber-100"}">
+              <div class="text-xs font-bold mb-1.5 ${wi===week-1?"text-white":"text-amber-600"}">W${wi+1}</div>
+              ${LESSONS.map(l=>`
+                <div class="text-xs truncate mb-0.5 leading-tight">${l.icon} ${l.plan[wi]?.t?.split("+")[0]?.trim()||"—"}</div>
+              `).join("")}
             </div>`).join("")}
         </div>
       </div>
-      <div class="space-y-3">
+
+      <!-- Lesson Cards -->
+      <div class="p-4 space-y-4">
         ${LESSONS.map(l=>{
           const st=getHwState(l.id);
+          const submitted=st.submitted;
+          const pct=submitted?Math.round((st.score||0)/20*100):0;
+          const needsRetake=submitted&&pct<RETAKE_THRESHOLD;
           return `
-          <div class="${l.bg} border ${l.border} rounded-2xl p-4">
-            <div class="flex items-center gap-3">
-              <div class="text-2xl">${l.icon}</div>
-              <div class="flex-1 min-w-0">
+          <div class="border ${l.border} rounded-2xl overflow-hidden">
+            <!-- Lesson Header -->
+            <div class="${l.bg} px-4 py-3 flex items-center gap-3">
+              <span class="text-2xl">${l.icon}</span>
+              <div class="flex-1">
                 <div class="flex items-center gap-2 flex-wrap">
-                  <span class="font-bold text-gray-900 text-sm">${l.subject}</span>
+                  <span class="font-bold text-gray-900">${l.subject}</span>
                   <span class="status-badge ${l.badge}">${l.teacher}</span>
-                  ${st.submitted?`<span class="status-badge bg-green-100 text-green-700">✅ ${st.score??0}/20</span>`:""}
+                  ${submitted?`<span class="status-badge ${needsRetake?"bg-red-100 text-red-700":"bg-green-100 text-green-700"}">${needsRetake?"🔄":"✅"} ${st.score??0}/20</span>`:'<span class="status-badge bg-gray-100 text-gray-500">⏳ รอทำ</span>'}
                 </div>
-                <div class="text-xs text-gray-600 mt-0.5">${l.title}</div>
-                <div class="text-xs text-gray-400">🎯 ${l.goal}</div>
+                <div class="text-xs text-gray-600 mt-0.5 font-medium">${l.title}</div>
               </div>
             </div>
-            <div class="flex gap-2 mt-3">
+
+            <!-- Team Discussion -->
+            <div class="px-4 py-3 border-t border-gray-100 bg-blue-50">
+              <div class="flex items-start gap-2">
+                <span class="text-sm">🌸</span>
+                <div>
+                  <div class="text-xs font-bold text-blue-700 mb-1">Tangmo + Dr.Aim ประชุมครู — เลือกเนื้อหานี้เพราะ</div>
+                  <div class="text-xs text-gray-600 leading-relaxed">${l.rationale||l.goal}</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Goal -->
+            <div class="px-4 py-3 border-t border-gray-100">
+              <div class="text-xs font-bold text-gray-500 mb-1">🎯 วอลนัทจะได้เรียนรู้</div>
+              <div class="text-xs text-gray-700">${l.goal}</div>
+            </div>
+
+            <!-- Action Button -->
+            <div class="px-4 pb-4 pt-2">
               <button onclick="openHw('${l.id}')"
-                class="${st.submitted?"bg-blue-100 text-blue-700 hover:bg-blue-200":"bg-amber-400 hover:bg-amber-500 text-white"} flex-1 py-2 rounded-xl text-sm font-semibold transition-colors">
-                ${st.submitted?"📊 ดูผลและ Dr.Aim วิเคราะห์":"✏️ ทำการบ้าน (15+5 ข้อ)"}
+                class="w-full py-3 rounded-xl font-bold text-sm transition-colors ${submitted?(needsRetake?"bg-red-400 hover:bg-red-500 text-white":"bg-blue-500 hover:bg-blue-600 text-white"):"bg-amber-400 hover:bg-amber-500 text-white"}">
+                ${submitted?(needsRetake?"🔄 ทำใหม่ + ดูผลเดิม":"📊 ดูผลการเรียนและบทวิเคราะห์"):"✏️ เข้าทำแบบทดสอบ (15 MCQ + 5 ข้อเขียน)"}
               </button>
-              <button onclick="openTeacher('${l.teacherId}')"
-                class="px-4 py-2 rounded-xl text-sm border ${l.badge} font-medium hover:opacity-80">💬</button>
             </div>
           </div>`;
         }).join("")}
