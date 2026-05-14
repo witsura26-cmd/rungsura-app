@@ -229,9 +229,18 @@
 
 
 <!-- DATA + LOGIC (separate files for easy editing) -->
-<script src="/walnut-data.js?v=6"></script>
-<script src="/walnut-tasks.js?v=6"></script>
-<script src="/walnut-hw.js?v=6"></script>
+<script src="/walnut-data.js?v=10" onerror="document.getElementById('app').innerHTML='<div class=\'p-6 text-red-500\'>❌ walnut-data.js โหลดไม่ได้</div>'"></script>
+<script src="/walnut-tasks.js?v=10" onerror="document.getElementById('app').innerHTML='<div class=\'p-6 text-red-500\'>❌ walnut-tasks.js โหลดไม่ได้</div>'"></script>
+<script src="/walnut-hw.js?v=10" onerror="document.getElementById('app').innerHTML='<div class=\'p-6 text-red-500\'>❌ walnut-hw.js โหลดไม่ได้</div>'"></script>
+<script>
+// Global error trap — แสดง error จริงๆ แทน spinner
+window.addEventListener('error', function(e){
+  var app=document.getElementById('app');
+  if(app&&app.innerHTML.includes('spinner')){
+    app.innerHTML='<div class="p-5 bg-red-50 text-red-600 rounded-2xl m-4 text-sm"><strong>⚠️ JS Error:</strong><br>'+e.message+'<br><small>'+e.filename+':'+e.lineno+'</small></div>';
+  }
+});
+</script>
 
 <!-- COORDINATOR (config, state, page shell, teacher chat, settings) -->
 <script>
