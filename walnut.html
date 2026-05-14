@@ -574,38 +574,44 @@ function renderPreAssessmentSection(){
           </div>
         </details>`:""}
 
-      <!-- ★ BIG BUTTON: ให้ทีมครูออกแบบฝึกหัด -->
+      <!-- ปุ่มรายวิชา -->
       <div class="mt-5 pt-4 border-t border-gray-100">
-        <div class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">📚 อัปเดตบทเรียนสัปดาห์นี้</div>
-        ${curPkg?`<div class="text-xs text-green-600 mb-2">✅ ออกแบบล่าสุด: ${new Date(curPkg.createdAt).toLocaleDateString("th-TH",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})} · W${curPkg.week||"?"}</div>`:""}
-        <button onclick="runFullLessonPipeline()" id="gen-lessons-btn"
-          class="w-full py-4 bg-gradient-to-r from-amber-400 to-orange-400 hover:from-amber-500 hover:to-orange-500 text-white rounded-2xl font-black text-base shadow-md transition-all">
-          🎓 ให้ทีมครูออกแบบฝึกหัดสัปดาห์นี้
+        <div class="flex items-center justify-between mb-3">
+          <div class="text-xs font-bold text-gray-500 uppercase tracking-wider">📚 ออกแบบบทเรียนรายวิชา</div>
+          <div class="text-xs text-gray-400">กดทีละวิชาได้เลย</div>
+        </div>
+        <div class="space-y-2" id="subject-gen-grid">
+          ${TEACHER_CONFIG.map(function(tc){
+            var saved=null;
+            try{
+              var pkg=JSON.parse(localStorage.getItem("walnut_custom_curriculum")||"null");
+              if(pkg&&pkg.lessons) saved=pkg.lessons.find(function(l){return l.subjectKey===tc.subjectKey;});
+            }catch(e){}
+            var hasMcq=saved&&saved.mcq&&saved.mcq.length>=10;
+            return '<div id="sgrow-'+tc.subjectKey+'" class="flex items-center gap-3 p-3 rounded-2xl border '+tc.border+' '+tc.bg+'">'+
+              '<span class="text-xl flex-shrink-0">'+tc.icon+'</span>'+
+              '<div class="flex-1 min-w-0">'+
+                '<div class="text-sm font-bold text-gray-800">'+tc.subject+'</div>'+
+                '<div id="sgstatus-'+tc.subjectKey+'" class="text-xs text-gray-500 truncate">'+
+                  (hasMcq?'✅ '+saved.title+' · '+(saved.mcq.length)+' MCQ':'⬜ ยังไม่ได้ออกแบบ')+
+                '</div>'+
+              '</div>'+
+              '<button id="sgbtn-'+tc.subjectKey+'" onclick="genOneSubject(\''+tc.subjectKey+'\')" '+
+                'class="flex-shrink-0 px-3 py-2 rounded-xl text-xs font-bold transition-all '+
+                (hasMcq?'bg-green-100 text-green-700 hover:bg-green-200':'bg-gray-900 text-white hover:bg-gray-700')+'">'+(hasMcq?'🔄 ทำใหม่':'✏️ ออกแบบ')+'</button>'+
+            '</div>';
+          }).join("")}
+        </div>
+        <button onclick="autoBookLessonCalendar();syncLessonTasks();switchTab('tasks')"
+          class="w-full mt-3 py-2.5 border-2 border-amber-300 text-amber-700 rounded-xl text-xs font-bold hover:bg-amber-50">
+          📅 อัปเดต Tasks + ปฏิทิน
         </button>
-        <div class="text-xs text-gray-400 text-center mt-1.5">อัปเดต บทเรียน + Tasks + ปฏิทิน พร้อมกัน</div>
       </div>
 
       <!-- ผลการออกแบบครั้งล่าสุด (persistent) -->
       ${(function(){
         if(!curPkg||!curPkg.lessons||!curPkg.lessons.length) return "";
-        return '<div class="mt-4 border border-gray-100 rounded-2xl overflow-hidden">'+
-          '<div class="bg-gray-50 px-4 py-2 flex items-center justify-between">'+
-            '<span class="text-xs font-bold text-gray-500">📋 บทเรียนที่ออกแบบล่าสุด (W'+curPkg.week+')</span>'+
-            '<button onclick="switchTab(\'lessons\')" class="text-xs text-amber-600 font-semibold">ดูบทเรียน →</button>'+
-          '</div>'+
-          '<div class="divide-y divide-gray-50">'+
-            curPkg.lessons.map(function(l){
-              return '<div class="px-4 py-2.5 flex items-center gap-2">'+
-                '<span class="text-base">'+l.icon+'</span>'+
-                '<div class="flex-1 min-w-0">'+
-                  '<div class="text-xs font-bold text-gray-700 truncate">'+(l.title||l.subject)+'</div>'+
-                  '<div class="text-xs text-gray-400 truncate">'+(l.goal||"")+'</div>'+
-                '</div>'+
-                '<span class="text-xs text-green-500 flex-shrink-0">'+(l.mcq&&l.mcq.length?"✅ "+l.mcq.length+" MCQ":"⏳")+'</span>'+
-              '</div>';
-            }).join("")+
-          '</div>'+
-        '</div>';
+        return "";  // แสดงใน section ด้านล่างแทน
       })()}
 
       <!-- inline panel สำหรับ pipeline ที่กำลังรัน -->
@@ -700,6 +706,97 @@ async function generateIntakeAnalysis(){
       '</div>');
   }
   await designCurriculumFromInterview(context, results);
+}
+
+// ── GENERATE ONE SUBJECT ─────────────────────────────────
+async function genOneSubject(subjectKey){
+  var tc=TEACHER_CONFIG.find(function(t){return t.subjectKey===subjectKey;});
+  if(!tc){alert("ไม่พบ config วิชานี้");return;}
+  var btn=document.getElementById("sgbtn-"+subjectKey);
+  var status=document.getElementById("sgstatus-"+subjectKey);
+  if(btn){btn.disabled=true;btn.textContent="⏳...";}
+  if(status) status.textContent="กำลังออกแบบ...";
+
+  var walnutInfo="วอลนัท 8 ขวบ ป.4 โรงเรียนไทยคริสเตียน ร้องเพลง 3 ปี เปียโน 2 ปี";
+  try{
+    var intake=JSON.parse(localStorage.getItem("walnut_intake_v1")||"null");
+    if(intake&&intake.answers){
+      var ans=intake.answers; var keys=Object.keys(ans).slice(0,8);
+      walnutInfo+="\nจาก interview: "+keys.map(function(k){return ans[k];}).join(" / ");
+    }
+  }catch(e){}
+  var curWeek=Math.min(4,Math.ceil(new Date().getDate()/7));
+
+  try{
+    // ── CALL 1: เนื้อหา (title + reading ยาว + examples) ──
+    if(status) status.textContent="📖 เขียนเนื้อหา...";
+    var c1=await callChat(
+      tc.system+"\nเขียนเนื้อหาให้ละเอียด มีตัวอย่างจริง อธิบายง่ายเหมือนเล่าให้เพื่อน",
+      "นักเรียน: "+walnutInfo+"\n"+
+      "สร้างบทเรียน "+tc.subject+" W"+curWeek+" สไตล์ Mission\n"+
+      'ตอบ JSON เดียว เริ่ม { จบ }:\n{"title":"Mission X: ชื่อ","scene":"emoji 5 ตัว","missionBrief":"2 ประโยค","goal":"เป้าหมาย","rationale":"1 ประโยค","reading":"เนื้อหา 4-5 ย่อหน้า มีตัวอย่างจริง step-by-step เข้าใจง่าย ไม่เกิน 450 คำ"}',
+      3000);
+    var p1=parseObj(c1);
+    if(!p1||!p1.title){
+      var c1b=await callChat("คุณคือ"+tc.teacher+" ตอบ JSON เท่านั้น",
+        "บทเรียน "+tc.subject+" ป.4 สำหรับเด็ก 8 ขวบ\n"+
+        'JSON: {"title":"...","scene":"🌟✨🎯","missionBrief":"...","goal":"...","rationale":"...","reading":"เนื้อหา 4 ย่อหน้า มีตัวอย่าง อธิบายง่าย"}',2048);
+      p1=parseObj(c1b);
+      if(!p1||!p1.title) throw new Error("เนื้อหา fail: "+c1.slice(0,80));
+    }
+
+    // ── CALL 2: MCQ 10 ข้อ ──
+    if(status) status.textContent="❓ สร้าง MCQ 1-10...";
+    var c2=await callChat(tc.system,
+      tc.subject+" บทเรียน: "+p1.title+"\nสรุปเนื้อหา: "+(p1.reading||"").slice(0,400)+
+      "\nสร้าง 10 MCQ ด่านสไตล์เกม อิงหลักสูตร ป.4 ตัวเลือก 4 ตัว\n"+
+      'ตอบ JSON array เริ่ม [ จบ ]:\n[{"q":"ด่าน 1: ...","c":["ก. ","ข. ","ค. ","ง. "],"a":0}]',2500);
+    var mcq1=parseObj(c2)||[];
+    if(!Array.isArray(mcq1)) mcq1=[];
+
+    // ── CALL 3: MCQ 5 ข้อ + Written ──
+    if(status) status.textContent="✍️ สร้าง MCQ 11-15 + ข้อเขียน...";
+    var c3=await callChat(tc.system,
+      tc.subject+" บทเรียน: "+p1.title+
+      "\nสร้าง 5 MCQ (ข้อ 11-15) + 5 ข้อเขียนที่มี hint กระตุ้นความคิด\n"+
+      'ตอบ JSON เดียว เริ่ม { จบ }:\n{"mcq":[{"q":"ด่าน 11: ...","c":["ก. ","ข. ","ค. ","ง. "],"a":0}],"written":[{"q":"คำถาม","hint":"คำใบ้"}]}',2000);
+    var p3=parseObj(c3)||{};
+    var mcq2=Array.isArray(p3.mcq)?p3.mcq:[];
+    var written=Array.isArray(p3.written)&&p3.written.length>=3?p3.written:[
+      {q:"สรุปสิ่งที่เรียนด้วยคำพูดตัวเอง",hint:"เล่าเหมือนบอกเพื่อน"},
+      {q:"ยกตัวอย่างจากชีวิตจริงที่เชื่อมกับเนื้อหา",hint:"ใกล้ตัวคุณ"},
+      {q:"อะไรที่ยากที่สุดในบทนี้ เพราะอะไร",hint:"ตอบตรงๆได้เลย"},
+      {q:"ถ้าจะสอนเพื่อน จะอธิบายอย่างไร",hint:"พูดว่าอะไรก่อน"},
+      {q:"อยากรู้เรื่องอะไรเพิ่มเติมจากบทนี้",hint:"ไม่มีคำตอบผิด"},
+    ];
+
+    var allMcq=mcq1.concat(mcq2).slice(0,15);
+    if(allMcq.length<8) throw new Error("MCQ ไม่พอ ("+allMcq.length+") ลองใหม่");
+
+    var lesson=Object.assign({},p1,{
+      subjectKey:tc.subjectKey,subject:tc.subject,icon:tc.icon,
+      teacher:tc.teacher,teacherId:tc.teacherId,
+      bg:tc.bg,border:tc.border,badge:tc.badge,week:curWeek,
+      mcq:allMcq,written:written
+    });
+
+    // บันทึก
+    var pkg=null;try{pkg=JSON.parse(localStorage.getItem("walnut_custom_curriculum")||"null");}catch(e){}
+    if(!pkg||pkg.week!==curWeek) pkg={lessons:[],createdAt:new Date().toISOString(),week:curWeek};
+    pkg.lessons=pkg.lessons.filter(function(l){return l.subjectKey!==subjectKey;});
+    pkg.lessons.push(lesson); pkg.updatedAt=new Date().toISOString();
+    try{localStorage.setItem("walnut_custom_curriculum",JSON.stringify(pkg));}catch(e){}
+    applyFullLessons([lesson],true);
+    try{fetch("/api/sync",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({walnut_custom_curriculum:JSON.stringify(pkg)})});}catch(e){}
+
+    if(status) status.textContent="✅ "+lesson.title+" · "+allMcq.length+" MCQ";
+    if(btn){btn.disabled=false;btn.textContent="🔄 ทำใหม่";
+      btn.className="flex-shrink-0 px-3 py-2 rounded-xl text-xs font-bold bg-green-100 text-green-700 hover:bg-green-200";}
+  }catch(e){
+    if(status) status.textContent="⚠️ "+String(e.message).slice(0,60);
+    if(btn){btn.disabled=false;btn.textContent="🔄 ลองใหม่";
+      btn.className="flex-shrink-0 px-3 py-2 rounded-xl text-xs font-bold bg-red-100 text-red-600 hover:bg-red-200";}
+  }
 }
 
 // ── FULL LESSON GENERATION PIPELINE ──────────────────────
