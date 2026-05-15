@@ -229,9 +229,9 @@
 
 
 <!-- DATA + LOGIC (separate files for easy editing) -->
-<script src="/walnut-data.js?v=11" onerror="document.getElementById('app').innerHTML='<div class=\'p-6 text-red-500\'>❌ walnut-data.js โหลดไม่ได้</div>'"></script>
-<script src="/walnut-tasks.js?v=11" onerror="document.getElementById('app').innerHTML='<div class=\'p-6 text-red-500\'>❌ walnut-tasks.js โหลดไม่ได้</div>'"></script>
-<script src="/walnut-hw.js?v=11" onerror="document.getElementById('app').innerHTML='<div class=\'p-6 text-red-500\'>❌ walnut-hw.js โหลดไม่ได้</div>'"></script>
+<script src="/walnut-data.js?v=12" onerror="document.getElementById('app').innerHTML='<div class=\'p-6 text-red-500\'>❌ walnut-data.js โหลดไม่ได้</div>'"></script>
+<script src="/walnut-tasks.js?v=12" onerror="document.getElementById('app').innerHTML='<div class=\'p-6 text-red-500\'>❌ walnut-tasks.js โหลดไม่ได้</div>'"></script>
+<script src="/walnut-hw.js?v=12" onerror="document.getElementById('app').innerHTML='<div class=\'p-6 text-red-500\'>❌ walnut-hw.js โหลดไม่ได้</div>'"></script>
 <script>
 // ── W3 LESSON OVERRIDE — inline เพื่อไม่พึ่ง cache ของ walnut-data.js ──────
 // รันทันทีหลัง walnut-data.js โหลด — ถ้า LESSONS ยังไม่มี content (mcq<10) จะ override
@@ -687,6 +687,7 @@ function renderPreAssessmentSection(){
   var hasAnalysis=!!(savedAnalysis.rose||savedAnalysis.aim||savedAnalysis.ploy);
   var hist=[]; try{hist=JSON.parse(localStorage.getItem("walnut_analysis_history")||"[]");}catch(e){}
   var curPkg=null; try{curPkg=JSON.parse(localStorage.getItem("walnut_custom_curriculum")||"null");}catch(e){}
+  var curWeek=Math.min(4,Math.ceil(new Date().getDate()/7));
 
   return `<div class="border-b border-gray-100">
 
@@ -774,38 +775,33 @@ function renderPreAssessmentSection(){
           </div>
         </details>`:""}
 
-      <!-- ปุ่มรายวิชา -->
+      <!-- โบนัสรายวิชา -->
       <div class="mt-5 pt-4 border-t border-gray-100">
-        <div class="flex items-center justify-between mb-3">
-          <div class="text-xs font-bold text-gray-500 uppercase tracking-wider">📚 ออกแบบบทเรียนรายวิชา</div>
-          <div class="text-xs text-gray-400">กดทีละวิชาได้เลย</div>
+        <div class="flex items-center justify-between mb-1">
+          <div class="text-xs font-bold text-gray-500 uppercase tracking-wider">⚡ โบนัสรายวิชา</div>
+          <div class="text-xs text-gray-400">หลังส่งงานแล้วมีไฟอยากทำต่อ</div>
         </div>
+        <div class="text-xs text-gray-400 mb-3">Dr.Aim + Ploy วิเคราะห์ผล → ออกโจทย์พิเศษให้เพิ่ม 5 ข้อ</div>
         <div class="space-y-2" id="subject-gen-grid">
           ${TEACHER_CONFIG.map(function(tc){
-            var saved=null;
-            try{
-              var pkg=JSON.parse(localStorage.getItem("walnut_custom_curriculum")||"null");
-              if(pkg&&pkg.lessons) saved=pkg.lessons.find(function(l){return l.subjectKey===tc.subjectKey;});
-            }catch(e){}
-            var hasMcq=saved&&saved.mcq&&saved.mcq.length>=10;
+            var hw=getHwState(tc.subjectKey+"-w"+curWeek);
+            var submitted=hw&&hw.submitted;
+            var score=hw&&hw.score!=null?hw.score:null;
+            var bonusDone=!!localStorage.getItem("walnut_bonus_"+tc.subjectKey+"_w"+curWeek);
+            var statusText=bonusDone?"⚡ โบนัสทำแล้ว":submitted?("✅ ส่งแล้ว "+(score!=null?score+"/20":"")):"⏳ ยังไม่ได้ส่งงาน";
             return '<div id="sgrow-'+tc.subjectKey+'" class="flex items-center gap-3 p-3 rounded-2xl border '+tc.border+' '+tc.bg+'">'+
               '<span class="text-xl flex-shrink-0">'+tc.icon+'</span>'+
               '<div class="flex-1 min-w-0">'+
                 '<div class="text-sm font-bold text-gray-800">'+tc.subject+'</div>'+
-                '<div id="sgstatus-'+tc.subjectKey+'" class="text-xs text-gray-500 truncate">'+
-                  (hasMcq?'✅ '+saved.title+' · '+(saved.mcq.length)+' MCQ':'⬜ ยังไม่ได้ออกแบบ')+
-                '</div>'+
+                '<div id="sgstatus-'+tc.subjectKey+'" class="text-xs text-gray-500 truncate">'+statusText+'</div>'+
               '</div>'+
-              '<button id="sgbtn-'+tc.subjectKey+'" onclick="genOneSubject(\''+tc.subjectKey+'\')" '+
+              '<button id="sgbtn-'+tc.subjectKey+'" onclick="genBonusQuiz(\''+tc.subjectKey+'\')" '+
                 'class="flex-shrink-0 px-3 py-2 rounded-xl text-xs font-bold transition-all '+
-                (hasMcq?'bg-green-100 text-green-700 hover:bg-green-200':'bg-gray-900 text-white hover:bg-gray-700')+'">'+(hasMcq?'🔄 ทำใหม่':'✏️ ออกแบบ')+'</button>'+
+                (bonusDone?'bg-purple-100 text-purple-700 hover:bg-purple-200':submitted?'bg-amber-400 text-white hover:bg-amber-500':'bg-gray-100 text-gray-400 cursor-not-allowed')+'">'+(bonusDone?'🔄 ทำใหม่':'⚡ โบนัส')+'</button>'+
             '</div>';
           }).join("")}
         </div>
-        <button onclick="autoBookLessonCalendar();syncLessonTasks();switchTab('tasks')"
-          class="w-full mt-3 py-2.5 border-2 border-amber-300 text-amber-700 rounded-xl text-xs font-bold hover:bg-amber-50">
-          📅 อัปเดต Tasks + ปฏิทิน
-        </button>
+        <div id="bonus-result-panel" class="mt-3 space-y-3"></div>
       </div>
 
       <!-- ผลการออกแบบครั้งล่าสุด (persistent) -->
@@ -909,6 +905,119 @@ async function generateIntakeAnalysis(){
 }
 
 // ── GENERATE ONE SUBJECT ─────────────────────────────────
+async function genBonusQuiz(subjectKey){
+  var tc=TEACHER_CONFIG.find(function(t){return t.subjectKey===subjectKey;});
+  if(!tc){alert("ไม่พบ config วิชานี้");return;}
+  var curWeek=Math.min(4,Math.ceil(new Date().getDate()/7));
+  var hw=getHwState(tc.subjectKey+"-w"+curWeek);
+  if(!hw||!hw.submitted){alert("วอลนัทต้องส่งงานวิชา"+tc.subject+"ก่อนนะคะ 😊");return;}
+
+  var btn=document.getElementById("sgbtn-"+subjectKey);
+  var status=document.getElementById("sgstatus-"+subjectKey);
+  var panel=document.getElementById("bonus-result-panel");
+  if(btn){btn.disabled=true;btn.textContent="⏳...";}
+  if(status) status.textContent="กำลังวิเคราะห์...";
+
+  // ดึงข้อมูลบทเรียนและคะแนน
+  var lesson=LESSONS.find(function(l){return l.id===subjectKey+"-w"+curWeek;});
+  var lessonTitle=lesson?lesson.title:"บทเรียนสัปดาห์นี้";
+  var lessonReading=lesson?lesson.reading||"":"";
+  var score=hw.score!=null?hw.score:null;
+  var pct=score!=null?Math.round(score/20*100):null;
+  var hist=[]; try{hist=JSON.parse(localStorage.getItem("hw_hist_"+subjectKey+"-w"+curWeek)||"[]");}catch(e){}
+  var attempts=hist.length||1;
+  var wrongAnswers=hw.wrongAnswers||[];
+
+  // context สำหรับทีมวิเคราะห์
+  var scoreContext="วอลนัท อายุ 8 ขวบ ป.4 — "+tc.subject+" W"+curWeek+"\n"+
+    "บทเรียน: "+lessonTitle+"\n"+
+    "คะแนน: "+(score!=null?score+"/20 ("+pct+"%)":"ไม่ทราบ")+"\n"+
+    "จำนวนครั้งที่ทำ: "+attempts+" ครั้ง\n"+
+    (wrongAnswers.length?"ข้อที่ผิด: "+wrongAnswers.slice(0,5).join(", ")+"\n":"")+
+    "เนื้อหาที่เรียน (สรุป): "+(lessonReading||"").slice(0,300);
+
+  // สร้าง card ผลวิเคราะห์
+  var cardId="bonus-card-"+subjectKey;
+  var existCard=document.getElementById(cardId);
+  if(existCard) existCard.remove();
+
+  panel.insertAdjacentHTML("beforeend",
+    '<div id="'+cardId+'" class="border '+tc.border+' rounded-2xl overflow-hidden">'+
+      '<div class="'+tc.bg+' px-4 py-2.5 flex items-center gap-2">'+
+        '<span>'+tc.icon+'</span>'+
+        '<span class="font-bold text-sm">'+tc.teacher+' × Dr.Aim × Ploy — กำลังวิเคราะห์...</span>'+
+      '</div>'+
+      '<div class="px-4 py-3 text-sm text-gray-400 animate-pulse">อ่านผลงานวอลนัท...</div>'+
+    '</div>');
+
+  try{
+    // CALL 1: Dr.Aim + Ploy วิเคราะห์ผลร่วมกัน
+    if(status) status.textContent="📊 Dr.Aim + Ploy อ่านผล...";
+    var analysisResp=await callChat(
+      "คุณคือทีมวิเคราะห์ Walnut Learning ประกอบด้วย Dr.Aim (นักวิชาการ) และ Ploy (นักพัฒนาศักยภาพ)\n"+
+      "วิเคราะห์ผลงานวอลนัท แล้วสรุปสั้นๆ 2-3 ประโยค: เข้าใจเรื่องอะไรดี จุดไหนที่ยังต้องฝึก และแนะนำทิศทางโบนัส\n"+
+      "ตอบกระชับ อบอุ่น ให้กำลังใจ ใช้ภาษาไทย",
+      scoreContext+"\n\nวิเคราะห์ผลและแนะนำว่าควรออกโบนัสโจทย์แนวไหน",
+      800);
+
+    // CALL 2: ครูออกโจทย์โบนัส 5 ข้อ ยากขึ้นนิดนึง
+    if(status) status.textContent="✏️ "+tc.teacher+" ออกโจทย์โบนัส...";
+    var bonusResp=await callChat(
+      tc.system+"\nออกโจทย์โบนัส: ยากขึ้นจากบทเรียน 20-30% ใช้ความเข้าใจ ไม่ใช่แค่จำ",
+      scoreContext+"\n\nออก 5 MCQ โบนัสที่ท้าทายกว่าเดิม ต้องคิดเพิ่ม\n"+
+      'ตอบ JSON array เท่านั้น เริ่ม [ จบ ]:\n[{"q":"โบนัสด่านที่ 1: ...","c":["ก. ","ข. ","ค. ","ง. "],"a":0,"explain":"ทำไมถึงตอบแบบนี้ 1 ประโยค"}]',
+      1500);
+
+    var bonusMcq=parseObj(bonusResp)||[];
+    if(!Array.isArray(bonusMcq)||bonusMcq.length<3){
+      bonusMcq=[
+        {q:"โบนัสด่านที่ 1: คำถามทดสอบความเข้าใจเพิ่มเติม",c:["ก. ตัวเลือก 1","ข. ตัวเลือก 2","ค. ตัวเลือก 3","ง. ตัวเลือก 4"],a:0,explain:""},
+      ];
+    }
+
+    // บันทึกโบนัส
+    var bonusData={subjectKey:subjectKey,week:curWeek,analysis:analysisResp,mcq:bonusMcq,createdAt:new Date().toISOString()};
+    try{localStorage.setItem("walnut_bonus_"+subjectKey+"_w"+curWeek,JSON.stringify(bonusData));}catch(e){}
+
+    // แสดงผล
+    var card=document.getElementById(cardId);
+    if(card){
+      card.querySelector("div:first-child").innerHTML='<span>'+tc.icon+'</span><span class="font-bold text-sm">'+tc.teacher+' × Dr.Aim × Ploy — วิเคราะห์เสร็จ ✅</span>';
+      card.lastElementChild.className="px-4 py-3 text-sm text-gray-700";
+      var mcqHtml=bonusMcq.map(function(q,i){
+        return '<div class="mt-2 p-2 bg-white rounded-xl border border-gray-100">'+
+          '<div class="font-semibold text-xs mb-1">'+q.q+'</div>'+
+          '<div class="text-xs text-gray-500 space-y-0.5">'+q.c.map(function(c){return '<div>'+c+'</div>';}).join("")+'</div>'+
+          (q.explain?'<div class="text-xs text-blue-500 mt-1">💡 '+q.explain+'</div>':'')+
+        '</div>';
+      }).join("");
+      card.lastElementChild.innerHTML=
+        '<div class="mb-3 text-sm leading-relaxed text-gray-700 bg-blue-50 rounded-xl p-3">'+
+          '<div class="font-bold text-xs text-blue-700 mb-1">📊 Dr.Aim + Ploy วิเคราะห์:</div>'+
+          analysisResp+
+        '</div>'+
+        '<div class="font-bold text-xs text-gray-600 mb-2">⚡ โจทย์โบนัส '+bonusMcq.length+' ข้อ (ยากขึ้นนิดนึง):</div>'+
+        mcqHtml+
+        '<div class="mt-3 text-xs text-gray-400 text-center">โจทย์โบนัสเป็นแนวทาง — คุณวิทและทีมครูจะนำไปออกแบบเทสจริงสัปดาห์หน้า 📚</div>';
+    }
+
+    if(status) status.textContent="⚡ โบนัสพร้อมแล้ว";
+    if(btn){btn.disabled=false;btn.textContent="🔄 ทำใหม่";
+      btn.className="flex-shrink-0 px-3 py-2 rounded-xl text-xs font-bold bg-purple-100 text-purple-700 hover:bg-purple-200";}
+
+  }catch(e){
+    var card2=document.getElementById(cardId);
+    if(card2){
+      card2.querySelector("div:first-child").innerHTML='<span>'+tc.icon+'</span><span class="font-bold text-sm text-red-500">⚠️ Error</span>';
+      card2.lastElementChild.className="px-4 py-3 text-xs text-red-400";
+      card2.lastElementChild.textContent=String(e.message).slice(0,120);
+    }
+    if(status) status.textContent="⚠️ ลองใหม่";
+    if(btn){btn.disabled=false;btn.textContent="🔄 ลองใหม่";
+      btn.className="flex-shrink-0 px-3 py-2 rounded-xl text-xs font-bold bg-red-100 text-red-600 hover:bg-red-200";}
+  }
+}
+
 async function genOneSubject(subjectKey){
   var tc=TEACHER_CONFIG.find(function(t){return t.subjectKey===subjectKey;});
   if(!tc){alert("ไม่พบ config วิชานี้");return;}
