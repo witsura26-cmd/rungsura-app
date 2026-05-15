@@ -507,31 +507,59 @@ async function checkWritten(lessonId){
   var btn=document.getElementById("btn-check-written");
   if(btn){btn.textContent="⏳ ครูกำลังตรวจ..."; btn.disabled=true;}
   try{
-    var wtext=l.written.map(function(q,i){
-      return "ข้อ "+(i+1)+":\nคำถาม: "+q.q+"\nคำตอบ: "+((st.writtenAnswers&&st.writtenAnswers[i]&&st.writtenAnswers[i].trim())||"(ไม่ได้เขียน — ให้ 0)");
-    }).join("\n---\n");
-    var sysW="คุณคือ"+l.teacher+" ตรวจข้อเขียน วิชา"+l.subject+" ของวอลนัท 8 ขวบ ป.4\n"+
-      "ให้ 0-10 ต่อข้อ feedback ตรงๆ มี model answer ถ้าคะแนนต่ำ\n"+
-      'ตอบ JSON เท่านั้น: {"questions":[{"score":7,"feedback":"...","breakdown":"...","model":""}],"overall":"..."}';
-    var rW=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({max_tokens:2000,system:sysW,messages:[{role:"user",content:wtext}]})});
-    if(!rW.ok) throw new Error("HTTP "+rW.status);
-    var dW=await rW.json();
-    var txtW=(typeof dW.content==="string"?dW.content:"").replace(/```json\s*/gi,"").replace(/```\s*/g,"").trim();
-    var mW=txtW.match(/\{[\s\S]*\}/);
-    if(!mW) throw new Error("ไม่ได้รับ JSON กลับมา");
-    var pW=JSON.parse(mW[0]);
-    st.writtenEvals=pW.questions||[];
-    st.writtenOverall=pW.overall||"";
-    st.writtenRaw=st.writtenEvals.reduce(function(a,e){return a+(e.score||0);},0);
+    // ตรวจทีละข้อ — ป้องกัน JSON ใหญ่เกินและตัด
+    var evals=[];
+    var overall="";
+    var numQ=l.written.length;
+    for(var qi=0;qi<numQ;qi++){
+      if(btn) btn.textContent="⏳ ตรวจข้อ "+(qi+1)+"/"+numQ+"...";
+      var ans=(st.writtenAnswers&&st.writtenAnswers[qi]&&st.writtenAnswers[qi].trim())||"(ไม่ได้เขียน — ให้ 0)";
+      var sysQ="คุณคือ"+l.teacher+" ตรวจข้อเขียนวิชา"+l.subject+" ของวอลนัท 8 ขวบ ป.4\n"+
+        "ให้คะแนน 0-10 พร้อม feedback สั้นๆ ตรงๆ และ model answer ถ้าคะแนน<8\n"+
+        'ตอบ JSON บรรทัดเดียว ห้ามขึ้นบรรทัดใหม่ใน string: {"score":7,"feedback":"...","model":""}';
+      var rQ=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({max_tokens:600,system:sysQ,
+          messages:[{role:"user",content:"คำถาม: "+l.written[qi].q+"\nคำตอบ: "+ans}]})});
+      if(!rQ.ok) throw new Error("HTTP "+rQ.status+" ข้อ "+(qi+1));
+      var dQ=await rQ.json();
+      var txtQ=(typeof dQ.content==="string"?dQ.content:"")
+        .replace(/```json\s*/gi,"").replace(/```\s*/g,"").trim();
+      // clean newlines inside JSON strings before parse
+      var cleaned=txtQ.replace(/:\s*"([^"]*)"/g,function(m,v){
+        return ': "'+v.replace(/\n/g," ").replace(/\r/g,"")+'"';
+      });
+      var mQ=cleaned.match(/\{[\s\S]*?\}/);
+      var ev={score:0,feedback:"ตรวจไม่ได้",model:""};
+      if(mQ){try{ev=JSON.parse(mQ[0]);}catch(pe){
+        // พยายาม extract score อย่างน้อย
+        var sc=cleaned.match(/"score"\s*:\s*(\d+)/);
+        if(sc) ev.score=+sc[1];
+        var fb=cleaned.match(/"feedback"\s*:\s*"([^"]+)"/);
+        if(fb) ev.feedback=fb[1];
+      }}
+      evals.push({score:ev.score||0,feedback:ev.feedback||"",model:ev.model||""});
+    }
+    // overall summary (cheap call)
+    try{
+      if(btn) btn.textContent="⏳ สรุปภาพรวม...";
+      var sumTxt=evals.map(function(e,i){return "ข้อ"+(i+1)+": "+e.score+"/10 — "+e.feedback;}).join(" | ");
+      var rO=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({max_tokens:300,
+          system:"ครู"+l.teacher+" สรุปภาพรวมข้อเขียนวิชา"+l.subject+" ของวอลนัท ป.4 เป็นภาษาไทย 2-3 ประโยค ตรงๆ",
+          messages:[{role:"user",content:sumTxt}]})});
+      var dO=await rO.json();
+      overall=typeof dO.content==="string"?dO.content:"";
+    }catch(e2){overall="";}
+
+    st.writtenEvals=evals;
+    st.writtenOverall=overall;
+    st.writtenRaw=evals.reduce(function(a,e){return a+(e.score||0);},0);
     st.writtenScore=Math.round(st.writtenRaw/10);
     st.score=(st.mcqScore||0)+st.writtenScore;
     saveHwState(lessonId,st);
     if(typeof saveToCloud==="function") saveToCloud();
-    // re-render written tab only
     var panel=document.getElementById("lp-res-written-res");
     if(panel) panel.innerHTML=renderWrittenPanel(l,st);
-    // update score hero
     var hero=document.getElementById("lp-score-hero");
     if(hero) hero.outerHTML=renderScoreHero(l,st);
   }catch(e){
