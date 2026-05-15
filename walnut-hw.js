@@ -19,6 +19,7 @@ function openHw(lessonId){
   var st=getHwState(l.id);
   if(st.submitted){
     hwSection="result";
+    hwXP=st.xp||0;  // restore XP ที่เซฟไว้
   } else {
     hwSection="reading";
     hwMcqIndex=0;
@@ -493,6 +494,8 @@ function submitHw(){
   if(typeof saveToCloud==="function") saveToCloud();
   if(typeof syncLessonTasks==="function") syncLessonTasks();
   hwXP+=Math.round((mcqScore/l.mcq.length)*50);
+  st.xp=hwXP;  // เซฟ XP ลง state ด้วย
+  saveHwState(l.id,st);  // save อีกรอบหลัง XP
   hwSection="result";
   renderLessonFullPage();
   var fp=document.getElementById("lesson-fullpage");
@@ -554,7 +557,10 @@ async function checkWritten(lessonId){
     st.writtenEvals=evals;
     st.writtenOverall=overall;
     st.writtenRaw=evals.reduce(function(a,e){return a+(e.score||0);},0);
-    st.writtenScore=Math.round(st.writtenRaw/10);
+    // ข้อเขียนข้อละ 3 คะแนน: AI ให้ 0-9 → หาร 3 = 0-3 ต่อข้อ
+    st.writtenScore=evals.reduce(function(a,e){return a+Math.round((e.score||0)/3);},0);
+    var maxScore=(currentHwLesson?currentHwLesson.mcq.length:15)+(evals.length*3);
+    st.maxScore=maxScore;
     st.score=(st.mcqScore||0)+st.writtenScore;
     saveHwState(lessonId,st);
     if(typeof saveToCloud==="function") saveToCloud();
@@ -577,14 +583,14 @@ async function runAnalysis(lessonId){
   var btn=document.getElementById("btn-run-analysis");
   if(btn){btn.textContent="⏳ Dr.Aim + Ploy กำลังวิเคราะห์..."; btn.disabled=true;}
   try{
-    var writtenRaw=st.writtenRaw||0;
-    var writtenNorm=Math.round(writtenRaw/10);
-    var total=(st.mcqScore||0)+writtenNorm;
-    var pct=Math.round(total/20*100);
+    var ws2=st.writtenEvals?st.writtenEvals.reduce(function(a,e){return a+Math.round((e.score||0)/3);},0):0;
+    var mx2=l.mcq.length+(l.written?l.written.length:0)*3;
+    var tot2=(st.mcqScore||0)+(st.writtenEvals?ws2:0);
+    var pct2=Math.round(tot2/mx2*100);
     var ctx="วิชา: "+l.subject+" เรื่อง: "+l.title+"\n"+
       "MCQ: "+(st.mcqScore||0)+"/"+l.mcq.length+
-      " | เขียน: "+writtenRaw+"/50"+(st.writtenEvals?"":" (ยังไม่ตรวจ)")+
-      " | รวม: "+total+"/20 ("+pct+"%)";
+      " | เขียน: "+(st.writtenEvals?ws2:"?")+"/"+(l.written?l.written.length:0)*3+(st.writtenEvals?"":" (ยังไม่ตรวจ)")+
+      " | รวม: "+tot2+"/"+mx2+" ("+pct2+"%)";
     var [rA,rP]=await Promise.all([
       fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},
         body:JSON.stringify({max_tokens:900,
@@ -614,20 +620,28 @@ async function runAnalysis(lessonId){
 // ── Render helpers (per-panel) ────────────────────────────
 function renderScoreHero(l,st){
   var writtenChecked=(st.writtenRaw!==null&&st.writtenRaw!==undefined);
-  var writtenScore=writtenChecked?Math.round((st.writtenRaw||0)/10):null;
+  // ข้อเขียนข้อละ 3 คะแนน (AI 0-9 → หาร 3)
+  var writtenScore=writtenChecked
+    ?(st.writtenEvals
+        ?st.writtenEvals.reduce(function(a,e){return a+Math.round((e.score||0)/3);},0)
+        :Math.round((st.writtenRaw||0)/3))
+    :null;
+  var maxMcq=l.mcq.length;
+  var maxWritten=(l.written?l.written.length:0)*3;
+  var maxScore=maxMcq+maxWritten;  // เช่น 15+15=30
   var total=writtenChecked?((st.mcqScore||0)+writtenScore):null;
-  var pct=total!==null?Math.round(total/20*100):null;
+  var pct=total!==null?Math.round(total/maxScore*100):null;
   var needRetake=pct!==null&&pct<RETAKE_THRESHOLD;
   var em=pct===null?"⏳":pct>=80?"🏆":pct>=60?"🌟":"💪";
   var grade=pct===null?"?":pct>=80?"A":pct>=70?"B":pct>=60?"C":"D";
   return '<div id="lp-score-hero" class="bg-gradient-to-b from-gray-800 to-gray-900 px-6 py-8 text-center border-b border-gray-800">'+
     '<div class="text-6xl mb-3">'+em+'</div>'+
-    '<div class="text-5xl font-black text-white mb-1">'+(total!==null?total+"/"+"20":"?/20")+'</div>'+
+    '<div class="text-5xl font-black text-white mb-1">'+(total!==null?total+"/"+maxScore:"?/"+maxScore)+'</div>'+
     '<div class="text-2xl font-bold text-amber-400 mb-3">Grade '+grade+(pct!==null?" · "+pct+"%":"")+'</div>'+
     '<div class="grid grid-cols-3 gap-3 max-w-sm mx-auto">'+
-      '<div class="bg-gray-800 rounded-xl p-3 text-center"><div class="font-black text-amber-400 text-xl">'+(st.mcqScore||0)+'</div><div class="text-xs text-gray-400">MCQ /'+l.mcq.length+'</div></div>'+
-      '<div class="bg-gray-800 rounded-xl p-3 text-center"><div class="font-black text-blue-400 text-xl">'+(writtenChecked?(st.writtenRaw||0):'?')+'</div><div class="text-xs text-gray-400">เขียน /50</div></div>'+
-      '<div class="bg-gray-800 rounded-xl p-3 text-center"><div class="font-black text-purple-400 text-xl">'+hwXP+'</div><div class="text-xs text-gray-400">⭐ XP</div></div>'+
+      '<div class="bg-gray-800 rounded-xl p-3 text-center"><div class="font-black text-amber-400 text-xl">'+(st.mcqScore||0)+'</div><div class="text-xs text-gray-400">MCQ /'+maxMcq+'</div></div>'+
+      '<div class="bg-gray-800 rounded-xl p-3 text-center"><div class="font-black text-blue-400 text-xl">'+(writtenChecked?(writtenScore||0):'?')+'</div><div class="text-xs text-gray-400">เขียน /'+maxWritten+'</div></div>'+
+      '<div class="bg-gray-800 rounded-xl p-3 text-center"><div class="font-black text-purple-400 text-xl">'+(st.xp||hwXP||0)+'</div><div class="text-xs text-gray-400">⭐ XP</div></div>'+
     '</div>'+
     (needRetake?
       '<div class="mt-4 bg-red-900/50 border border-red-700 rounded-2xl p-4">'+
