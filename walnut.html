@@ -1711,10 +1711,15 @@ async function manualGenerateWeek(forceCurrentWeek){
       // auto โหลด week ที่ generate มา (ไม่ใช่ curWeek เสมอ)
       await loadWeeklyCurriculumFromCloud(targetWeek);
     } else if(d.skipped){
+      // มีอยู่แล้ว → โหลดมาใช้เลย ไม่ต้อง generate ใหม่
+      addProgress("📦 มีเนื้อหา W"+targetWeek+" อยู่แล้ว กำลังโหลด...");
+      var loaded=await loadWeeklyCurriculumFromCloud(targetWeek);
       if(statusEl){
         statusEl.innerHTML=
-          '<div class="mt-3 bg-amber-900/40 border border-amber-600 rounded-2xl p-3 text-amber-300 text-xs">'+
-          '⚠️ มีเนื้อหา W'+targetWeek+' อยู่แล้ว<br>กด "Generate สัปดาห์นี้ใหม่ (force)" เพื่อสร้างใหม่</div>';
+          '<div class="mt-3 bg-green-900/40 border border-green-600 rounded-2xl p-4">'+
+          '<div class="text-green-400 font-bold text-sm mb-1">✅ โหลดเนื้อหา W'+targetWeek+' แล้ว!</div>'+
+          '<div class="text-xs text-green-300">กดปุ่ม W'+targetWeek+' ในหน้า Lessons เพื่อดูบทเรียน</div>'+
+          '</div>';
       }
       if(btn){btn.disabled=false; btn.textContent="🤖 Generate W"+targetWeek;}
     } else {
