@@ -6,18 +6,20 @@
  * 4. Save กลับไปที่ Redis
  */
 
+// subjectKey ต้องตรงกับ LESSONS id prefix ใน walnut-data.js เสมอ
+// thai-w3, math-w3, sci-w3, sing-w3, piano-w3, eng-w3
 const TEACHER_CONFIG = [
-  { subjectKey:"thai",    subject:"ภาษาไทย",   teacher:"ครูนิ่ม",    icon:"✍️",  bg:"bg-yellow-50",  border:"border-yellow-200", badge:"bg-yellow-100 text-yellow-700",
+  { subjectKey:"thai",  subject:"ภาษาไทย",    teacher:"ครูนิ่ม",   teacherId:"kru-nim",  icon:"✍️", bg:"bg-yellow-50", border:"border-yellow-200", badge:"bg-yellow-100 text-yellow-700",
     system:"คุณคือครูนิ่ม ครูภาษาไทย สอนวอลนัท 8 ขวบ ป.4 ด้วยความอบอุ่น สนุก และเชื่อมกับชีวิตจริง" },
-  { subjectKey:"math",    subject:"คณิตศาสตร์", teacher:"ครูโอ๋",     icon:"🔢",  bg:"bg-blue-50",    border:"border-blue-200",   badge:"bg-blue-100 text-blue-700",
+  { subjectKey:"math",  subject:"คณิตศาสตร์", teacher:"ครูโอ๋",    teacherId:"kru-o",    icon:"🎮", bg:"bg-orange-50", border:"border-orange-200", badge:"bg-orange-100 text-orange-700",
     system:"คุณคือครูโอ๋ ครูคณิตศาสตร์ สอนวอลนัท 8 ขวบ ป.4 เน้น logic และแก้โจทย์ทีละขั้นตอน" },
-  { subjectKey:"science", subject:"วิทยาศาสตร์", teacher:"ครูไก่",    icon:"🔬",  bg:"bg-green-50",   border:"border-green-200",  badge:"bg-green-100 text-green-700",
+  { subjectKey:"sci",   subject:"วิทยาศาสตร์", teacher:"ครูไก่",   teacherId:"kru-kai",  icon:"🔭", bg:"bg-cyan-50",   border:"border-cyan-200",   badge:"bg-cyan-100 text-cyan-700",
     system:"คุณคือครูไก่ ครูวิทยาศาสตร์ สอนวอลนัท 8 ขวบ ป.4 ด้วยการทดลองและเรื่องน่าทึ่ง" },
-  { subjectKey:"english", subject:"ภาษาอังกฤษ", teacher:"ครูอังกฤษ", icon:"🌍",  bg:"bg-indigo-50",  border:"border-indigo-200", badge:"bg-indigo-100 text-indigo-700",
-    system:"คุณคือครูภาษาอังกฤษ สอนวอลนัท 8 ขวบ ป.4 เน้น conversation และ grammar พื้นฐาน" },
-  { subjectKey:"singing", subject:"ร้องเพลง",    teacher:"ครูมิ้นท์", icon:"🎤",  bg:"bg-pink-50",    border:"border-pink-200",   badge:"bg-pink-100 text-pink-700",
+  { subjectKey:"eng",   subject:"ภาษาอังกฤษ", teacher:"ครูเจน",   teacherId:"kru-jen",  icon:"🇬🇧", bg:"bg-indigo-50", border:"border-indigo-200",  badge:"bg-indigo-100 text-indigo-700",
+    system:"คุณคือครูเจน ครูภาษาอังกฤษ สอนวอลนัท 8 ขวบ ป.4 เน้น conversation และ grammar พื้นฐาน" },
+  { subjectKey:"sing",  subject:"ร้องเพลง",    teacher:"ครูมิ้นท์", teacherId:"kru-mint", icon:"🎤", bg:"bg-rose-50",   border:"border-rose-200",   badge:"bg-rose-100 text-rose-700",
     system:"คุณคือครูมิ้นท์ ครูร้องเพลง สอนวอลนัท 8 ขวบ ด้วยความสนุกและเทคนิคการร้อง" },
-  { subjectKey:"piano",   subject:"เปียโน",      teacher:"ครูบิ๊ก",   icon:"🎹",  bg:"bg-purple-50",  border:"border-purple-200", badge:"bg-purple-100 text-purple-700",
+  { subjectKey:"piano", subject:"เปียโน",      teacher:"ครูบิ๊ก",   teacherId:"kru-big",  icon:"🎹", bg:"bg-violet-50", border:"border-violet-200",  badge:"bg-violet-100 text-violet-700",
     system:"คุณคือครูบิ๊ก ครูเปียโน สอนวอลนัท 8 ขวบ เน้นการอ่านโน้ตและ technique พื้นฐาน" },
 ];
 

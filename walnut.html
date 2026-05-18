@@ -1737,7 +1737,7 @@ function resetToHardcodedLessons(){
   // ล้าง localStorage ทุก key ที่เกี่ยวกับ curriculum
   ["walnut_curriculum_w1","walnut_curriculum_w2","walnut_curriculum_w3","walnut_curriculum_w4",
    "walnut_custom_curriculum"].forEach(function(k){ localStorage.removeItem(k); });
-  // ล้าง Redis ด้วย
+  // ล้าง Redis: ทั้ง key ถูกและ key ผิด (science/singing/english จาก bug เก่า)
   try{
     fetch("/api/sync",{method:"POST",headers:{"Content-Type":"application/json"},
       body:JSON.stringify({
@@ -1746,6 +1746,11 @@ function resetToHardcodedLessons(){
         walnut_custom_curriculum:null
       })});
   }catch(e){}
+  // ล้าง hw state ที่ id ผิด (science-w3, singing-w3, english-w3) จาก bug เก่า
+  ["hw_science-w3","hw_singing-w3","hw_english-w3",
+   "hw_science-w4","hw_singing-w4","hw_english-w4"].forEach(function(k){
+    localStorage.removeItem(k);
+  });
   window._lessonsViewWeek=null;
   alert("✅ ล้างแล้ว — กำลัง reload...");
   location.reload();
