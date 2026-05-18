@@ -2,6 +2,12 @@
   "rewrites": [
     { "source": "/api/chat", "destination": "/api/chat" }
   ],
+  "crons": [
+    {
+      "path": "/api/weekly-agent",
+      "schedule": "30 16 * * 0"
+    }
+  ],
   "headers": [
     {
       "source": "/(.*).html",

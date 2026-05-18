@@ -1342,18 +1342,61 @@ function applyCustomCurriculum(curriculum){
 
 function loadCustomCurriculumIfExists(){
   try{
-    // ถ้า LESSONS ใน code มีเนื้อหาครบแล้ว (hardcoded, mcq>=10 ทุกวิชา)
-    // → ลบ key เก่าออกจาก localStorage + Redis เพื่อไม่ให้ทับเนื้อหาใหม่
-    var allHardcoded=LESSONS.every(function(l){return l.mcq&&l.mcq.length>=10;});
-    if(allHardcoded){
-      localStorage.removeItem("walnut_custom_curriculum");
-      try{fetch("/api/sync",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({walnut_custom_curriculum:null})});}catch(e){}
+    var curWeek=Math.min(4,Math.ceil(new Date().getDate()/7));
+    // ตรวจ localStorage ก่อน — ถ้ามี curriculum ของสัปดาห์นี้จาก weekly-agent ให้ใช้
+    var saved=JSON.parse(localStorage.getItem("walnut_curriculum_w"+curWeek)||"null");
+    if(saved&&saved.lessons&&saved.lessons.length){
+      applyCustomCurriculum(saved.lessons);
       return;
     }
-    var saved=JSON.parse(localStorage.getItem("walnut_custom_curriculum")||"null");
-    if(!saved||!saved.lessons||!saved.lessons.length) return;
-    applyCustomCurriculum(saved.lessons);
+    // fallback: ตรวจ custom curriculum เก่า
+    var custom=JSON.parse(localStorage.getItem("walnut_custom_curriculum")||"null");
+    if(custom&&custom.lessons&&custom.lessons.length&&custom.week===curWeek){
+      applyCustomCurriculum(custom.lessons);
+      return;
+    }
+    // ถ้า LESSONS hardcoded ตรงกับ week ปัจจุบัน → ใช้ได้เลย ไม่ต้องทำอะไร
+    var weekLessons=LESSONS.filter(function(l){return l.week===curWeek;});
+    if(weekLessons.length>0) return; // hardcoded ok
+    // ไม่มีเนื้อหาสำหรับสัปดาห์นี้เลย → แสดง banner แจ้ง Wit
+    setTimeout(function(){
+      var ta=document.getElementById("tab-area");
+      if(ta&&typeof activeTab!=="undefined"&&activeTab==="lessons"){
+        var banner=document.getElementById("no-content-banner");
+        if(!banner){
+          var el=document.createElement("div");
+          el.id="no-content-banner";
+          el.className="bg-amber-50 border border-amber-300 rounded-2xl p-4 mx-4 mt-4 text-sm text-amber-800 flex items-center gap-3";
+          el.innerHTML='<span class="text-2xl">🤖</span><div class="flex-1"><strong>ยังไม่มีเนื้อหาสัปดาห์ที่ '+curWeek+'</strong><br><span class="text-xs">กด Generate ในหน้า Report เพื่อให้ทีม AI สร้างบทเรียนใหม่</span></div>';
+          ta.prepend(el);
+        }
+      }
+    },1000);
   }catch(e){}
+}
+
+// โหลด curriculum ที่ weekly-agent generate ไว้จาก Redis
+async function loadWeeklyCurriculumFromCloud(){
+  try{
+    var curWeek=Math.min(4,Math.ceil(new Date().getDate()/7));
+    var r=await fetch("/api/sync");
+    var d=await r.json();
+    if(!d.data) return false;
+    var key="walnut_curriculum_w"+curWeek;
+    var val=d.data[key];
+    if(!val) return false;
+    var curriculum=typeof val==="string"?JSON.parse(val):val;
+    if(!curriculum||!curriculum.lessons||!curriculum.lessons.length) return false;
+    // บันทึกลง localStorage และ apply
+    localStorage.setItem(key,JSON.stringify(curriculum));
+    applyCustomCurriculum(curriculum.lessons);
+    console.log("✅ โหลด curriculum W"+curWeek+" จาก cloud แล้ว ("+curriculum.lessons.length+" วิชา)");
+    if(typeof renderTab==="function"){
+      var ta=document.getElementById("tab-area");
+      if(ta) ta.innerHTML=renderTab();
+    }
+    return true;
+  }catch(e){ return false; }
 }
 
 // ── REPORT TAB ────────────────────────────────────────────
@@ -1573,17 +1616,69 @@ function _renderReportInner(){
       </div>
     </div>
 
-    <!-- ── กำหนดการอัปเดต ── -->
+    <!-- ── กำหนดการอัปเดต + Weekly Agent ── -->
     <div class="p-5">
-      <div class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">📅 กำหนดการอัปเดต</div>
-      <div class="bg-amber-50 border border-amber-200 rounded-2xl p-4 space-y-2 text-sm text-gray-700">
-        <div class="flex items-center gap-2">🗓️ อัปเดตเนื้อหาถัดไป: <strong>อาทิตย์ที่จะถึง 23:30</strong> (ระบบอัตโนมัติ)</div>
-        <div class="flex items-center gap-2">📝 สอบปลายเดือน: <strong>31 พ.ค. 2026</strong></div>
-        <div class="flex items-center gap-2 text-xs text-gray-400">🤖 ระบบ weekly agent จะวิเคราะห์ผล + อัปเดตเนื้อหา W3 โดยอัตโนมัติ</div>
+      <div class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">🤖 Weekly Agent</div>
+      <div class="bg-gray-900 border border-gray-700 rounded-2xl p-4 space-y-3">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-sm font-bold text-white">Auto-update ทุกวันอาทิตย์ 23:30</div>
+            <div class="text-xs text-gray-400 mt-0.5">วิเคราะห์ผลสัปดาห์นี้ → generate เนื้อหาสัปดาห์ถัดไป</div>
+          </div>
+          <div class="text-green-400 text-xs font-bold">● Active</div>
+        </div>
+        <div class="border-t border-gray-700 pt-3 space-y-2">
+          <div class="text-xs text-gray-400">Generate เองได้เลย (ไม่ต้องรอวันอาทิตย์)</div>
+          <div class="flex gap-2 flex-wrap">
+            <button id="btn-gen-next-week" onclick="manualGenerateWeek(false)"
+              class="bg-amber-500 hover:bg-amber-400 text-white px-4 py-2 rounded-xl text-sm font-bold">
+              🤖 Generate W${Math.min(4,Math.ceil(new Date().getDate()/7)+1)} (สัปดาห์ถัดไป)
+            </button>
+            <button onclick="manualGenerateWeek(true)"
+              class="border border-gray-600 text-gray-300 hover:border-gray-400 px-3 py-2 rounded-xl text-xs">
+              🔄 Generate สัปดาห์นี้ใหม่ (force)
+            </button>
+            <button onclick="loadWeeklyCurriculumFromCloud().then(function(ok){alert(ok?'✅ โหลดสำเร็จ':'ยังไม่มีเนื้อหาใหม่ใน cloud');})"
+              class="border border-gray-600 text-gray-300 hover:border-gray-400 px-3 py-2 rounded-xl text-xs">
+              ☁️ โหลดจาก cloud
+            </button>
+          </div>
+          <div id="weekly-agent-status" class="text-xs text-gray-500 min-h-[1rem]"></div>
+        </div>
       </div>
     </div>
 
   </div>`;
+}
+
+// ── MANUAL WEEKLY AGENT TRIGGER ──────────────────────────
+async function manualGenerateWeek(forceCurrentWeek){
+  var curWeek=Math.min(4,Math.ceil(new Date().getDate()/7));
+  var targetWeek=forceCurrentWeek?curWeek:Math.min(4,curWeek+1);
+  var btn=document.getElementById("btn-gen-next-week");
+  var status=document.getElementById("weekly-agent-status");
+  if(btn){btn.disabled=true; btn.textContent="⏳ กำลัง generate...";}
+  if(status) status.textContent="กำลังสั่ง weekly agent...";
+  try{
+    var r=await fetch("/api/weekly-agent",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({manual:true, week:targetWeek, force:forceCurrentWeek})
+    });
+    var d=await r.json();
+    if(d.ok){
+      var msg="✅ Generate W"+targetWeek+" เสร็จแล้ว ("+d.lessonsGenerated+" วิชา)";
+      if(status) status.textContent=msg;
+      // โหลดมาใช้เลย
+      await loadWeeklyCurriculumFromCloud();
+      if(btn){btn.disabled=false; btn.textContent="🤖 Generate อีกครั้ง";}
+    } else {
+      throw new Error(d.error||"ไม่ทราบสาเหตุ");
+    }
+  }catch(e){
+    if(status) status.textContent="❌ "+e.message;
+    if(btn){btn.disabled=false; btn.textContent="🔄 ลองใหม่";}
+  }
 }
 
 // ── TEAM REPORT GENERATOR ─────────────────────────────────
@@ -2104,6 +2199,8 @@ async function init(){
   initSb();
   try{ cleanupOldLessonData(); }catch(e){}
   try{ loadCustomCurriculumIfExists(); }catch(e){}
+  // โหลด curriculum ใหม่จาก cloud (weekly-agent) ใน background
+  setTimeout(function(){loadWeeklyCurriculumFromCloud();},1500);
   try{
     renderPage();
   }catch(e){
