@@ -1667,26 +1667,52 @@ async function callChat(system, userMsg, maxTokens){
 }
 
 function parseGenJson(txt){
+  // ลอง parse ปกติก่อน
   try{
     var m=txt.match(/\{[\s\S]*\}/);
-    return m?JSON.parse(m[0]):null;
-  }catch(e){return null;}
+    if(m) return JSON.parse(m[0]);
+  }catch(e){}
+  // ถ้า JSON ถูกตัดกลางคัน → ลอง fix โดยปิด array/object ที่ยังค้างอยู่
+  try{
+    var t=txt.replace(/```json\s*/gi,"").replace(/```\s*/g,"").trim();
+    // ตัด trailing comma + ปิด structure
+    var fixed=t.replace(/,\s*([}\]])/g,"$1");
+    // นับ bracket เพื่อปิด
+    var opens=0,closes=0;
+    for(var i=0;i<fixed.length;i++){if(fixed[i]==="{")opens++;else if(fixed[i]==="}") closes++;}
+    while(opens>closes){fixed+="}";closes++;}
+    var m2=fixed.match(/\{[\s\S]*\}/);
+    if(m2) return JSON.parse(m2[0]);
+  }catch(e2){}
+  return null;
 }
 
 async function generateOneLesson(tc, week, interviewCtx){
-  var prompt=
+  // แยก call เป็น 2 ส่วน: (1) reading+title (2) MCQ+written — ป้องกัน token ตัด
+  var prompt1=
     interviewCtx+"\n\n"+
-    "สร้างบทเรียน "+tc.subject+" สัปดาห์ที่ "+week+" สำหรับวอลนัท อายุ 8 ขวบ ป.4\n\n"+
-    "ข้อกำหนด:\n"+
-    "1. reading: 4-5 ย่อหน้า เล่าสนุกแบบ mission ใช้ภาษาง่าย ≥300 คำ\n"+
-    "2. mcq: 15 ข้อ จากเนื้อหา (ง่าย 5 กลาง 5 ยาก 5) ตัวเลือก 4 ข้อ\n"+
-    "3. written: 5 ข้อ เข้าใจง่าย ตอบ 2-3 ประโยค มี hint\n\n"+
-    'ตอบ JSON เท่านั้น: {"title":"","scene":"emoji","goal":"","missionBrief":"","reading":"","mcq":[{"q":"","c":["ก.","ข.","ค.","ง."],"a":0}],"written":[{"q":"","hint":""}]}';
+    "สร้างบทเรียน "+tc.subject+" สัปดาห์ที่ "+week+" สำหรับวอลนัท อายุ 8 ขวบ ป.4\n"+
+    "ตอบ JSON เท่านั้น (ห้าม text นอก JSON):\n"+
+    '{"title":"ชื่อบทเรียน","scene":"emoji 2-3 ตัว","goal":"เป้าหมาย 1 ประโยค","missionBrief":"intro 1-2 ประโยค สนุก","reading":"4-5 ย่อหน้าเล่าเป็นเรื่อง mission สนุก ใช้ภาษาเด็ก 8 ขวบเข้าใจ ยาว 300-400 คำ ใส่ขึ้นบรรทัดใหม่ระหว่างย่อหน้าด้วย \\n\\n"}';
 
-  var raw=await callChat(tc.system, prompt, 4000);
-  var p=parseGenJson(raw);
-  if(!p||!p.reading||p.reading.length<80||!Array.isArray(p.mcq)||p.mcq.length<10)
-    throw new Error("เนื้อหา "+tc.subject+" ไม่สมบูรณ์");
+  var raw1=await callChat(tc.system, prompt1, 2500);
+  var p1=parseGenJson(raw1)||{};
+  if(!p1.reading||p1.reading.length<80)
+    throw new Error(tc.subject+": reading สั้นเกิน ("+p1.reading?.length+" chars) — ลอง generate ใหม่");
+
+  var prompt2=
+    "บทเรียน: "+p1.title+"\nเนื้อหา (ย่อ): "+p1.reading.slice(0,400)+"\n\n"+
+    "สร้าง MCQ 15 ข้อ + ข้อเขียน 5 ข้อ สำหรับวอลนัท 8 ขวบ\n"+
+    "ตอบ JSON เท่านั้น:\n"+
+    '{"mcq":[{"q":"คำถาม","c":["ก.ตัวเลือก","ข.","ค.","ง."],"a":0}],"written":[{"q":"คำถาม","hint":"คำใบ้"}]}\n'+
+    "mcq = 15 ข้อ (ง่าย 5 กลาง 5 ยาก 5) | written = 5 ข้อ เข้าใจง่าย ตอบ 2-3 ประโยค";
+
+  var raw2=await callChat(tc.system, prompt2, 3500);
+  var p2=parseGenJson(raw2)||{};
+  if(!Array.isArray(p2.mcq)||p2.mcq.length<8)
+    throw new Error(tc.subject+": MCQ ไม่ครบ ("+( p2.mcq?.length||0)+" ข้อ) — ลอง generate ใหม่");
+
+  var p={...p1,...p2};
 
   return {
     id:tc.key+"-w"+week, subject:tc.subject, teacher:tc.teacher,
