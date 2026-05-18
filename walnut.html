@@ -1294,13 +1294,12 @@ async function designCurriculumFromInterview(interviewContext, analysis){
 
 function applyFullLessons(generated, silentMode){
   // silentMode=true → แค่อัปเดตข้อมูลใน memory ไม่ re-render (ใช้ตอน pipeline กำลังรัน)
-  var curWeek=Math.min(4,Math.ceil(new Date().getDate()/7));
   generated.forEach(function(g){
-    var existing=LESSONS.find(function(l){return l.id===g.subjectKey+"-w"+curWeek;});
-    if(!existing) existing=LESSONS.find(function(l){return l.id.startsWith(g.subjectKey+"-");});
+    var targetId=g.id||(g.subjectKey+"-w"+(g.week||Math.min(4,Math.ceil(new Date().getDate()/7))));
+    var existing=LESSONS.find(function(l){return l.id===targetId;});
+
     if(existing){
-      // ถ้า lesson มี hardcoded content (mcq>=10) → ไม่ทับด้วยข้อมูลเก่า
-      if(existing.mcq && existing.mcq.length>=10) return;
+      // อัพเดต lesson ที่ตรง id เป๊ะ — weekly-agent authoritative เสมอ
       if(g.title) existing.title=g.title;
       if(g.goal) existing.goal=g.goal;
       if(g.rationale) existing.rationale=g.rationale;
@@ -1308,14 +1307,25 @@ function applyFullLessons(generated, silentMode){
       if(g.scene) existing.scene=g.scene;
       if(g.missionBrief) existing.missionBrief=g.missionBrief;
       if(g.mcq&&g.mcq.length>=5) existing.mcq=g.mcq;
-      if(g.written&&g.written.length>=3) existing.written=g.written;
-      if(g.title&&existing.plan&&existing.plan[curWeek-1]){
-        existing.plan[curWeek-1].t=g.title;
-      }
+      if(g.written&&g.written.length>=2) existing.written=g.written;
+    } else {
+      // ไม่มี lesson นี้ใน LESSONS → เพิ่มใหม่เลย
+      LESSONS.push({
+        id: targetId,
+        subject: g.subject, teacher: g.teacher, teacherId: g.teacherId||g.subjectKey,
+        icon: g.icon||"📚", bg: g.bg||"bg-gray-50",
+        border: g.border||"border-gray-200", badge: g.badge||"bg-gray-100 text-gray-700",
+        week: g.week||Math.min(4,Math.ceil(new Date().getDate()/7)),
+        title: g.title||g.subject, scene: g.scene||g.icon||"✨",
+        goal: g.goal||"", rationale: g.rationale||"",
+        reading: g.reading||"", missionBrief: g.missionBrief||"",
+        mcq: g.mcq||[], written: g.written||[],
+        plan:[{w:g.week,t:g.title},{},{},{}],
+        generatedBy: g.generatedBy||"weekly-agent",
+      });
     }
   });
-  if(silentMode) return; // pipeline กำลังแสดง panel อยู่ — ยังไม่ re-render
-  // re-render เฉพาะถ้าถูกเรียกตอน load / manual
+  if(silentMode) return;
   if(typeof activeTab!=="undefined"&&activeTab==="lessons"){
     var ta=document.getElementById("tab-area");if(ta)ta.innerHTML=renderLessons();
   }
