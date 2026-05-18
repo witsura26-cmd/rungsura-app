@@ -51,35 +51,42 @@ async function generateLesson(apiKey, tc, week, prevResult, interviewSummary) {
   const context = `วอลนัท อายุ 8 ขวบ ป.4\n${interviewSummary}\n` +
     (prevResult ? `ผลสัปดาห์ที่แล้ว: MCQ ${prevResult.mcqScore||0}/${prevResult.mcqTotal||15}, เขียน ${prevResult.writtenScore||0}/${prevResult.writtenTotal||9}\n` : '');
 
-  // Call 1: บทเรียน + structure
-  const call1 = await callClaude(apiKey, tc.system,
-    `${context}สร้างบทเรียน ${tc.subject} สัปดาห์ที่ ${week} สำหรับวอลนัท\n` +
-    `ตอบ JSON บรรทัดเดียว: {"title":"ชื่อบทเรียน","scene":"emoji 2-3 ตัว","goal":"เป้าหมาย 1 ประโยค","reading":"เนื้อหา 3-4 ย่อหน้า เล่าสนุก"}`,
-    1500);
-  const part1 = safeParseJson(call1) || { title:`${tc.subject} W${week}`, scene:tc.icon, goal:'เรียนรู้พื้นฐาน', reading:'เนื้อหาบทเรียน' };
+  // 1 call เดียว — รวม reading + MCQ + written เพื่อลด latency
+  const prompt =
+    `${context}\n` +
+    `สร้างบทเรียน ${tc.subject} สัปดาห์ที่ ${week} สำหรับวอลนัท 8 ขวบ ป.4\n` +
+    `ตอบ JSON object เท่านั้น (ห้ามมี text นอก JSON):\n` +
+    `{\n` +
+    `  "title": "ชื่อบทเรียน",\n` +
+    `  "scene": "emoji 2-3 ตัว",\n` +
+    `  "goal": "เป้าหมาย 1 ประโยค",\n` +
+    `  "reading": "เนื้อหา 3 ย่อหน้า เล่าสนุก ไม่เกิน 200 คำ",\n` +
+    `  "mcq": [{"q":"คำถาม","c":["ก.","ข.","ค.","ง."],"a":0}],\n` +
+    `  "written": [{"q":"คำถาม","hint":"คำใบ้"}]\n` +
+    `}\n` +
+    `mcq = 15 ข้อ (ง่าย 5, กลาง 5, ยาก 5) | written = 3 ข้อ (เข้าใจง่าย ตอบ 2-3 ประโยค)`;
 
-  // Call 2: MCQ 15 ข้อ
-  const call2 = await callClaude(apiKey, tc.system,
-    `บทเรียน: ${part1.title}\nเนื้อหา: ${part1.reading?.slice(0,400)}\n` +
-    `สร้าง 15 MCQ ง่าย-กลาง-ยาก (5-5-5) สำหรับวอลนัท 8 ขวบ\n` +
-    `ตอบ JSON array: [{"q":"คำถาม","c":["ก.","ข.","ค.","ง."],"a":0}]`,
-    2000);
-  const mcq = safeParseJson(call2);
-  const mcqArr = Array.isArray(mcq) && mcq.length >= 10 ? mcq :
-    Array.from({length:15},(_,i)=>({q:`คำถามข้อ ${i+1}`,c:['ก. ตัวเลือก 1','ข. ตัวเลือก 2','ค. ตัวเลือก 3','ง. ตัวเลือก 4'],a:0}));
+  const raw = await callClaude(apiKey, tc.system, prompt, 3500);
+  const parsed = safeParseJson(raw) || {};
 
-  // Call 3: Written 3 ข้อ
-  const call3 = await callClaude(apiKey, tc.system,
-    `บทเรียน: ${part1.title}\nออกแบบ 3 ข้อเขียนสำหรับวอลนัท 8 ขวบ ป.4 ที่ใช้ voice-to-text\n` +
-    `หลักการ: เข้าใจง่าย ตีความได้ ตอบ 2-3 ประโยค มี hint\n` +
-    `ตอบ JSON array: [{"q":"คำถาม","hint":"คำใบ้ทิศทาง"}]`,
-    600);
-  const written = safeParseJson(call3);
-  const writtenArr = Array.isArray(written) && written.length >= 2 ? written : [
-    {q:'บทเรียนนี้สอนเรื่องอะไร? บอกในแบบของตัวเอง',hint:'ดูจากหัวข้อและเนื้อหา'},
-    {q:'ยกตัวอย่าง 1 อย่างที่เชื่อมกับชีวิตจริงของวอลนัท',hint:'คิดถึงสิ่งที่เจอในชีวิตประจำวัน'},
-    {q:'ถ้าต้องบอกเพื่อนเรื่องนี้ จะพูดว่าอะไร?',hint:'ไม่มีผิดถูก พูดในแบบตัวเอง'},
-  ];
+  const part1 = {
+    title: parsed.title || `${tc.subject} W${week}`,
+    scene: parsed.scene || tc.icon,
+    goal: parsed.goal || 'เรียนรู้พื้นฐาน',
+    reading: parsed.reading || 'เนื้อหาบทเรียน',
+  };
+
+  const mcqArr = Array.isArray(parsed.mcq) && parsed.mcq.length >= 10
+    ? parsed.mcq
+    : Array.from({length:15},(_,i)=>({q:`คำถามข้อ ${i+1}`,c:['ก. ตัวเลือก 1','ข. ตัวเลือก 2','ค. ตัวเลือก 3','ง. ตัวเลือก 4'],a:0}));
+
+  const writtenArr = Array.isArray(parsed.written) && parsed.written.length >= 2
+    ? parsed.written
+    : [
+        {q:'บทเรียนนี้สอนเรื่องอะไร? บอกในแบบของตัวเอง',hint:'ดูจากหัวข้อและเนื้อหา'},
+        {q:'ยกตัวอย่าง 1 อย่างที่เชื่อมกับชีวิตจริงของวอลนัท',hint:'คิดถึงสิ่งที่เจอในชีวิตประจำวัน'},
+        {q:'ถ้าต้องบอกเพื่อนเรื่องนี้ จะพูดว่าอะไร?',hint:'ไม่มีผิดถูก พูดในแบบตัวเอง'},
+      ];
 
   return {
     id: `${tc.subjectKey}-w${week}`,
@@ -94,14 +101,21 @@ async function generateLesson(apiKey, tc, week, prevResult, interviewSummary) {
   };
 }
 
+export const maxDuration = 60; // Vercel max timeout (seconds)
+
 export default async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+  if (req.method === 'OPTIONS') return res.status(200).end();
+
   // Security: ตรวจ cron secret หรือ manual trigger
   const secret = process.env.CRON_SECRET || '';
   const authHeader = req.headers['authorization'] || '';
   const isManual = req.method === 'POST' && req.body?.manual === true;
-  const isCron = authHeader === `Bearer ${secret}`;
+  const isCron = secret && authHeader === `Bearer ${secret}`;
 
-  if (!isManual && !isCron && process.env.NODE_ENV !== 'development') {
+  // ถ้าไม่มี CRON_SECRET set ไว้ ให้ manual trigger ผ่านได้เสมอ
+  if (!isManual && !isCron && secret !== '') {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 

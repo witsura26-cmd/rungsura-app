@@ -1636,28 +1636,78 @@ function _renderReportInner(){
 async function manualGenerateWeek(forceCurrentWeek){
   var curWeek=Math.min(4,Math.ceil(new Date().getDate()/7));
   var targetWeek=forceCurrentWeek?curWeek:Math.min(4,curWeek+1);
+
+  // เปิด details section ให้เห็น progress
+  var agentDetails=document.querySelector('details:has(#weekly-agent-status)');
+  if(agentDetails) agentDetails.open=true;
+
   var btn=document.getElementById("btn-gen-next-week");
-  var status=document.getElementById("weekly-agent-status");
-  if(btn){btn.disabled=true; btn.textContent="⏳ กำลัง generate...";}
-  if(status) status.textContent="กำลังสั่ง weekly agent...";
+  var statusEl=document.getElementById("weekly-agent-status");
+
+  // แสดง progress card
+  if(statusEl){
+    statusEl.innerHTML=
+      '<div class="mt-3 bg-gray-800 border border-gray-600 rounded-2xl p-4 space-y-2">'+
+      '<div class="flex items-center gap-2 text-white text-sm font-bold">'+
+      '<span class="inline-block animate-spin">⚙️</span> กำลัง generate บทเรียน W'+targetWeek+'...</div>'+
+      '<div id="agent-progress" class="space-y-1 text-xs text-gray-400">'+
+      '<div>⏳ กำลังเชื่อมต่อ weekly agent...</div></div></div>';
+  }
+  if(btn){btn.disabled=true; btn.textContent="⏳ กำลังทำงาน...";}
+
+  function addProgress(msg){
+    var p=document.getElementById("agent-progress");
+    if(p){
+      var d=document.createElement("div"); d.textContent=msg;
+      p.appendChild(d);
+      p.scrollTop=p.scrollHeight;
+    }
+  }
+
   try{
+    addProgress("📡 ส่งคำสั่งไปยัง server...");
     var r=await fetch("/api/weekly-agent",{
       method:"POST",
       headers:{"Content-Type":"application/json"},
       body:JSON.stringify({manual:true, week:targetWeek, force:forceCurrentWeek})
     });
+    if(!r.ok) throw new Error("Server error: HTTP "+r.status);
     var d=await r.json();
+
     if(d.ok){
-      var msg="✅ Generate W"+targetWeek+" เสร็จแล้ว ("+d.lessonsGenerated+" วิชา)";
-      if(status) status.textContent=msg;
-      // โหลดมาใช้เลย
-      await loadWeeklyCurriculumFromCloud();
+      // แสดงผลสำเร็จ
+      if(d.status) d.status.forEach(function(s){ addProgress(s); });
+      if(statusEl){
+        statusEl.innerHTML=
+          '<div class="mt-3 bg-green-900/40 border border-green-600 rounded-2xl p-4">'+
+          '<div class="text-green-400 font-bold text-sm mb-2">✅ Generate W'+targetWeek+' เสร็จแล้ว!</div>'+
+          '<div class="text-xs text-green-300">สร้างบทเรียน '+d.lessonsGenerated+' วิชา</div>'+
+          (d.errors&&d.errors.length?'<div class="text-xs text-amber-400 mt-1">⚠️ มีบางวิชา error: '+d.errors.join(", ")+'</div>':'')+
+          '<button onclick="loadWeeklyCurriculumFromCloud().then(function(){location.reload();})" '+
+          'class="mt-3 w-full bg-green-500 hover:bg-green-400 text-white py-2 rounded-xl text-xs font-bold">'+
+          '🔄 โหลดเนื้อหาใหม่เลย</button>'+
+          '</div>';
+      }
       if(btn){btn.disabled=false; btn.textContent="🤖 Generate อีกครั้ง";}
+      // auto โหลด
+      await loadWeeklyCurriculumFromCloud();
+    } else if(d.skipped){
+      if(statusEl){
+        statusEl.innerHTML=
+          '<div class="mt-3 bg-amber-900/40 border border-amber-600 rounded-2xl p-3 text-amber-300 text-xs">'+
+          '⚠️ มีเนื้อหา W'+targetWeek+' อยู่แล้ว<br>กด "Generate สัปดาห์นี้ใหม่ (force)" เพื่อสร้างใหม่</div>';
+      }
+      if(btn){btn.disabled=false; btn.textContent="🤖 Generate W"+targetWeek;}
     } else {
       throw new Error(d.error||"ไม่ทราบสาเหตุ");
     }
   }catch(e){
-    if(status) status.textContent="❌ "+e.message;
+    if(statusEl){
+      statusEl.innerHTML=
+        '<div class="mt-3 bg-red-900/40 border border-red-600 rounded-2xl p-3 text-red-300 text-xs">'+
+        '❌ เกิดข้อผิดพลาด: '+e.message+
+        '<br><span class="text-gray-400">ลองกดอีกครั้ง หรือตรวจ Vercel logs</span></div>';
+    }
     if(btn){btn.disabled=false; btn.textContent="🔄 ลองใหม่";}
   }
 }
