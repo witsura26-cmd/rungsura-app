@@ -82,6 +82,9 @@ function setTaskFilter(f,btn){
   if(inner) inner.innerHTML=renderTaskList(shown);
 }
 
+// helper: maxScore จาก hw state
+function hwMax(hw){return hw&&hw.maxScore?hw.maxScore:30;}
+
 // ── TASK LIST RENDER ──────────────────────────────────────
 function renderTaskList(ts){
   if(!ts.length) return '<div class="text-center text-gray-300 py-8 text-sm">ไม่มี Task ในหมวดนี้</div>';
@@ -90,7 +93,7 @@ function renderTaskList(ts){
     if(t.status==="done"){
       // check if needs retake
       var hw=t.lessonId?getHwState(t.lessonId):null;
-      var hwPct=hw&&hw.submitted?Math.round((hw.score||0)/20*100):100;
+      var hwPct=hw&&hw.submitted?Math.round((hw.score||0)/hwMax(hw)*100):100;
       if(hw&&hw.submitted&&hwPct<RETAKE_THRESHOLD) groups.needsRetake.push(t);
       else groups.done.push(t);
     } else if(t.due<TODAY) groups.overdue.push(t);
@@ -104,7 +107,7 @@ function renderTaskList(ts){
       items.map(function(t){
         var hw=t.lessonId?getHwState(t.lessonId):null;
         var hwSubmitted=hw&&hw.submitted;
-        var hwPct=hwSubmitted?Math.round((hw.score||0)/20*100):0;
+        var hwPct=hwSubmitted?Math.round((hw.score||0)/hwMax(hw)*100):0;
         var needsRetake=hwSubmitted&&hwPct<RETAKE_THRESHOLD;
         var retakeCount=hw&&hw.retakeCount?hw.retakeCount:0;
         var actionBtn="";
@@ -118,7 +121,7 @@ function renderTaskList(ts){
               '</div>';
             } else {
               actionBtn='<button onclick="openHw(\''+t.lessonId+'\')" class="shrink-0 bg-blue-100 text-blue-700 hover:bg-blue-200 px-3 py-1.5 rounded-lg text-xs font-semibold">'+
-                '📊 ดูผล '+(hw.score||0)+'/20'+(retakeCount?' (×'+retakeCount+')'  :'')+
+                '📊 ดูผล '+(hw.score||0)+"/"+hwMax(hw)+(retakeCount?' (×'+retakeCount+')'  :'')+
               '</button>';
             }
           } else {
@@ -182,11 +185,7 @@ function renderTasks(){
       '</div>'+
     '</div>';
   } else {
-    intakeBanner='<div class="bg-green-50 border border-green-200 rounded-2xl p-3 flex items-center gap-3">'+
-      '<span class="text-xl">✅</span>'+
-      '<div class="flex-1 text-xs text-green-700 font-semibold">Interview เสร็จแล้ว — ทีมได้ข้อมูลวอลนัทครบแล้วค่ะ</div>'+
-      '<button onclick="openIntakeFlow()" class="text-xs text-green-600 underline">ดู/ทำใหม่</button>'+
-    '</div>';
+    intakeBanner=''; // interview เสร็จแล้ว → ไม่ต้องแสดง banner ที่ Tasks
   }
 
   return '<div class="bg-white rounded-b-2xl border border-t-0 border-gray-100 p-5 space-y-4">'+

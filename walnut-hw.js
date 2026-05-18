@@ -562,6 +562,10 @@ async function checkWritten(lessonId){
     var maxScore=(currentHwLesson?currentHwLesson.mcq.length:15)+(evals.length*3);
     st.maxScore=maxScore;
     st.score=(st.mcqScore||0)+st.writtenScore;
+    // เพิ่ม XP จากข้อเขียน: ข้อละ 5 XP × คะแนน (0-3)
+    var writtenXP=evals.reduce(function(a,e){return a+Math.round((e.score||0)/3)*5;},0);
+    hwXP=(st.xp||hwXP)+writtenXP;
+    st.xp=hwXP;
     saveHwState(lessonId,st);
     if(typeof saveToCloud==="function") saveToCloud();
     var panel=document.getElementById("lp-res-written-res");
