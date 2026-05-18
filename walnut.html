@@ -568,8 +568,8 @@ function renderLessons(){
       </div>
 
       <!-- Monthly Plan Overview -->
-      <div class="px-5 py-4 bg-amber-50 border-b border-amber-100">
-        <div class="text-xs font-bold text-amber-700 mb-3">📅 แผน 4 สัปดาห์ — พฤษภาคม 2026</div>
+      <details class="border-b border-amber-100 bg-amber-50"><summary class="px-5 py-3 flex items-center justify-between cursor-pointer select-none list-none hover:bg-amber-100 transition-colors"><span class="text-xs font-bold text-amber-700">📅 แผน 4 สัปดาห์ — พฤษภาคม 2026</span><span class="text-amber-300 text-xs">▼</span></summary>
+        <div class="px-5 pb-4">
         <div class="grid grid-cols-4 gap-2">
           ${[0,1,2,3].map(wi=>{
             const isCurrent=wi===week-1;
@@ -587,7 +587,7 @@ function renderLessons(){
             </div>`;
           }).join("")}
         </div>
-      </div>
+      </div></details>
 
       <!-- Lesson Cards (สัปดาห์นี้เท่านั้น) -->
       <div class="p-4 space-y-4">
@@ -1491,8 +1491,8 @@ function _renderReportInner(){
     </div>
 
     <!-- ── กราฟพัฒนาการรายวิชา ── -->
-    <div class="p-5 border-b border-gray-100">
-      <div class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4">📈 กราฟคะแนนรายวิชา (W1 → W2)</div>
+    <details open class="border-b border-gray-100"><summary class="p-5 flex items-center justify-between cursor-pointer select-none list-none hover:bg-gray-50"><span class="text-xs font-bold text-gray-500 uppercase tracking-wider">📈 กราฟคะแนนรายวิชา</span><span class="text-gray-300 text-xs">▼</span></summary>
+    <div class="px-5 pb-5">
       <div class="space-y-4">
         ${subjectGroups.map(sg=>{
           return `<div>
@@ -1522,7 +1522,7 @@ function _renderReportInner(){
                   <span class="text-xs font-bold text-gray-400 w-6">W${l.week}</span>
                   <div class="flex-1 bg-gray-100 rounded-full h-5 overflow-hidden relative">
                     <div style="width:${l.pct}%;background:${col};height:100%;border-radius:9999px;transition:width 0.5s;display:flex;align-items:center;padding-left:8px;">
-                      <span style="color:white;font-size:10px;font-weight:700;white-space:nowrap">${l.score}/20 · ${l.pct}%</span>
+                      <span style="color:white;font-size:10px;font-weight:700;white-space:nowrap">${l.score}/${l.maxScore||30} · ${l.pct}%</span>
                     </div>
                   </div>
                   ${trendHtml}
@@ -1539,11 +1539,11 @@ function _renderReportInner(){
         <span><span style="color:#ef4444">■</span> &lt;60%</span>
         <span class="ml-2">แถบเล็กสี = ประวัติ retake แต่ละครั้ง</span>
       </div>
-    </div>
+    </div></details>
 
     <!-- ── ตารางสรุปคะแนน ── -->
-    <div class="p-5 border-b border-gray-100">
-      <div class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">📊 ตารางคะแนนละเอียด</div>
+    <details class="border-b border-gray-100"><summary class="p-5 flex items-center justify-between cursor-pointer select-none list-none hover:bg-gray-50"><span class="text-xs font-bold text-gray-500 uppercase tracking-wider">📊 ตารางคะแนนละเอียด</span><span class="text-gray-300 text-xs">▼</span></summary>
+    <div class="px-5 pb-5">
       <div class="overflow-x-auto">
         <table class="w-full text-xs">
           <thead>
@@ -1557,11 +1557,10 @@ function _renderReportInner(){
           </thead>
           <tbody>
             ${subjectGroups.map(sg=>{
-              const w1=sg.lessons.find(l=>l.week===1)||null;
-              const w2=sg.lessons.find(l=>l.week===2)||null;
-              const w3=sg.lessons.find(l=>l.week===3)||null;
-              const wLatest=w3||w2||w1||sg.lessons[0]||null;
-              const trend=(w1&&w1.pct!=null&&w2&&w2.pct!=null)?(w2.pct-w1.pct):null;
+              const sortedW=[...sg.lessons].filter(l=>l.submitted).sort((a,b)=>b.week-a.week);
+              const wLatest=sortedW[0]||sg.lessons[sg.lessons.length-1]||null;
+              const wPrev=sortedW[1]||null;
+              const trend=(wLatest&&wLatest.pct!=null&&wPrev&&wPrev.pct!=null)?(wLatest.pct-wPrev.pct):null;
               const totalRetakes=sg.lessons.reduce((a,l)=>a+(l.hist.length>1?l.hist.length-1:0),0);
               return `<tr class="border-b border-gray-50">
                 <td class="py-2.5"><span class="mr-1">${sg.icon}</span>${sg.subject}</td>
@@ -1574,12 +1573,11 @@ function _renderReportInner(){
           </tbody>
         </table>
       </div>
-    </div>
+    </div></details>
 
     <!-- ── ปุ่มวิเคราะห์ ── -->
-    <div class="p-5 border-b border-gray-100">
-      <div class="flex items-center justify-between mb-3">
-        <div class="text-xs font-bold text-gray-500 uppercase tracking-wider">🧠 วิเคราะห์โดยทีมหลัก</div>
+    <details open class="border-b border-gray-100"><summary class="p-5 flex items-center justify-between cursor-pointer select-none list-none hover:bg-gray-50"><span class="text-xs font-bold text-gray-500 uppercase tracking-wider">🧠 วิเคราะห์โดยทีมหลัก</span><span class="text-gray-300 text-xs">▼</span></summary>
+    <div class="px-5 pb-5"><div class="flex items-center justify-between mb-3"><div>
         ${saved.generatedAt?`<span class="text-xs text-gray-400">อัปเดต: ${new Date(saved.generatedAt).toLocaleString("th-TH",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}</span>`:""}
       </div>
       <button onclick="generateTeamReport()" id="gen-report-btn"
@@ -1589,35 +1587,18 @@ function _renderReportInner(){
       <!-- analysis panels -->
       <div id="report-analysis" class="mt-4 space-y-4">
         ${saved.rose?`
-          <div class="border border-pink-200 rounded-2xl overflow-hidden">
-            <div class="bg-pink-50 px-4 py-2.5 flex items-center gap-2">
-              <span>🌸</span><span class="font-bold text-sm text-pink-800">Rose — หัวหน้าแผนก</span>
-              <span class="ml-auto text-xs text-pink-400">ภาพรวม + การจัดการ</span>
-            </div>
-            <div class="px-4 py-3 text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">${saved.rose}</div>
-          </div>`:""}
+          <details class="border border-pink-200 rounded-2xl overflow-hidden"><summary class="bg-pink-50 px-4 py-2.5 flex items-center gap-2 cursor-pointer select-none list-none"><span>🌸</span><span class="font-bold text-sm text-pink-800 flex-1">Rose — หัวหน้าแผนก</span><span class="text-xs text-pink-400 mr-2">ภาพรวม + การจัดการ</span><span class="text-pink-300 text-xs">▼</span></summary><div class="px-4 py-3 text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">${saved.rose}</div></details>`:""}
         ${saved.aim?`
-          <div class="border border-blue-200 rounded-2xl overflow-hidden">
-            <div class="bg-blue-50 px-4 py-2.5 flex items-center gap-2">
-              <span>📊</span><span class="font-bold text-sm text-blue-800">Dr.Aim — วิเคราะห์วิชาการ</span>
-              <span class="ml-auto text-xs text-blue-400">Learning Gap + Pattern</span>
-            </div>
-            <div class="px-4 py-3 text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">${saved.aim}</div>
-          </div>`:""}
+          <details class="border border-blue-200 rounded-2xl overflow-hidden"><summary class="bg-blue-50 px-4 py-2.5 flex items-center gap-2 cursor-pointer select-none list-none"><span>📊</span><span class="font-bold text-sm text-blue-800 flex-1">Dr.Aim — วิเคราะห์วิชาการ</span><span class="text-xs text-blue-400 mr-2">Learning Gap + Pattern</span><span class="text-blue-300 text-xs">▼</span></summary><div class="px-4 py-3 text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">${saved.aim}</div></details>`:""}
         ${saved.ploy?`
-          <div class="border border-green-200 rounded-2xl overflow-hidden">
-            <div class="bg-green-50 px-4 py-2.5 flex items-center gap-2">
-              <span>🌱</span><span class="font-bold text-sm text-green-800">Ploy — พัฒนาการและ Mindset</span>
-              <span class="ml-auto text-xs text-green-400">Motivation + Wellbeing</span>
-            </div>
-            <div class="px-4 py-3 text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">${saved.ploy}</div>
-          </div>`:""}
+          <details class="border border-green-200 rounded-2xl overflow-hidden"><summary class="bg-green-50 px-4 py-2.5 flex items-center gap-2 cursor-pointer select-none list-none"><span>🌱</span><span class="font-bold text-sm text-green-800 flex-1">Ploy — พัฒนาการและ Mindset</span><span class="text-xs text-green-400 mr-2">Motivation + Wellbeing</span><span class="text-green-300 text-xs">▼</span></summary><div class="px-4 py-3 text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">${saved.ploy}</div></details>`:""}
         ${!saved.rose&&!saved.aim&&!saved.ploy?`<div class="text-center text-gray-300 text-sm py-4">กด "วิเคราะห์ตอนนี้" เพื่อรับรายงานจากทีมค่ะ</div>`:""}
       </div>
-    </div>
+    </div></div></details>
 
     <!-- ── กำหนดการอัปเดต + Weekly Agent ── -->
-    <div class="p-5">
+    <details class=""><summary class="p-5 flex items-center justify-between cursor-pointer select-none list-none hover:bg-gray-50"><span class="text-xs font-bold text-gray-500 uppercase tracking-wider">🤖 Weekly Agent</span><span class="text-gray-300 text-xs">▼</span></summary>
+    <div class="px-5 pb-5">
       <div class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">🤖 Weekly Agent</div>
       <div class="bg-gray-900 border border-gray-700 rounded-2xl p-4 space-y-3">
         <div class="flex items-center justify-between">
@@ -1646,7 +1627,7 @@ function _renderReportInner(){
           <div id="weekly-agent-status" class="text-xs text-gray-500 min-h-[1rem]"></div>
         </div>
       </div>
-    </div>
+    </div></details>
 
   </div>`;
 }
