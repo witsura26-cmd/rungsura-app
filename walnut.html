@@ -1649,7 +1649,7 @@ var AGENT_TEACHERS=[
   {key:"sci",   subject:"วิทยาศาสตร์", teacher:"ครูไก่",  icon:"🔭",
    system:"คุณคือครูไก่ ครูวิทยาศาสตร์ สอนวอลนัท 8 ขวบ ป.4 ด้วยการทดลองและเรื่องน่าทึ่ง"},
   {key:"eng",   subject:"ภาษาอังกฤษ", teacher:"ครูเจน",  icon:"🇬🇧",
-   system:"You are Teacher Jen, an English teacher for Walnut, age 8, grade 4. Teach with fun stories and easy vocabulary. All lesson content should be in Thai, but English questions use English."},
+   system:"You are Teacher Jen, an English teacher for Walnut (Chenisa), age 8, Grade 4. IMPORTANT: The reading story MUST be written in ENGLISH (Grade 2-3 level). Use short sentences, common words, fun adventure stories. You may add short Thai translations in parentheses for hard words only. MCQ questions in English. Written questions in Thai with English keywords. NEVER use Korean, Chinese, Japanese or any non-English/Thai characters."},
   {key:"sing",  subject:"ร้องเพลง",   teacher:"ครูมิ้นท์", icon:"🎤",
    system:"คุณคือครูมิ้นท์ ครูร้องเพลง สอนวอลนัท 8 ขวบ ด้วยความสนุกและเทคนิคการร้อง"},
   {key:"piano", subject:"เปียโน",     teacher:"ครูบิ๊ก",  icon:"🎹",
@@ -1705,24 +1705,38 @@ function parseGenJson(txt){
 }
 
 async function generateOneLesson(tc, week, interviewCtx){
-  // แยก call เป็น 2 ส่วน: (1) reading+title (2) MCQ+written — ป้องกัน token ตัด
+  var isEng=(tc.key==="eng");
+  // แยก call เป็น 2 ส่วน: (1) reading+title (2) MCQ+written
   var prompt1=
     interviewCtx+"\n\n"+
-    "สร้างบทเรียน "+tc.subject+" สัปดาห์ที่ "+week+" สำหรับวอลนัท อายุ 8 ขวบ ป.4\n"+
-    "ตอบ JSON เท่านั้น (ห้าม text นอก JSON):\n"+
-    '{"title":"ชื่อบทเรียน","scene":"emoji 2-3 ตัว","goal":"เป้าหมาย 1 ประโยค","missionBrief":"intro 1-2 ประโยค สนุก","reading":"4-5 ย่อหน้าเล่าเป็นเรื่อง mission สนุก ใช้ภาษาเด็ก 8 ขวบเข้าใจ ยาว 300-400 คำ ใส่ขึ้นบรรทัดใหม่ระหว่างย่อหน้าด้วย \\n\\n"}';
+    (isEng
+      ? "Create an English lesson for Walnut (age 8, Grade 4), Week "+week+".\n"+
+        "The READING STORY must be written IN ENGLISH (Grade 2-3 level).\n"+
+        "Use short sentences, fun adventure story with action verbs. 4-5 paragraphs, 200-300 words.\n"+
+        "You may add Thai translation in () for difficult words only. NO Korean/Chinese/Japanese characters.\n"+
+        'Reply JSON only: {"title":"English title","scene":"emoji","goal":"goal in Thai","missionBrief":"1-2 sentences in Thai","reading":"ENGLISH story here with \\n\\n between paragraphs"}'
+      : "สร้างบทเรียน "+tc.subject+" สัปดาห์ที่ "+week+" สำหรับวอลนัท อายุ 8 ขวบ ป.4\n"+
+        "ตอบ JSON เท่านั้น (ห้าม text นอก JSON):\n"+
+        '{"title":"ชื่อบทเรียน","scene":"emoji 2-3 ตัว","goal":"เป้าหมาย 1 ประโยค","missionBrief":"intro 1-2 ประโยค สนุก","reading":"4-5 ย่อหน้าเล่าเป็นเรื่อง mission สนุก ใช้ภาษาเด็ก 8 ขวบเข้าใจ ยาว 300-400 คำ ใส่ขึ้นบรรทัดใหม่ระหว่างย่อหน้าด้วย \\n\\n"}'
+    );
 
   var raw1=await callChat(tc.system, prompt1, 2500);
   var p1=parseGenJson(raw1)||{};
   if(!p1.reading||p1.reading.length<80)
     throw new Error(tc.subject+": reading สั้นเกิน ("+p1.reading?.length+" chars) — ลอง generate ใหม่");
 
-  var prompt2=
-    "บทเรียน: "+p1.title+"\nเนื้อหา (ย่อ): "+p1.reading.slice(0,400)+"\n\n"+
-    "สร้าง MCQ 15 ข้อ + ข้อเขียน 5 ข้อ สำหรับวอลนัท 8 ขวบ\n"+
-    "ตอบ JSON เท่านั้น:\n"+
-    '{"mcq":[{"q":"คำถาม","c":["ก.ตัวเลือก","ข.","ค.","ง."],"a":0}],"written":[{"q":"คำถาม","hint":"คำใบ้"}]}\n'+
-    "mcq = 15 ข้อ (ง่าย 5 กลาง 5 ยาก 5) | written = 5 ข้อ เข้าใจง่าย ตอบ 2-3 ประโยค";
+  var prompt2= isEng
+    ? "Lesson: "+p1.title+"\nStory summary: "+p1.reading.slice(0,300)+"\n\n"+
+      "Create 15 MCQ + 5 written questions for Walnut age 8.\n"+
+      "MCQ: questions in English, 4 choices in English, mark correct answer index (0-3)\n"+
+      "Written: questions in Thai, hint in Thai, about the English content\n"+
+      'Reply JSON only: {"mcq":[{"q":"English question","c":["A.","B.","C.","D."],"a":0}],"written":[{"q":"คำถามภาษาไทย","hint":"คำใบ้"}]}\n'+
+      "mcq = 15 questions (easy 5, medium 5, hard 5) | written = 5 questions"
+    : "บทเรียน: "+p1.title+"\nเนื้อหา (ย่อ): "+p1.reading.slice(0,400)+"\n\n"+
+      "สร้าง MCQ 15 ข้อ + ข้อเขียน 5 ข้อ สำหรับวอลนัท 8 ขวบ\n"+
+      "ตอบ JSON เท่านั้น:\n"+
+      '{"mcq":[{"q":"คำถาม","c":["ก.ตัวเลือก","ข.","ค.","ง."],"a":0}],"written":[{"q":"คำถาม","hint":"คำใบ้"}]}\n'+
+      "mcq = 15 ข้อ (ง่าย 5 กลาง 5 ยาก 5) | written = 5 ข้อ เข้าใจง่าย ตอบ 2-3 ประโยค";
 
   var raw2=await callChat(tc.system, prompt2, 3500);
   var p2=parseGenJson(raw2)||{};
