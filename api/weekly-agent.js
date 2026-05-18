@@ -32,7 +32,7 @@ async function callClaude(apiKey, system, userMsg, maxTokens = 1200) {
       'anthropic-version': '2023-06-01',
     },
     body: JSON.stringify({
-      model: 'claude-haiku-4-5',  // ใช้ Haiku เพราะถูกกว่าและเร็วกว่า
+      model: 'claude-sonnet-4-5',  // Sonnet สำหรับคุณภาพเนื้อหา
       max_tokens: maxTokens,
       system,
       messages: [{ role: 'user', content: userMsg }],
@@ -53,41 +53,49 @@ async function generateLesson(apiKey, tc, week, prevResult, interviewSummary) {
   const context = `วอลนัท อายุ 8 ขวบ ป.4\n${interviewSummary}\n` +
     (prevResult ? `ผลสัปดาห์ที่แล้ว: MCQ ${prevResult.mcqScore||0}/${prevResult.mcqTotal||15}, เขียน ${prevResult.writtenScore||0}/${prevResult.writtenTotal||9}\n` : '');
 
-  // 1 call เดียว — รวม reading + MCQ + written เพื่อลด latency
+  // สร้าง reading + MCQ + written ใน 1 call
   const prompt =
     `${context}\n` +
-    `สร้างบทเรียน ${tc.subject} สัปดาห์ที่ ${week} สำหรับวอลนัท 8 ขวบ ป.4\n` +
-    `ตอบ JSON object เท่านั้น (ห้ามมี text นอก JSON):\n` +
-    `{\n` +
-    `  "title": "ชื่อบทเรียน",\n` +
-    `  "scene": "emoji 2-3 ตัว",\n` +
-    `  "goal": "เป้าหมาย 1 ประโยค",\n` +
-    `  "reading": "เนื้อหา 3 ย่อหน้า เล่าสนุก ไม่เกิน 200 คำ",\n` +
-    `  "mcq": [{"q":"คำถาม","c":["ก.","ข.","ค.","ง."],"a":0}],\n` +
-    `  "written": [{"q":"คำถาม","hint":"คำใบ้"}]\n` +
-    `}\n` +
-    `mcq = 15 ข้อ (ง่าย 5, กลาง 5, ยาก 5) | written = 3 ข้อ (เข้าใจง่าย ตอบ 2-3 ประโยค)`;
+    `สร้างบทเรียน ${tc.subject} สัปดาห์ที่ ${week} สำหรับวอลนัท อายุ 8 ขวบ ป.4\n\n` +
+    `**ข้อกำหนดสำคัญ — ต้องทำตามทุกข้อ:**\n` +
+    `1. reading: เนื้อหา 4-5 ย่อหน้า เล่าสนุกแบบ mission/เรื่องเล่า ใช้ภาษาเข้าใจง่าย วอลนัทอ่านแล้วสนุก อย่างน้อย 300 คำ\n` +
+    `2. mcq: 15 ข้อ ครอบคลุมเนื้อหา (ง่าย 5 กลาง 5 ยาก 5) ตัวเลือก 4 ข้อ ทุกข้อต้องมีเฉลยที่ถูก\n` +
+    `3. written: 5 ข้อ คำถามเข้าใจง่าย ตอบ 2-3 ประโยค มี hint บอกทิศทาง\n\n` +
+    `ตอบเป็น JSON เท่านั้น ห้าม text นอก JSON:\n` +
+    `{"title":"ชื่อบทเรียน","scene":"emoji","goal":"เป้าหมาย","missionBrief":"intro 1-2 ประโยค",` +
+    `"reading":"เนื้อหา 4-5 ย่อหน้า",` +
+    `"mcq":[{"q":"คำถาม","c":["ก.ตัวเลือก","ข.","ค.","ง."],"a":0}],` +
+    `"written":[{"q":"คำถาม","hint":"คำใบ้"}]}`;
 
-  const raw = await callClaude(apiKey, tc.system, prompt, 3500);
+  const raw = await callClaude(apiKey, tc.system, prompt, 5000);
   const parsed = safeParseJson(raw) || {};
+
+  // ตรวจสอบ — ถ้า reading สั้นหรือ MCQ ไม่ครบ แสดงว่า generate ไม่สำเร็จ
+  const readingOk = parsed.reading && parsed.reading.length > 100 && parsed.reading !== 'เนื้อหาบทเรียน';
+  const mcqOk = Array.isArray(parsed.mcq) && parsed.mcq.length >= 10 && parsed.mcq[0].q !== 'คำถามข้อ 1';
+
+  if (!readingOk || !mcqOk) {
+    throw new Error(`Generate ไม่สำเร็จสำหรับ ${tc.subject} (reading: ${parsed.reading?.length||0} chars, mcq: ${parsed.mcq?.length||0} ข้อ)`);
+  }
 
   const part1 = {
     title: parsed.title || `${tc.subject} W${week}`,
     scene: parsed.scene || tc.icon,
-    goal: parsed.goal || 'เรียนรู้พื้นฐาน',
-    reading: parsed.reading || 'เนื้อหาบทเรียน',
+    goal: parsed.goal || '',
+    reading: parsed.reading,
+    missionBrief: parsed.missionBrief || '',
   };
 
-  const mcqArr = Array.isArray(parsed.mcq) && parsed.mcq.length >= 10
-    ? parsed.mcq
-    : Array.from({length:15},(_,i)=>({q:`คำถามข้อ ${i+1}`,c:['ก. ตัวเลือก 1','ข. ตัวเลือก 2','ค. ตัวเลือก 3','ง. ตัวเลือก 4'],a:0}));
+  const mcqArr = parsed.mcq;
 
-  const writtenArr = Array.isArray(parsed.written) && parsed.written.length >= 2
+  const writtenArr = Array.isArray(parsed.written) && parsed.written.length >= 3
     ? parsed.written
     : [
-        {q:'บทเรียนนี้สอนเรื่องอะไร? บอกในแบบของตัวเอง',hint:'ดูจากหัวข้อและเนื้อหา'},
-        {q:'ยกตัวอย่าง 1 อย่างที่เชื่อมกับชีวิตจริงของวอลนัท',hint:'คิดถึงสิ่งที่เจอในชีวิตประจำวัน'},
-        {q:'ถ้าต้องบอกเพื่อนเรื่องนี้ จะพูดว่าอะไร?',hint:'ไม่มีผิดถูก พูดในแบบตัวเอง'},
+        {q:'บทเรียนนี้สอนเรื่องอะไร? อธิบายในแบบของตัวเอง',hint:'ดูจากเนื้อหาที่อ่าน'},
+        {q:'ยกตัวอย่าง 1 อย่างจากบทเรียนที่เจอในชีวิตจริงได้',hint:'คิดถึงสิ่งที่เคยเห็นหรือทำ'},
+        {q:'ถ้าต้องอธิบายเรื่องนี้ให้เพื่อนฟัง จะพูดว่าอะไร?',hint:'ไม่มีผิดถูก พูดในแบบตัวเอง'},
+        {q:'สิ่งที่น่าสนใจที่สุดในบทเรียนนี้คืออะไร เพราะอะไร?',hint:'บอกความรู้สึกและเหตุผลจริงๆ'},
+        {q:'มีอะไรในบทเรียนที่อยากรู้เพิ่มหรืออยากลองทำไหม?',hint:'ไม่มีผิดถูก ตอบตามความคิดตัวเอง'},
       ];
 
   return {
