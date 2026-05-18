@@ -1302,7 +1302,11 @@ function applyFullLessons(generated, silentMode){
     var existing=LESSONS.find(function(l){return l.id===targetId;});
 
     if(existing){
-      // อัพเดต lesson ที่ตรง id เป๊ะ — weekly-agent authoritative เสมอ
+      // ป้องกัน overwrite hardcoded lessons ที่มี MCQ ครบ
+      // (hardcoded = ไม่ได้ถูก generate โดย weekly-agent)
+      var isHardcoded = existing.mcq && existing.mcq.length>=10 && !existing.generatedBy;
+      var isSameWeek = (existing.week||1) === (g.week||1);
+      if(isHardcoded && isSameWeek) return; // ข้ามไป — ห้ามทับของเดิม
       if(g.title) existing.title=g.title;
       if(g.goal) existing.goal=g.goal;
       if(g.rationale) existing.rationale=g.rationale;
@@ -1630,15 +1634,15 @@ function _renderReportInner(){
               class="bg-amber-500 hover:bg-amber-400 text-white px-4 py-2 rounded-xl text-sm font-bold">
               🤖 Generate W${Math.min(4,Math.ceil(new Date().getDate()/7)+1)} (สัปดาห์ถัดไป)
             </button>
-            <button onclick="manualGenerateWeek(true)"
-              class="border border-gray-600 text-gray-300 hover:border-gray-400 px-3 py-2 rounded-xl text-xs">
-              🔄 Generate สัปดาห์นี้ใหม่ (force)
-            </button>
             <button onclick="loadWeeklyCurriculumFromCloud().then(function(ok){alert(ok?'✅ โหลดสำเร็จ':'ยังไม่มีเนื้อหาใหม่ใน cloud');})"
               class="border border-gray-600 text-gray-300 hover:border-gray-400 px-3 py-2 rounded-xl text-xs">
               ☁️ โหลดจาก cloud
             </button>
           </div>
+          <button onclick="resetToHardcodedLessons()"
+            class="border border-red-800 text-red-400 hover:border-red-600 px-3 py-2 rounded-xl text-xs w-full mt-1">
+            🔄 คืนเนื้อหาเดิม (ล้าง generated ทั้งหมด)
+          </button>
           <div id="weekly-agent-status" class="text-xs text-gray-500 min-h-[1rem]"></div>
         </div>
       </div>
@@ -1725,6 +1729,26 @@ async function manualGenerateWeek(forceCurrentWeek){
     }
     if(btn){btn.disabled=false; btn.textContent="🔄 ลองใหม่";}
   }
+}
+
+// ── RESET TO HARDCODED LESSONS ────────────────────────────
+function resetToHardcodedLessons(){
+  if(!confirm("ล้างเนื้อหาที่ AI generate ไว้ทั้งหมด แล้วคืนเนื้อหาเดิม?")) return;
+  // ล้าง localStorage ทุก key ที่เกี่ยวกับ curriculum
+  ["walnut_curriculum_w1","walnut_curriculum_w2","walnut_curriculum_w3","walnut_curriculum_w4",
+   "walnut_custom_curriculum"].forEach(function(k){ localStorage.removeItem(k); });
+  // ล้าง Redis ด้วย
+  try{
+    fetch("/api/sync",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        walnut_curriculum_w1:null, walnut_curriculum_w2:null,
+        walnut_curriculum_w3:null, walnut_curriculum_w4:null,
+        walnut_custom_curriculum:null
+      })});
+  }catch(e){}
+  window._lessonsViewWeek=null;
+  alert("✅ ล้างแล้ว — กำลัง reload...");
+  location.reload();
 }
 
 // ── TEAM REPORT GENERATOR ─────────────────────────────────
