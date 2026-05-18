@@ -1657,13 +1657,30 @@ var AGENT_TEACHERS=[
 ];
 
 async function callChat(system, userMsg, maxTokens){
-  var r=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({max_tokens:maxTokens||2000,system:system,
-      messages:[{role:"user",content:userMsg}]})});
-  if(!r.ok) throw new Error("HTTP "+r.status);
-  var d=await r.json();
-  var txt=typeof d.content==="string"?d.content:JSON.stringify(d.content||"");
-  return txt.replace(/```json\s*/gi,"").replace(/```\s*/g,"").trim();
+  var attempts=0;
+  while(attempts<3){
+    attempts++;
+    try{
+      var r=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({max_tokens:maxTokens||2000,system:system,
+          messages:[{role:"user",content:userMsg}]})});
+      var d=await r.json();
+      if(!r.ok){
+        var errMsg=d.error||d.detail?.error?.message||"HTTP "+r.status;
+        // 529 overload หรือ 500 → retry หลัง delay
+        if((r.status===529||r.status===500||r.status===503)&&attempts<3){
+          await new Promise(function(res){setTimeout(res,3000*attempts);});
+          continue;
+        }
+        throw new Error(errMsg);
+      }
+      var txt=typeof d.content==="string"?d.content:JSON.stringify(d.content||"");
+      return txt.replace(/```json\s*/gi,"").replace(/```\s*/g,"").trim();
+    }catch(e){
+      if(attempts>=3) throw e;
+      await new Promise(function(res){setTimeout(res,2000);});
+    }
+  }
 }
 
 function parseGenJson(txt){
@@ -1768,14 +1785,26 @@ async function manualGenerateWeek(forceCurrentWeek){
   for(var i=0;i<AGENT_TEACHERS.length;i++){
     var tc=AGENT_TEACHERS[i];
     setProgress("⏳","กำลัง generate "+tc.subject+"...","text-amber-400");
-    try{
-      var lesson=await generateOneLesson(tc, targetWeek, intakeCtx);
-      lessons.push(lesson);
-      setProgress("✅",tc.subject+" เสร็จแล้ว ("+lesson.mcq.length+" MCQ)","text-green-400");
-    }catch(e){
-      errors.push(tc.subject+": "+e.message);
-      setProgress("❌",tc.subject+" error: "+e.message.slice(0,50),"text-red-400");
+    var retried=false;
+    for(var attempt=1;attempt<=2;attempt++){
+      try{
+        var lesson=await generateOneLesson(tc, targetWeek, intakeCtx);
+        lessons.push(lesson);
+        setProgress("✅",tc.subject+" เสร็จ ("+lesson.mcq.length+" MCQ"+(retried?" retry สำเร็จ!":"")+")" ,"text-green-400");
+        break;
+      }catch(e){
+        if(attempt===1){
+          setProgress("🔄",tc.subject+" retry... ("+e.message.slice(0,40)+")","text-amber-400");
+          retried=true;
+          await new Promise(function(r){setTimeout(r,2000);});
+        } else {
+          errors.push(tc.subject+": "+e.message);
+          setProgress("❌",tc.subject+" ล้มเหลว: "+e.message.slice(0,60),"text-red-400");
+        }
+      }
     }
+    // delay เล็กน้อยระหว่างวิชาเพื่อลด rate limit
+    if(i<AGENT_TEACHERS.length-1) await new Promise(function(r){setTimeout(r,500);});
   }
 
   if(lessons.length===0){
