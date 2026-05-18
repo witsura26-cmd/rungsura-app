@@ -1236,11 +1236,15 @@ async function designCurriculumFromInterview(interviewContext, analysis){
       var mcq=parseObj(t2);
       if(!Array.isArray(mcq)||mcq.length<5){throw new Error("mcq fail ("+( Array.isArray(mcq)?mcq.length:0)+"): "+t2.slice(0,80));}
 
-      // ── CALL 3: Written 3 ข้อ (ลดจาก 5 → 3 สั้นชัดเจน ตอบ 1-2 ประโยค) ──
+      // ── CALL 3: Written 3 ข้อ (เข้าใจง่าย ตีความได้ ตอบ 2-3 ประโยค) ──
       var call3Msg="วิชา"+tc.subject+" บทเรียน: "+part1.title+
         "\nออกแบบ 3 ข้อเขียนสำหรับวอลนัท อายุ 8 ขวบ ป.4 ที่พิมพ์ด้วย voice-to-text\n"+
-        "กฎเข้มงวด: (1) คำถาม 1 ประโยคสั้น ชัดเจน (2) ตอบได้ใน 1-2 ประโยค (3) ถามตรง ไม่ซับซ้อน (4) มี hint สั้นๆ ช่วยให้รู้ว่าต้องตอบอะไร\n"+
-        'ตอบ JSON array เท่านั้น: [{"q":"คำถาม","hint":"คำใบ้สั้นๆ"}]';
+        "หลักการ:\n"+
+        "- คำถามเข้าใจง่าย ภาษาธรรมดา สั้นหรือยาวก็ได้แต่ไม่สับสน\n"+
+        "- ให้วอลนัทได้ตีความและบอกความเข้าใจของตัวเองบ้าง ไม่ใช่แค่ท่องจำ\n"+
+        "- คำตอบที่คาดหวัง: 2-3 ประโยคพอ ไม่ต้องยาว\n"+
+        "- มี hint บอกทิศทางคำตอบ ไม่บอกเฉลย\n"+
+        'ตอบ JSON array เท่านั้น: [{"q":"คำถาม","hint":"คำใบ้ทิศทาง"}]';
       var t3=await callChat(tc.system,call3Msg,800);
       var written=parseObj(t3);
       if(!Array.isArray(written)||written.length<2) written=[
