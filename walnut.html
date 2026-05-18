@@ -521,20 +521,22 @@ function renderTab(){
 }
 
 // ── LESSONS TAB ───────────────────────────────────────────
-function renderLessons(){
+function renderLessons(viewWeekOverride){
   // คำนวณสัปดาห์ปัจจุบันของเดือน (1-4)
   const todayDate=new Date().getDate();
   const currentWeekOfMonth=Math.min(4,Math.ceil(todayDate/7));
-  const week=currentWeekOfMonth;
+  // ใช้ viewWeekOverride ถ้ามี (เช่น preview W4) หรือ currentWeek
+  const week=viewWeekOverride||window._lessonsViewWeek||currentWeekOfMonth;
 
-  // Option B: แสดงเฉพาะบทเรียนของสัปดาห์นี้
-  // ถ้าไม่มีสัปดาห์ที่ตรง ให้แสดงสัปดาห์ล่าสุดที่มี
+  // หา lessons สำหรับ week ที่เลือก
   let weekLessons=LESSONS.filter(l=>l.week===week);
   if(weekLessons.length===0){
-    // หา week สูงสุดที่มีอยู่ในข้อมูล
     const maxWeek=Math.max(...LESSONS.map(l=>l.week||1));
     weekLessons=LESSONS.filter(l=>(l.week||1)===maxWeek);
   }
+
+  // หา weeks ทั้งหมดที่มีใน LESSONS
+  const availableWeeks=[...new Set(LESSONS.map(l=>l.week||1))].sort((a,b)=>a-b);
 
   const done=weekLessons.filter(l=>getHwState(l.id).submitted).length;
   const total=weekLessons.length;
@@ -546,8 +548,9 @@ function renderLessons(){
       <div class="p-5 border-b border-gray-100">
         <div class="flex items-center justify-between">
           <div>
-            <h3 class="font-bold text-gray-900 text-base">📚 แผนการเรียนสัปดาห์ที่ ${week}</h3>
+            <h3 class="font-bold text-gray-900 text-base">📚 แผนการเรียนสัปดาห์ที่ ${week}${week!==currentWeekOfMonth?' <span class="text-xs text-amber-500 font-normal">(preview)</span>':''}</h3>
             <p class="text-xs text-gray-400 mt-0.5">ออกแบบโดยทีมครูร่วมกับ Dr.Aim · อนุมัติโดย 🌸 Rose</p>
+            ${availableWeeks.length>1?`<div class="flex gap-1 mt-2">${availableWeeks.map(w=>`<button onclick="window._lessonsViewWeek=${w};document.getElementById('tab-area').innerHTML=renderLessons();" class="px-2 py-0.5 rounded-lg text-xs font-bold transition-colors ${w===week?'bg-amber-400 text-white':'bg-gray-100 text-gray-500 hover:bg-gray-200'}">W${w}</button>`).join('')}</div>`:''}
           </div>
           <div class="flex gap-2">
             <div class="text-center bg-amber-50 border border-amber-200 rounded-2xl px-4 py-2">
@@ -1386,13 +1389,15 @@ function loadCustomCurriculumIfExists(){
 }
 
 // โหลด curriculum ที่ weekly-agent generate ไว้จาก Redis
-async function loadWeeklyCurriculumFromCloud(){
+// week=null → โหลดสัปดาห์ปัจจุบัน, week=N → โหลดสัปดาห์ที่ N โดยตรง
+async function loadWeeklyCurriculumFromCloud(week){
   try{
     var curWeek=Math.min(4,Math.ceil(new Date().getDate()/7));
+    var targetWeek=week||curWeek;
     var r=await fetch("/api/sync");
     var d=await r.json();
     if(!d.data) return false;
-    var key="walnut_curriculum_w"+curWeek;
+    var key="walnut_curriculum_w"+targetWeek;
     var val=d.data[key];
     if(!val) return false;
     var curriculum=typeof val==="string"?JSON.parse(val):val;
@@ -1400,7 +1405,7 @@ async function loadWeeklyCurriculumFromCloud(){
     // บันทึกลง localStorage และ apply
     localStorage.setItem(key,JSON.stringify(curriculum));
     applyCustomCurriculum(curriculum.lessons);
-    console.log("✅ โหลด curriculum W"+curWeek+" จาก cloud แล้ว ("+curriculum.lessons.length+" วิชา)");
+    console.log("✅ โหลด curriculum W"+targetWeek+" จาก cloud แล้ว ("+curriculum.lessons.length+" วิชา)");
     if(typeof renderTab==="function"){
       var ta=document.getElementById("tab-area");
       if(ta) ta.innerHTML=renderTab();
@@ -1693,14 +1698,14 @@ async function manualGenerateWeek(forceCurrentWeek){
           '<div class="text-green-400 font-bold text-sm mb-2">✅ Generate W'+targetWeek+' เสร็จแล้ว!</div>'+
           '<div class="text-xs text-green-300">สร้างบทเรียน '+d.lessonsGenerated+' วิชา</div>'+
           (d.errors&&d.errors.length?'<div class="text-xs text-amber-400 mt-1">⚠️ มีบางวิชา error: '+d.errors.join(", ")+'</div>':'')+
-          '<button onclick="loadWeeklyCurriculumFromCloud().then(function(){location.reload();})" '+
+          '<button onclick="loadWeeklyCurriculumFromCloud('+targetWeek+').then(function(){location.reload();})" '+
           'class="mt-3 w-full bg-green-500 hover:bg-green-400 text-white py-2 rounded-xl text-xs font-bold">'+
           '🔄 โหลดเนื้อหาใหม่เลย</button>'+
           '</div>';
       }
       if(btn){btn.disabled=false; btn.textContent="🤖 Generate อีกครั้ง";}
-      // auto โหลด
-      await loadWeeklyCurriculumFromCloud();
+      // auto โหลด week ที่ generate มา (ไม่ใช่ curWeek เสมอ)
+      await loadWeeklyCurriculumFromCloud(targetWeek);
     } else if(d.skipped){
       if(statusEl){
         statusEl.innerHTML=
