@@ -1360,61 +1360,50 @@ function applyCustomCurriculum(curriculum){
 function loadCustomCurriculumIfExists(){
   try{
     var curWeek=Math.min(4,Math.ceil(new Date().getDate()/7));
-    // ตรวจ localStorage ก่อน — ถ้ามี curriculum ของสัปดาห์นี้จาก weekly-agent ให้ใช้
-    var saved=JSON.parse(localStorage.getItem("walnut_curriculum_w"+curWeek)||"null");
-    if(saved&&saved.lessons&&saved.lessons.length){
-      applyCustomCurriculum(saved.lessons);
-      return;
+    // โหลด ALL weeks ที่มีใน localStorage (w1-w4)
+    var loaded=false;
+    for(var w=1;w<=4;w++){
+      var saved=JSON.parse(localStorage.getItem("walnut_curriculum_w"+w)||"null");
+      if(saved&&saved.lessons&&saved.lessons.length){
+        applyCustomCurriculum(saved.lessons);
+        loaded=true;
+      }
     }
+    if(loaded) return;
     // fallback: ตรวจ custom curriculum เก่า
     var custom=JSON.parse(localStorage.getItem("walnut_custom_curriculum")||"null");
-    if(custom&&custom.lessons&&custom.lessons.length&&custom.week===curWeek){
+    if(custom&&custom.lessons&&custom.lessons.length){
       applyCustomCurriculum(custom.lessons);
-      return;
     }
-    // ถ้า LESSONS hardcoded ตรงกับ week ปัจจุบัน → ใช้ได้เลย ไม่ต้องทำอะไร
-    var weekLessons=LESSONS.filter(function(l){return l.week===curWeek;});
-    if(weekLessons.length>0) return; // hardcoded ok
-    // ไม่มีเนื้อหาสำหรับสัปดาห์นี้เลย → แสดง banner แจ้ง Wit
-    setTimeout(function(){
-      var ta=document.getElementById("tab-area");
-      if(ta&&typeof activeTab!=="undefined"&&activeTab==="lessons"){
-        var banner=document.getElementById("no-content-banner");
-        if(!banner){
-          var el=document.createElement("div");
-          el.id="no-content-banner";
-          el.className="bg-amber-50 border border-amber-300 rounded-2xl p-4 mx-4 mt-4 text-sm text-amber-800 flex items-center gap-3";
-          el.innerHTML='<span class="text-2xl">🤖</span><div class="flex-1"><strong>ยังไม่มีเนื้อหาสัปดาห์ที่ '+curWeek+'</strong><br><span class="text-xs">กด Generate ในหน้า Report เพื่อให้ทีม AI สร้างบทเรียนใหม่</span></div>';
-          ta.prepend(el);
-        }
-      }
-    },1000);
   }catch(e){}
 }
 
-// โหลด curriculum ที่ weekly-agent generate ไว้จาก Redis
-// week=null → โหลดสัปดาห์ปัจจุบัน, week=N → โหลดสัปดาห์ที่ N โดยตรง
+// โหลด curriculum จาก Redis
+// week=N → โหลด week นั้น | week=null → โหลดทุก week ที่มีใน Redis
 async function loadWeeklyCurriculumFromCloud(week){
   try{
-    var curWeek=Math.min(4,Math.ceil(new Date().getDate()/7));
-    var targetWeek=week||curWeek;
     var r=await fetch("/api/sync");
     var d=await r.json();
     if(!d.data) return false;
-    var key="walnut_curriculum_w"+targetWeek;
-    var val=d.data[key];
-    if(!val) return false;
-    var curriculum=typeof val==="string"?JSON.parse(val):val;
-    if(!curriculum||!curriculum.lessons||!curriculum.lessons.length) return false;
-    // บันทึกลง localStorage และ apply
-    localStorage.setItem(key,JSON.stringify(curriculum));
-    applyCustomCurriculum(curriculum.lessons);
-    console.log("✅ โหลด curriculum W"+targetWeek+" จาก cloud แล้ว ("+curriculum.lessons.length+" วิชา)");
-    if(typeof renderTab==="function"){
-      var ta=document.getElementById("tab-area");
-      if(ta) ta.innerHTML=renderTab();
+    var anyLoaded=false;
+    // กำหนด weeks ที่จะโหลด
+    var weeksToCheck=week?[week]:[1,2,3,4];
+    for(var w of weeksToCheck){
+      var key="walnut_curriculum_w"+w;
+      var val=d.data[key];
+      if(!val) continue;
+      var curriculum=typeof val==="string"?JSON.parse(val):val;
+      if(!curriculum||!curriculum.lessons||!curriculum.lessons.length) continue;
+      localStorage.setItem(key,JSON.stringify(curriculum));
+      applyCustomCurriculum(curriculum.lessons);
+      console.log("✅ โหลด curriculum W"+w+" จาก cloud ("+curriculum.lessons.length+" วิชา)");
+      anyLoaded=true;
     }
-    return true;
+    if(anyLoaded){
+      var ta=document.getElementById("tab-area");
+      if(ta&&typeof activeTab!=="undefined"&&activeTab==="lessons") ta.innerHTML=renderLessons();
+    }
+    return anyLoaded;
   }catch(e){ return false; }
 }
 
