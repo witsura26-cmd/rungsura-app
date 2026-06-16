@@ -224,9 +224,9 @@
 
 
 <!-- DATA + LOGIC (separate files for easy editing) -->
-<script src="/walnut-data.js?v=14" onerror="document.getElementById('app').innerHTML='<div class=\'p-6 text-red-500\'>❌ walnut-data.js โหลดไม่ได้</div>'"></script>
-<script src="/walnut-tasks.js?v=14" onerror="document.getElementById('app').innerHTML='<div class=\'p-6 text-red-500\'>❌ walnut-tasks.js โหลดไม่ได้</div>'"></script>
-<script src="/walnut-hw.js?v=14" onerror="document.getElementById('app').innerHTML='<div class=\'p-6 text-red-500\'>❌ walnut-hw.js โหลดไม่ได้</div>'"></script>
+<script src="/walnut-data.js?v=15" onerror="document.getElementById('app').innerHTML='<div class=\'p-6 text-red-500\'>❌ walnut-data.js โหลดไม่ได้</div>'"></script>
+<script src="/walnut-tasks.js?v=15" onerror="document.getElementById('app').innerHTML='<div class=\'p-6 text-red-500\'>❌ walnut-tasks.js โหลดไม่ได้</div>'"></script>
+<script src="/walnut-hw.js?v=15" onerror="document.getElementById('app').innerHTML='<div class=\'p-6 text-red-500\'>❌ walnut-hw.js โหลดไม่ได้</div>'"></script>
 <script>
 // ── W3 LESSON OVERRIDE — inline เพื่อไม่พึ่ง cache ของ walnut-data.js ──────
 // รันทันทีหลัง walnut-data.js โหลด — ถ้า LESSONS ยังไม่มี content (mcq<10) จะ override
@@ -430,11 +430,11 @@
 <script>
 // ── ONE-TIME CLEAR (ล้าง task/hw เก่าครั้งเดียว) ────────────────────────────
 (function(){
-  if(localStorage.getItem('_walnut_cleared_v1')) return;
+  if(localStorage.getItem('_walnut_cleared_v2')) return;
   Object.keys(localStorage).filter(function(k){
     return k.startsWith('hw_') || k === 'walnut_tasks';
   }).forEach(function(k){ localStorage.removeItem(k); });
-  localStorage.setItem('_walnut_cleared_v1','1');
+  localStorage.setItem('_walnut_cleared_v2','1');
 })();
 </script>
 <script>
