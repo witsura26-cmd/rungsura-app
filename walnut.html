@@ -31,12 +31,7 @@
       </div>
     </div>
     <nav class="flex-1 p-3 space-y-0.5">
-      <a href="/" class="w-full px-3 py-2.5 rounded-lg text-sm flex items-center gap-2 hover:bg-amber-50 text-gray-500 block">🏠 Dashboard</a>
-      <div class="pt-3 pb-1 px-3 text-xs text-gray-400 font-semibold uppercase tracking-wider">แผนก</div>
-      <a href="/noix.html"    class="w-full px-3 py-2.5 rounded-lg text-sm flex items-center gap-2 hover:bg-amber-50 text-gray-500 block">☕ Noix &amp; Coff</a>
-      <a href="/cheywit.html" class="w-full px-3 py-2.5 rounded-lg text-sm flex items-center gap-2 hover:bg-amber-50 text-gray-500 block">🎬 Cheywit Media</a>
-      <a href="/walnut.html"  class="w-full px-3 py-2.5 rounded-lg text-sm flex items-center gap-2 bg-amber-50 border-r-2 border-amber-400 font-semibold text-amber-800 block">🎵 Walnut Learning</a>
-      <a href="/newbiz.html"  class="w-full px-3 py-2.5 rounded-lg text-sm flex items-center gap-2 hover:bg-amber-50 text-gray-500 block">🚀 New Business</a>
+      <div class="px-3 py-2.5 rounded-lg text-sm flex items-center gap-2 bg-amber-50 border-r-2 border-amber-400 font-semibold text-amber-800">🎵 Walnut Learning</div>
     </nav>
     <div class="p-4 border-t border-gray-100">
       <div class="flex items-center gap-2">
@@ -229,9 +224,9 @@
 
 
 <!-- DATA + LOGIC (separate files for easy editing) -->
-<script src="/walnut-data.js?v=13" onerror="document.getElementById('app').innerHTML='<div class=\'p-6 text-red-500\'>❌ walnut-data.js โหลดไม่ได้</div>'"></script>
-<script src="/walnut-tasks.js?v=13" onerror="document.getElementById('app').innerHTML='<div class=\'p-6 text-red-500\'>❌ walnut-tasks.js โหลดไม่ได้</div>'"></script>
-<script src="/walnut-hw.js?v=13" onerror="document.getElementById('app').innerHTML='<div class=\'p-6 text-red-500\'>❌ walnut-hw.js โหลดไม่ได้</div>'"></script>
+<script src="/walnut-data.js?v=14" onerror="document.getElementById('app').innerHTML='<div class=\'p-6 text-red-500\'>❌ walnut-data.js โหลดไม่ได้</div>'"></script>
+<script src="/walnut-tasks.js?v=14" onerror="document.getElementById('app').innerHTML='<div class=\'p-6 text-red-500\'>❌ walnut-tasks.js โหลดไม่ได้</div>'"></script>
+<script src="/walnut-hw.js?v=14" onerror="document.getElementById('app').innerHTML='<div class=\'p-6 text-red-500\'>❌ walnut-hw.js โหลดไม่ได้</div>'"></script>
 <script>
 // ── W3 LESSON OVERRIDE — inline เพื่อไม่พึ่ง cache ของ walnut-data.js ──────
 // รันทันทีหลัง walnut-data.js โหลด — ถ้า LESSONS ยังไม่มี content (mcq<10) จะ override
@@ -430,6 +425,16 @@
     l.title=ov.title; l.scene=ov.scene; l.missionBrief=ov.missionBrief;
     l.goal=ov.goal; l.reading=ov.reading; l.mcq=ov.mcq; l.written=ov.written;
   });
+})();
+</script>
+<script>
+// ── ONE-TIME CLEAR (ล้าง task/hw เก่าครั้งเดียว) ────────────────────────────
+(function(){
+  if(localStorage.getItem('_walnut_cleared_v1')) return;
+  Object.keys(localStorage).filter(function(k){
+    return k.startsWith('hw_') || k === 'walnut_tasks';
+  }).forEach(function(k){ localStorage.removeItem(k); });
+  localStorage.setItem('_walnut_cleared_v1','1');
 })();
 </script>
 <script>

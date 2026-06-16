@@ -30,8 +30,9 @@ const TEAM = [
    prompt:"คุณคือครูบิ๊ก ครูเปียโนที่แม่นทฤษฎี ใจเย็น วอลนัทเรียนเปียโนเกือบ 2 ปี interval 5th อ่านโน้ตยังไม่แม่น ตอบภาษาไทย"},
 ];
 
-// ── LESSON DATA — W3 ─────────────────────────────────────────────────────────
-const LESSONS = [
+// ── LESSON DATA — W3 (ARCHIVED) ──────────────────────────────────────────────
+// หลักสูตร W3 เก็บไว้ใน LESSONS_W3 — ไม่ active แล้ว
+const LESSONS_W3 = [
 
   // ── ภาษาไทย W3 ────────────────────────────────────────────────────────────
   {id:"thai-w3", subject:"ภาษาไทย", teacher:"ครูนิ่ม", teacherId:"kru-nim", icon:"✍️",
@@ -538,6 +539,9 @@ lifetime (n.) = ช่วงชีวิต`,
      {q:"Write a short paragraph (5-6 sentences) describing the daily habits of an animal of your choice. Use at least one negative sentence and one question.",hint:"เช่น เริ่มด้วย 'A [animal] lives in... It eats... It doesn't... Does it...? Yes/No...'"}
    ]}
 ];
+
+// ── LESSONS (ACTIVE) — เพิ่มหลักสูตรใหม่ที่นี่ ─────────────────────────────
+const LESSONS = [];
 
 // ── DEFAULT SCHOOL SCHEDULE ───────────────────────────────
 const DEFAULT_SCHEDULE = {
