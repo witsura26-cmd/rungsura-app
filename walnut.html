@@ -428,13 +428,23 @@
 })();
 </script>
 <script>
-// ── ONE-TIME CLEAR (ล้าง task/hw เก่าครั้งเดียว) ────────────────────────────
+// ── ONE-TIME CLEAR (ล้างทุกอย่าง + Redis) ──────────────────────────────────
 (function(){
-  if(localStorage.getItem('_walnut_cleared_v2')) return;
+  if(localStorage.getItem('_walnut_cleared_v3')) return;
+  // ล้าง localStorage ทุก key ที่เกี่ยวกับ walnut
   Object.keys(localStorage).filter(function(k){
-    return k.startsWith('hw_') || k === 'walnut_tasks';
+    return k.startsWith('hw_') || k === 'walnut_tasks' ||
+           k.startsWith('walnut_curriculum') || k === 'walnut_custom_curriculum';
   }).forEach(function(k){ localStorage.removeItem(k); });
-  localStorage.setItem('_walnut_cleared_v2','1');
+  localStorage.setItem('_walnut_cleared_v3','1');
+  // ล้าง Redis cloud curriculum ด้วย
+  fetch('/api/sync',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      walnut_curriculum_w1:null, walnut_curriculum_w2:null,
+      walnut_curriculum_w3:null, walnut_curriculum_w4:null,
+      walnut_custom_curriculum:null, walnut_tasks:null
+    })
+  }).catch(function(){});
 })();
 </script>
 <script>
