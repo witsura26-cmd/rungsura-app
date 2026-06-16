@@ -428,23 +428,26 @@
 })();
 </script>
 <script>
-// ── ONE-TIME CLEAR (ล้างทุกอย่าง + Redis) ──────────────────────────────────
-(function(){
-  if(localStorage.getItem('_walnut_cleared_v3')) return;
+// ── ONE-TIME CLEAR (ล้างทุกอย่าง + await Redis ก่อน reload) ────────────────
+(async function(){
+  if(localStorage.getItem('_walnut_cleared_v4')) return;
   // ล้าง localStorage ทุก key ที่เกี่ยวกับ walnut
   Object.keys(localStorage).filter(function(k){
     return k.startsWith('hw_') || k === 'walnut_tasks' ||
            k.startsWith('walnut_curriculum') || k === 'walnut_custom_curriculum';
   }).forEach(function(k){ localStorage.removeItem(k); });
-  localStorage.setItem('_walnut_cleared_v3','1');
-  // ล้าง Redis cloud curriculum ด้วย
-  fetch('/api/sync',{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({
-      walnut_curriculum_w1:null, walnut_curriculum_w2:null,
-      walnut_curriculum_w3:null, walnut_curriculum_w4:null,
-      walnut_custom_curriculum:null, walnut_tasks:null
-    })
-  }).catch(function(){});
+  localStorage.setItem('_walnut_cleared_v4','1');
+  // รอ Redis clear ให้เสร็จก่อน reload
+  try{
+    await fetch('/api/sync',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        walnut_curriculum_w1:null, walnut_curriculum_w2:null,
+        walnut_curriculum_w3:null, walnut_curriculum_w4:null,
+        walnut_custom_curriculum:null, walnut_tasks:null
+      })
+    });
+  }catch(e){}
+  location.reload();
 })();
 </script>
 <script>
