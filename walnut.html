@@ -1314,6 +1314,8 @@ async function designCurriculumFromInterview(interviewContext, analysis){
 }
 
 function applyFullLessons(generated, silentMode){
+  // ถ้าไม่มีหลักสูตร (LESSONS=[]) ให้ skip ทั้งหมด — รอ curriculum ใหม่
+  if(window._walnut_no_curriculum) return;
   // silentMode=true → แค่อัปเดตข้อมูลใน memory ไม่ re-render (ใช้ตอน pipeline กำลังรัน)
   generated.forEach(function(g){
     var targetId=g.id||(g.subjectKey+"-w"+(g.week||Math.min(4,Math.ceil(new Date().getDate()/7))));

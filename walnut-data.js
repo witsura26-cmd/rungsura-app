@@ -542,6 +542,7 @@ lifetime (n.) = ช่วงชีวิต`,
 
 // ── LESSONS (ACTIVE) — เพิ่มหลักสูตรใหม่ที่นี่ ─────────────────────────────
 const LESSONS = [];
+window._walnut_no_curriculum = true; // ไม่มีหลักสูตร — บล็อก applyFullLessons
 
 // ── DEFAULT SCHOOL SCHEDULE ───────────────────────────────
 const DEFAULT_SCHEDULE = {
