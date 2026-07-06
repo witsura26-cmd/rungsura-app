@@ -21,7 +21,7 @@ const songState = {
   snapshot: null,
   currentTool: 'pencil',
   currentColor: '#e85d8a',
-  brushSize: 'm',
+  brushSize: 's', // always starts at 1px (SONG_BRUSH_SIZES.s) — not persisted
   eraserMode: 'stroke',   // stroke | pixel
   eraserSize: 'm',
   noteBorder: true,
@@ -35,7 +35,7 @@ const SONG_SETLIST_KEY = 'walnut_song_setlists';
 const SONG_COLORS = ['#e85d8a', '#4d96ff', '#6bcB77', '#ffd93d', '#9b5de5', '#3a3a3a'];
 const SONG_NOTE_COLORS = ['#000000', '#ffffff', '#e85d8a', '#4d96ff', '#6bcB77', '#ffd93d', '#9b5de5'];
 const SONG_STICKERS = ['🎵','🎶','🎤','🎧','🎸','🎹','🥁','🎷','🎺','🎻','🔔','📯','💖','💗','💓','💕','💞','💘','❤️','🧡','💛','💚','💙','💜','🤍','✨','🌟','⭐','💫','🌠','💎','😊','🥳','🎉','🌈','🦋'];
-const SONG_BRUSH_SIZES = { s: 2, m: 4, l: 8 };
+const SONG_BRUSH_SIZES = { xs: 0.5, s: 1, m: 2, l: 4 };
 const SONG_ERASER_SIZES_STROKE = { s: 0.02, m: 0.035, l: 0.055 }; // "erase whole line" hit-test radius
 const SONG_ERASER_SIZES_PIXEL  = { s: 0.005, m: 0.01, l: 0.017 }; // "erase like a pencil eraser" — finer, ~3/6/10px radius on a ~600px-wide page
 const SONG_NOTE_FONT_SIZES = { s: 11, m: 14, l: 18 };
@@ -153,6 +153,7 @@ function ensureSongsStyle(){
     .songs-page.readonly .songs-note-wrap .resize.corner{ display:none !important; }
     .songs-note.noborder{ background:transparent; border:none; box-shadow:none; }
     .songs-note-wrap .del{ position:absolute; top:-14px; right:-14px; width:16px; height:16px; background:#ff6b6b; color:#fff; border-radius:50%; font-size:9px; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+    .songs-note-wrap .done{ position:absolute; top:-14px; left:-14px; width:18px; height:18px; background:#6bcB77; color:#fff; border-radius:50%; font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center; cursor:pointer; }
     .songs-page:not(.readonly) .songs-sticker{ touch-action:none; }
     .songs-sticker{ position:absolute; font-size:28px; cursor:grab; user-select:none; filter:drop-shadow(0 2px 3px rgba(0,0,0,.2)); }
     .songs-sticker .del{ position:absolute; top:-5px; right:-9px; width:14px; height:14px; background:#ff6b6b; color:#fff; border-radius:50%; font-size:9px; line-height:14px; text-align:center; display:none; }
@@ -162,6 +163,7 @@ function ensureSongsStyle(){
     .songs-page.readonly .songs-canvas{ pointer-events:none; }
     .songs-page.readonly .songs-note-wrap{ pointer-events:none; cursor:default; }
     .songs-page.readonly .songs-note-wrap .del{ display:none !important; }
+    .songs-page.readonly .songs-note-wrap .done{ display:none !important; }
     .songs-page.readonly .songs-sticker{ pointer-events:none; cursor:default; }
     .songs-hint{ font-size:10px; color:#a88; margin-top:6px; text-align:center; }
   `;
@@ -510,7 +512,7 @@ function renderSongDetail(){
       </div>
       <div class="songs-toolbar" id="songs-toolbar" style="display:${songState.mode==='edit'?'flex':'none'}">
         <button class="songs-tool" data-tool="pencil" onclick="songSelectTool('pencil')">✏️<span>Pencil</span></button>
-        <button class="songs-tool" data-tool="eraser" onclick="songSelectTool('eraser')">🧹<span>Eraser</span></button>
+        <button class="songs-tool" data-tool="eraser" onclick="songSelectTool('eraser')">🧽<span>Eraser</span></button>
         <button class="songs-tool" data-tool="text" onclick="songSelectTool('text')">💬<span>Note</span></button>
         <button class="songs-tool" data-tool="sticker" onclick="songSelectTool('sticker')">⭐<span>Sticker</span></button>
         <button class="songs-tool" onclick="songUndo()">↩️<span>Undo</span></button>
@@ -519,9 +521,10 @@ function renderSongDetail(){
         <div class="songs-swatches" id="songs-swatches"></div>
         <div class="grp">
           <span class="grp-label">Size</span>
-          <button class="songs-size-btn" data-size="s" onclick="songSetBrushSize('s')">${dotBtn(4)}</button>
-          <button class="songs-size-btn" data-size="m" onclick="songSetBrushSize('m')">${dotBtn(8)}</button>
-          <button class="songs-size-btn" data-size="l" onclick="songSetBrushSize('l')">${dotBtn(16)}</button>
+          <button class="songs-size-btn" data-size="xs" onclick="songSetBrushSize('xs')">${dotBtn(3)}</button>
+          <button class="songs-size-btn" data-size="s" onclick="songSetBrushSize('s')">${dotBtn(6)}</button>
+          <button class="songs-size-btn" data-size="m" onclick="songSetBrushSize('m')">${dotBtn(11)}</button>
+          <button class="songs-size-btn" data-size="l" onclick="songSetBrushSize('l')">${dotBtn(18)}</button>
         </div>
       </div>
       <div class="songs-subpanel" id="songs-eraserpanel">
@@ -933,6 +936,12 @@ function songRenderNoteEl(note){
   del.className='del'; del.textContent='✕';
   del.onclick=(ev)=>{ ev.stopPropagation(); songState.notes=songState.notes.filter(n=>n!==note); if(songActiveNote===note) songActiveNote=null; wrap.remove(); };
   wrap.appendChild(del);
+
+  const done=document.createElement('div');
+  done.className='done'; done.textContent='✓';
+  done.onclick=(ev)=>{ ev.stopPropagation(); text.blur(); };
+  wrap.appendChild(done);
+
   songMakeNoteResizable(wrap, note);
   songMakeDraggable(wrap, note);
   overlay.appendChild(wrap);
@@ -994,7 +1003,7 @@ function songMakeDraggable(el, dataRef){
   let sx,sy,startLeft,startTop,dragging=false;
   el.addEventListener('pointerdown',(e)=>{
     if(songState.mode!=='edit') return;
-    if(e.target.classList.contains('del') || e.target.classList.contains('resize')) return;
+    if(e.target.classList.contains('del') || e.target.classList.contains('resize') || e.target.classList.contains('done')) return;
     dragging=true;
     el.setPointerCapture(e.pointerId);
     sx=e.clientX; sy=e.clientY;
