@@ -139,7 +139,7 @@ function ensureSongsStyle(){
     .songs-toggle-btn.sel{ background:#6bcB77; color:#fff; }
 
     .songs-page{ position:relative; width:100%; min-height:200px; background:#fff8f0; border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.14); overflow:hidden; }
-    .songs-lyrics{ position:relative; padding:26px 20px 26px 22px; pointer-events:none; }
+    .songs-lyrics{ position:relative; padding:26px 20px 26px 50px; pointer-events:none; }
     .songs-lyrics h2{ text-align:center; font-size:16pt; font-weight:700; color:#d47ab0; margin:0 0 2px; }
     .songs-lyrics .artist{ text-align:center; font-size:9pt; color:#999; margin-bottom:10px; }
     .songs-single{ width:100%; box-sizing:border-box; }
