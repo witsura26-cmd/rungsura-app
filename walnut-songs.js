@@ -141,7 +141,7 @@ function ensureSongsStyle(){
     .songs-page{ position:relative; width:100%; min-height:200px; background:#fff8f0; border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.14); overflow:hidden; }
     .songs-lyrics{ position:relative; padding:26px 20px 26px 50px; pointer-events:none; }
     .songs-lyrics h2{ text-align:center; font-size:16pt; font-weight:700; color:#d47ab0; margin:0 0 2px; }
-    .songs-lyrics .artist{ text-align:center; font-size:9pt; color:#999; margin-bottom:10px; }
+    .songs-lyrics .artist{ text-align:center; font-size:9pt; color:#999; margin-bottom:20px; }
     .songs-single{ width:100%; box-sizing:border-box; }
     .songs-section{ margin-top:8px; margin-bottom:8px; }
     .songs-seclabel{ font-size:7pt; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:#aaa; margin-bottom:1px; }
