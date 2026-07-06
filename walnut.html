@@ -23,7 +23,9 @@
 <div class="flex h-screen overflow-hidden">
 
   <!-- SIDEBAR -->
-  <aside class="w-56 bg-white border-r border-gray-100 flex flex-col flex-shrink-0 shadow-sm">
+  <button id="sidebar-toggle" onclick="toggleSidebar()"
+    class="flex-shrink-0 self-start mt-5 w-6 h-9 bg-white border border-gray-100 border-l-0 rounded-r-lg shadow-sm text-gray-300 hover:text-amber-500 text-xs flex items-center justify-center z-10">‹</button>
+  <aside id="sidebar" class="w-56 bg-white border-r border-gray-100 flex flex-col flex-shrink-0 shadow-sm overflow-hidden transition-all duration-200">
     <div class="p-5 border-b border-gray-100">
       <div class="flex items-center gap-2">
         <div class="w-9 h-9 bg-amber-400 rounded-xl flex items-center justify-center text-white font-bold shadow-sm">RS</div>
@@ -32,6 +34,7 @@
     </div>
     <nav class="flex-1 p-3 space-y-0.5">
       <div class="px-3 py-2.5 rounded-lg text-sm flex items-center gap-2 bg-amber-50 border-r-2 border-amber-400 font-semibold text-amber-800">🎵 Walnut Learning</div>
+      <a href="/walnut-song.html" class="px-3 py-2.5 rounded-lg text-sm flex items-center gap-2 hover:bg-amber-50 block text-gray-600">🎼 Walnut Song</a>
     </nav>
     <div class="p-4 border-t border-gray-100">
       <div class="flex items-center gap-2">
@@ -41,6 +44,27 @@
       </div>
     </div>
   </aside>
+  <script>
+    (function(){
+      var sidebar=document.getElementById('sidebar');
+      var btn=document.getElementById('sidebar-toggle');
+      function apply(collapsed){
+        sidebar.style.width = collapsed ? '0px' : '';
+        sidebar.style.opacity = collapsed ? '0' : '1';
+        sidebar.style.borderWidth = collapsed ? '0px' : '';
+        btn.textContent = collapsed ? '›' : '‹';
+      }
+      window.toggleSidebar=function(){
+        var collapsed = sidebar.dataset.collapsed !== '1';
+        sidebar.dataset.collapsed = collapsed ? '1' : '0';
+        localStorage.setItem('rs_sidebar_collapsed', collapsed ? '1' : '0');
+        apply(collapsed);
+      };
+      var saved = localStorage.getItem('rs_sidebar_collapsed')==='1';
+      sidebar.dataset.collapsed = saved ? '1' : '0';
+      apply(saved);
+    })();
+  </script>
 
   <!-- MAIN -->
   <main class="flex-1 overflow-y-auto">
@@ -224,9 +248,9 @@
 
 
 <!-- DATA + LOGIC (separate files for easy editing) -->
-<script src="/walnut-data.js?v=15" onerror="document.getElementById('app').innerHTML='<div class=\'p-6 text-red-500\'>❌ walnut-data.js โหลดไม่ได้</div>'"></script>
-<script src="/walnut-tasks.js?v=15" onerror="document.getElementById('app').innerHTML='<div class=\'p-6 text-red-500\'>❌ walnut-tasks.js โหลดไม่ได้</div>'"></script>
-<script src="/walnut-hw.js?v=15" onerror="document.getElementById('app').innerHTML='<div class=\'p-6 text-red-500\'>❌ walnut-hw.js โหลดไม่ได้</div>'"></script>
+<script src="/walnut-data.js?v=19" onerror="document.getElementById('app').innerHTML='<div class=\'p-6 text-red-500\'>❌ walnut-data.js โหลดไม่ได้</div>'"></script>
+<script src="/walnut-tasks.js?v=19" onerror="document.getElementById('app').innerHTML='<div class=\'p-6 text-red-500\'>❌ walnut-tasks.js โหลดไม่ได้</div>'"></script>
+<script src="/walnut-hw.js?v=19" onerror="document.getElementById('app').innerHTML='<div class=\'p-6 text-red-500\'>❌ walnut-hw.js โหลดไม่ได้</div>'"></script>
 <script>
 // ── W3 LESSON OVERRIDE — inline เพื่อไม่พึ่ง cache ของ walnut-data.js ──────
 // รันทันทีหลัง walnut-data.js โหลด — ถ้า LESSONS ยังไม่มี content (mcq<10) จะ override
@@ -489,10 +513,12 @@ function getHwState(id){return JSON.parse(localStorage.getItem("hw_"+id)||"{}");
 function saveHwState(id,s){localStorage.setItem("hw_"+id,JSON.stringify(s));}
 
 // ── PAGE SHELL ────────────────────────────────────────────
+function getStarTotal(){ return parseInt(localStorage.getItem("walnut_stars")||"0"); }
 function renderPage(){
   const tabs=[
     {id:"tasks",   label:"Tasks",        icon:"✅"},
     {id:"lessons", label:"บทเรียน",     icon:"📖"},
+    {id:"stars",   label:"ดาว",         icon:"⭐"},
     {id:"report",  label:"รายงาน",      icon:"🌸"},
     {id:"kru",     label:"ทีมครู",      icon:"👩‍🏫"},
   ];
@@ -504,6 +530,10 @@ function renderPage(){
           <h1 class="text-2xl font-bold text-gray-900">Walnut Learning</h1>
           <p class="text-gray-400 text-sm">การศึกษา + อาชีพนักร้อง</p>
         </div>
+        <button onclick="switchTab('stars')" class="flex flex-col items-center gap-0.5 hover:scale-105 transition-transform">
+          <span id="header-stars" class="text-lg font-black text-amber-500">⭐ ${getStarTotal()}</span>
+          <span style="font-size:9px;color:#9ca3af">ดาวสะสม</span>
+        </button>
         <button onclick="doSync(true)" title="Sync ข้อมูลระหว่างเครื่อง"
           class="flex flex-col items-center gap-0.5 text-gray-400 hover:text-amber-500">
           <span class="text-xl">☁️</span>
@@ -514,10 +544,10 @@ function renderPage(){
     <div class="mb-4 bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
       <div id="cal-top-area">${renderCalTop()}</div>
     </div>
-    <div class="flex bg-white rounded-t-2xl border-b border-gray-100 px-2">
+    <div class="flex bg-white rounded-t-2xl border-b border-gray-100 px-2 overflow-x-auto">
       ${tabs.map(t=>`
         <button onclick="switchTab('${t.id}')" data-tab="${t.id}"
-          class="walnut-tab px-4 py-3 text-sm transition-colors ${activeTab===t.id?"tab-active":"text-gray-400 hover:text-gray-700"}">
+          class="walnut-tab px-3 py-3 text-xs font-medium transition-colors whitespace-nowrap ${activeTab===t.id?"tab-active":"text-gray-400 hover:text-gray-700"}">
           ${t.icon} ${t.label}
         </button>`).join("")}
     </div>
@@ -526,16 +556,138 @@ function renderPage(){
 function switchTab(t){
   activeTab=t;
   document.querySelectorAll(".walnut-tab").forEach(el=>{
-    el.className="walnut-tab px-4 py-3 text-sm transition-colors "+(el.dataset.tab===t?"tab-active":"text-gray-400 hover:text-gray-700");
+    el.className="walnut-tab px-3 py-3 text-xs font-medium transition-colors whitespace-nowrap "+(el.dataset.tab===t?"tab-active":"text-gray-400 hover:text-gray-700");
   });
   document.getElementById("tab-area").innerHTML=renderTab();
 }
 function renderTab(){
   if(activeTab==="tasks")    return renderTasks();
   if(activeTab==="lessons")  return renderLessons();
+  if(activeTab==="stars")    return renderStarStore();
   if(activeTab==="report")   return renderReport();
   if(activeTab==="kru")      return renderTeam();
   return "";
+}
+
+// ── STAR STORE ────────────────────────────────────────────
+var REWARDS=[
+  {id:"r1",  icon:"📱", name:"เวลาหน้าจอ +30 นาที",     cost:30,  desc:"เล่น iPad / ดูยูทูบเพิ่ม 30 นาที"},
+  {id:"r2",  icon:"🍿", name:"ป๊อปคอร์น",               cost:20,  desc:"ป๊อปคอร์นชามใหญ่ดูหนัง"},
+  {id:"r3",  icon:"🎬", name:"เลือกหนังคืนนี้",          cost:40,  desc:"วอลนัทเลือกหนังดูกับครอบครัว"},
+  {id:"r4",  icon:"🍦", name:"ไอศกรีม 1 ลูก",           cost:25,  desc:"ไอศกรีมรสโปรด 1 ลูก"},
+  {id:"r5",  icon:"🎮", name:"เกม 1 ชั่วโมง",           cost:50,  desc:"เล่นเกมบนมือถือหรือ Switch 1 ชั่วโมง"},
+  {id:"r6",  icon:"🍕", name:"เลือกเมนูอาหาร",          cost:35,  desc:"วอลนัทเลือกเมนูอาหารมื้อนึง"},
+  {id:"r7",  icon:"🌙", name:"นอนดึกได้ +30 นาที",      cost:60,  desc:"นอนดึกกว่าปกติ 30 นาทีในวันศุกร์/เสาร์"},
+  {id:"r8",  icon:"🎤", name:"คาราโอเกะ",               cost:80,  desc:"ไปร้องคาราโอเกะกับครอบครัว"},
+  {id:"r9",  icon:"🛍️", name:"ซื้อของ 1 อย่าง (≤150฿)",cost:120, desc:"ซื้อของที่อยากได้ ไม่เกิน 150 บาท"},
+  {id:"r10", icon:"🎪", name:"ทริปพิเศษ",               cost:300, desc:"ไปเที่ยวที่ที่วอลนัทอยากไป"},
+];
+function getRedeemedRewards(){ try{return JSON.parse(localStorage.getItem("walnut_redeemed")||"[]");}catch(e){return[];} }
+function redeemReward(rewardId){
+  var r=REWARDS.find(function(x){return x.id===rewardId;});
+  if(!r)return;
+  var stars=getStarTotal();
+  if(stars<r.cost){alert("ดาวไม่พอค่ะ ต้องการ "+r.cost+" ดาว มีอยู่ "+stars+" ดาว");return;}
+  if(!confirm("แลก "+r.icon+" "+r.name+" ใช้ "+r.cost+" ดาว?\n(ดาวคงเหลือ "+(stars-r.cost)+" ดาว)"))return;
+  var newTotal=stars-r.cost;
+  localStorage.setItem("walnut_stars",String(newTotal));
+  var redeemed=getRedeemedRewards();
+  redeemed.push({id:rewardId,name:r.name,icon:r.icon,cost:r.cost,redeemedAt:new Date().toISOString()});
+  localStorage.setItem("walnut_redeemed",JSON.stringify(redeemed));
+  if(typeof saveToCloud==="function") saveToCloud();
+  // อัปเดต header
+  var headerStar=document.getElementById("header-stars");
+  if(headerStar) headerStar.textContent="⭐ "+newTotal;
+  // Re-render store
+  document.getElementById("tab-area").innerHTML=renderStarStore();
+  alert("แลกสำเร็จ! "+r.icon+" "+r.name+"\nดาวคงเหลือ: "+newTotal+" ดาว ⭐\nไปบอกคุณพ่อเลยนะคะ 😊");
+}
+function renderStarStore(){
+  var stars=getStarTotal();
+  var redeemed=getRedeemedRewards();
+  // คำนวณ milestones
+  var allLessons=LESSONS.length;
+  var doneCount=LESSONS.filter(function(l){return getHwState(l.id).starsCollected===true;}).length;
+  var milestones=[
+    {need:Math.ceil(allLessons/3),label:"เก็บดาว 1/3 ของทุกวิชา",bonus:10,icon:"🥉"},
+    {need:Math.ceil(allLessons*2/3),label:"เก็บดาว 2/3 ของทุกวิชา",bonus:20,icon:"🥈"},
+    {need:allLessons,label:"เก็บดาวครบทุกวิชา",bonus:50,icon:"🥇"},
+  ];
+  var milestoneHtml=allLessons>0?milestones.map(function(m){
+    var done=doneCount>=m.need;
+    var got=localStorage.getItem("walnut_milestone_"+m.need);
+    return '<div class="flex items-center gap-3 p-3 rounded-xl border '+(done?'border-amber-300 bg-amber-50':'border-gray-100 bg-gray-50')+'">'+
+      '<span class="text-2xl">'+m.icon+'</span>'+
+      '<div class="flex-1"><div class="text-sm font-bold '+(done?'text-amber-700':'text-gray-400')+'">'+m.label+'</div>'+
+        '<div class="text-xs text-gray-400">โบนัส +'+m.bonus+' ดาว</div></div>'+
+      (done&&!got?
+        '<button onclick="claimMilestone('+m.need+','+m.bonus+')" class="bg-amber-400 text-white text-xs font-bold px-3 py-1.5 rounded-lg">รับโบนัส!</button>':
+        done?'<span class="text-green-500 font-bold text-sm">✅ รับแล้ว</span>':
+        '<span class="text-gray-300 text-sm">'+doneCount+'/'+m.need+'</span>')+
+    '</div>';
+  }).join(""):'';
+  return '<div class="bg-white rounded-b-2xl border border-t-0 border-gray-100">'+
+    // Header — star balance
+    '<div class="bg-gradient-to-br from-amber-400 to-yellow-500 p-6 text-center">'+
+      '<div class="text-6xl font-black text-white mb-1">⭐ '+stars+'</div>'+
+      '<div class="text-amber-900 font-bold text-lg">ดาวสะสม</div>'+
+      '<div class="mt-2 text-xs text-amber-800">ทำการบ้านครบทั้ง 2 พาร์ท แล้วกด "เก็บดาว" เพื่อสะสมดาว</div>'+
+    '</div>'+
+    // Milestones
+    (allLessons>0?
+      '<div class="p-4 border-b border-gray-100">'+
+        '<div class="text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">🏅 Milestones (โบนัสพิเศษ)</div>'+
+        '<div class="space-y-2">'+milestoneHtml+'</div>'+
+      '</div>':'')+
+    // Reward catalog
+    '<div class="p-4">'+
+      '<div class="text-xs font-bold text-gray-500 mb-3 uppercase tracking-wide">🎁 แลกของรางวัล</div>'+
+      '<div class="space-y-2">'+
+        REWARDS.map(function(r){
+          var canAfford=stars>=r.cost;
+          return '<div class="flex items-center gap-3 p-3 rounded-2xl border '+(canAfford?'border-amber-200 hover:border-amber-400':'border-gray-100')+' transition-colors">'+
+            '<span class="text-2xl">'+r.icon+'</span>'+
+            '<div class="flex-1 min-w-0">'+
+              '<div class="font-bold text-sm '+(canAfford?'text-gray-800':'text-gray-400')+'">'+r.name+'</div>'+
+              '<div class="text-xs text-gray-400 mt-0.5">'+r.desc+'</div>'+
+            '</div>'+
+            '<div class="flex flex-col items-end gap-1.5 shrink-0">'+
+              '<div class="text-sm font-black '+(canAfford?'text-amber-500':'text-gray-300')+'">⭐ '+r.cost+'</div>'+
+              '<button onclick="redeemReward(\''+r.id+'\')" '+(canAfford?'':'disabled')+
+                ' class="text-xs font-bold px-3 py-1.5 rounded-lg '+(canAfford?'bg-amber-400 hover:bg-amber-500 text-white':'bg-gray-100 text-gray-300 cursor-not-allowed')+'">'+
+                (canAfford?'แลกเลย':'ดาวไม่พอ')+
+              '</button>'+
+            '</div>'+
+          '</div>';
+        }).join("")+
+      '</div>'+
+    '</div>'+
+    // History
+    (redeemed.length>0?
+      '<div class="p-4 border-t border-gray-100">'+
+        '<div class="text-xs font-bold text-gray-500 mb-2">📜 ประวัติการแลก</div>'+
+        '<div class="space-y-1">'+
+          redeemed.slice().reverse().slice(0,5).map(function(r){
+            var d=new Date(r.redeemedAt).toLocaleDateString("th-TH",{day:"numeric",month:"short",year:"2-digit"});
+            return '<div class="flex items-center gap-2 text-xs text-gray-500">'+
+              '<span>'+r.icon+'</span><span>'+r.name+'</span>'+
+              '<span class="ml-auto text-amber-400">-'+r.cost+' ⭐</span>'+
+              '<span class="text-gray-300">'+d+'</span>'+
+            '</div>';
+          }).join("")+
+        '</div>'+
+      '</div>':'')+
+  '</div>';
+}
+function claimMilestone(need,bonus){
+  if(localStorage.getItem("walnut_milestone_"+need))return;
+  var stars=getStarTotal()+bonus;
+  localStorage.setItem("walnut_stars",String(stars));
+  localStorage.setItem("walnut_milestone_"+need,"1");
+  var headerStar=document.getElementById("header-stars");
+  if(headerStar) headerStar.textContent="⭐ "+stars;
+  document.getElementById("tab-area").innerHTML=renderStarStore();
+  alert("🎉 โบนัส Milestone! +"+bonus+" ดาว\nดาวทั้งหมด: "+stars+" ⭐");
 }
 
 // ── LESSONS TAB ───────────────────────────────────────────
@@ -2225,6 +2377,13 @@ function collectHwData(){
     var evts=localStorage.getItem("walnut_events");
     if(evts) data["walnut_events"]=JSON.parse(evts);
   }catch(e){}
+  // รวม ดาวและของแลก (sync ข้าม device)
+  var stars=localStorage.getItem("walnut_stars");
+  if(stars!==null) data["walnut_stars"]=parseInt(stars)||0;
+  try{
+    var red=localStorage.getItem("walnut_redeemed");
+    if(red) data["walnut_redeemed"]=JSON.parse(red);
+  }catch(e){}
   return data;
 }
 function clearStorageSpace(){
@@ -2351,6 +2510,39 @@ async function doSync(manual){
       }
     });
 
+    // 2c. pull walnut_stars — take max (ป้องกันดาวหาย)
+    // ถ้า cloud ไม่มี walnut_stars ให้ reconstruct จาก hw_*.starsEarned
+    if(cloud.walnut_stars===undefined||cloud.walnut_stars===null){
+      var reconstructed=0;
+      Object.keys(cloud).forEach(function(k){
+        if(!k.startsWith("hw_")||k.startsWith("hw_hist_")) return;
+        var cv=cloud[k];
+        if(cv&&cv.starsCollected&&cv.starsEarned) reconstructed+=parseInt(cv.starsEarned)||0;
+      });
+      if(reconstructed>0) cloud.walnut_stars=reconstructed;
+    }
+    if(cloud.walnut_stars!==undefined&&cloud.walnut_stars!==null){
+      var cloudStars=parseInt(cloud.walnut_stars)||0;
+      var localStars=parseInt(localStorage.getItem("walnut_stars")||"0");
+      if(cloudStars>localStars){
+        localStorage.setItem("walnut_stars",String(cloudStars));
+        var hdrStar=document.getElementById("header-stars");
+        if(hdrStar) hdrStar.textContent="⭐ "+cloudStars;
+        changed=true;
+      }
+    }
+    // 2c. pull walnut_redeemed — merge by redeemedAt timestamp
+    if(cloud.walnut_redeemed&&Array.isArray(cloud.walnut_redeemed)&&cloud.walnut_redeemed.length>0){
+      var localRed=[];
+      try{localRed=JSON.parse(localStorage.getItem("walnut_redeemed")||"[]");}catch(e){}
+      var redMap={}; localRed.forEach(function(r){if(r.redeemedAt)redMap[r.redeemedAt]=r;});
+      cloud.walnut_redeemed.forEach(function(r){if(r.redeemedAt)redMap[r.redeemedAt]=r;});
+      var merged=Object.values(redMap);
+      if(merged.length>localRed.length){
+        try{localStorage.setItem("walnut_redeemed",JSON.stringify(merged));changed=true;}catch(e){}
+      }
+    }
+
     // 3. push local ขึ้น cloud
     var localHw=collectHwData();
     var mergedPush=Object.assign({},cloud);
@@ -2371,6 +2563,18 @@ async function doSync(manual){
     var evtMap={}; cloudEvts.forEach(function(e){if(e.id)evtMap[e.id]=e;});
     localEvtsForPush.forEach(function(e){if(e.id)evtMap[e.id]=e;});
     mergedPush.walnut_events=Object.values(evtMap);
+
+    // push walnut_stars — take max
+    var localStarsPush=parseInt(localStorage.getItem("walnut_stars")||"0");
+    var cloudStarsPush=parseInt(cloud.walnut_stars||"0");
+    mergedPush.walnut_stars=Math.max(localStarsPush,cloudStarsPush);
+    // push walnut_redeemed — merge
+    var localRedPush=[];
+    try{localRedPush=JSON.parse(localStorage.getItem("walnut_redeemed")||"[]");}catch(e){}
+    var cloudRedPush=Array.isArray(cloud.walnut_redeemed)?cloud.walnut_redeemed:[];
+    var redMapPush={}; cloudRedPush.forEach(function(r){if(r.redeemedAt)redMapPush[r.redeemedAt]=r;});
+    localRedPush.forEach(function(r){if(r.redeemedAt)redMapPush[r.redeemedAt]=r;});
+    mergedPush.walnut_redeemed=Object.values(redMapPush);
 
     // push intake + analysis + curriculum
     ["walnut_intake_v1","walnut_intake_analysis","walnut_custom_curriculum"].forEach(function(k){

@@ -1,4 +1,7 @@
 {
+  "redirects": [
+    { "source": "/", "destination": "/walnut.html", "permanent": false }
+  ],
   "rewrites": [
     { "source": "/api/chat", "destination": "/api/chat" }
   ],

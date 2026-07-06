@@ -1,0 +1,6 @@
+# Local Netlify folder
+.netlify
+.vercel
+.env*.local
+.DS_Store
+*.bak

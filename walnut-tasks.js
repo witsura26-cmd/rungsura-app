@@ -30,7 +30,7 @@ function syncLessonTasks(){
   LESSONS.forEach(function(l){
     var due=getSundayOfWeek(l.week||1);
     var existing=ts.find(function(t){return t.lessonId===l.id;});
-    var hwDone=getHwState(l.id).submitted;
+    var hwDone=getHwState(l.id).starsCollected===true;
     if(!existing){
       ts.push({id:"lt-"+l.id,lessonId:l.id,title:"📝 การบ้าน"+l.subject+" W"+(l.week||1),
         subject:l.subject,icon:l.icon,badge:l.badge,type:"lesson",week:l.week||1,
