@@ -107,7 +107,8 @@ function ensureSongsStyle(){
     .songs-topbar-actions button{ border:none; padding:8px 13px; border-radius:9px; font-size:12px; color:#666; background:#f2f2f2; cursor:pointer; white-space:nowrap; }
     .songs-topbar-actions button.primary{ background:#ff8fab; color:#fff; font-weight:700; }
 
-    .songs-bottom-bar{ position:sticky; bottom:0; z-index:45; background:#fff; border-radius:14px; padding:7px 12px; margin-top:10px; box-shadow:0 -4px 16px rgba(0,0,0,.1); display:flex; align-items:center; justify-content:space-between; gap:10px; will-change:transform; transform:translateZ(0); backface-visibility:hidden; }
+    .songs-bottom-bar{ position:fixed; left:12px; right:12px; bottom:12px; z-index:45; background:#fff; border-radius:14px; padding:7px 12px; box-shadow:0 4px 16px rgba(0,0,0,.15); display:flex; align-items:center; justify-content:space-between; gap:10px; }
+    .songs-bottom-spacer{ height:64px; }
     .songs-bottom-group{ display:flex; align-items:center; gap:6px; }
     .songs-bottom-bar button{ border:none; background:#f4f9ff; border-radius:8px; padding:5px 9px; font-size:13px; cursor:pointer; }
     .songs-bottom-bar #songs-lyrics-fs-label, .songs-bottom-bar #songs-scroll-speed-label{ font-size:11px; font-weight:700; color:#666; min-width:30px; text-align:center; }
@@ -137,8 +138,8 @@ function ensureSongsStyle(){
     .songs-toggle-btn{ border:none; background:#fff; border-radius:8px; padding:5px 10px; font-size:11px; cursor:pointer; color:#666; }
     .songs-toggle-btn.sel{ background:#6bcB77; color:#fff; }
 
-    .songs-page{ position:relative; width:100%; min-height:200px; background:#fff8f0; border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.14); overflow:hidden; touch-action:none; }
-    .songs-lyrics{ position:relative; padding:26px 20px 26px 15px; pointer-events:none; }
+    .songs-page{ position:relative; width:100%; min-height:200px; background:#fff8f0; border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.14); overflow:hidden; }
+    .songs-lyrics{ position:relative; padding:26px 20px 26px 22px; pointer-events:none; }
     .songs-lyrics h2{ text-align:center; font-size:16pt; font-weight:700; color:#d47ab0; margin:0 0 2px; }
     .songs-lyrics .artist{ text-align:center; font-size:9pt; color:#999; margin-bottom:10px; }
     .songs-single{ width:100%; box-sizing:border-box; }
@@ -148,7 +149,9 @@ function ensureSongsStyle(){
     .songs-line{ color:#333; }
     .songs-overlay{ position:absolute; inset:0; }
     .songs-canvas{ position:absolute; inset:0; width:100%; height:100%; }
+    .songs-page:not(.readonly) .songs-canvas{ touch-action:none; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; }
     .songs-eraser-cursor{ position:absolute; border:2px solid #4d96ff; background:rgba(77,150,255,.15); border-radius:50%; pointer-events:none; transform:translate(-50%,-50%); display:none; z-index:5; }
+    .songs-page:not(.readonly) .songs-note-wrap{ touch-action:none; }
     .songs-note-wrap{ position:absolute; width:220px; height:74px; min-width:60px; min-height:24px; max-width:340px; max-height:260px; box-sizing:border-box; cursor:grab; }
     .songs-note{ width:100%; height:100%; background:#fff9c4; border:2px solid #f0e08a; border-radius:6px; box-shadow:0 2px 5px rgba(0,0,0,.15); box-sizing:border-box; overflow:auto; scrollbar-width:none; -ms-overflow-style:none; }
     .songs-note::-webkit-scrollbar{ display:none; }
@@ -159,6 +162,7 @@ function ensureSongsStyle(){
     .songs-page.readonly .songs-note-wrap .resize.corner{ display:none !important; }
     .songs-note.noborder{ background:transparent; border:none; box-shadow:none; }
     .songs-note-wrap .del{ position:absolute; top:-14px; right:-14px; width:16px; height:16px; background:#ff6b6b; color:#fff; border-radius:50%; font-size:9px; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+    .songs-page:not(.readonly) .songs-sticker{ touch-action:none; }
     .songs-sticker{ position:absolute; font-size:28px; cursor:grab; user-select:none; filter:drop-shadow(0 2px 3px rgba(0,0,0,.2)); }
     .songs-sticker .del{ position:absolute; top:-5px; right:-9px; width:14px; height:14px; background:#ff6b6b; color:#fff; border-radius:50%; font-size:9px; line-height:14px; text-align:center; display:none; }
     .songs-sticker .resize{ position:absolute; width:16px; height:16px; background:#4d96ff; color:#fff; border-radius:50%; font-size:10px; line-height:16px; text-align:center; display:none; }
@@ -578,6 +582,7 @@ function renderSongDetail(){
         <span id="songs-scroll-speed-label">Lv.${songScrollSpeed}</span>
       </div>
     </div>
+    <div class="songs-bottom-spacer"></div>
   `;
 }
 
