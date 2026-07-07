@@ -189,7 +189,7 @@ function ensureSongsStyle(){
     .songs-toggle-btn.sel{ background:#6bcB77; color:#fff; }
 
     .songs-page{ position:relative; width:100%; min-height:200px; background:#fff8f0; border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.14); overflow:hidden; }
-    .songs-lyrics{ position:relative; padding:26px 20px 26px 50px; pointer-events:none; }
+    .songs-lyrics{ position:relative; padding:26px 20px 26px 40px; pointer-events:none; }
     .songs-lyrics h2{ text-align:center; font-size:18pt; font-weight:700; color:#d47ab0; margin:0 0 2px; }
     .songs-lyrics .artist{ text-align:center; font-size:10pt; color:#999; margin-bottom:20px; }
     .songs-single{ width:100%; box-sizing:border-box; }
@@ -197,7 +197,7 @@ function ensureSongsStyle(){
     .songs-seclabel{ font-size:7pt; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:#aaa; margin-bottom:10px; }
     .songs-seclabel.chorus{ color:#c0392b; } .songs-seclabel.bridge{ color:#2980b9; } .songs-seclabel.rap{ color:#8e44ad; } .songs-seclabel.instrumental,.songs-seclabel.intro,.songs-seclabel.outro,.songs-seclabel.interlude{ color:#27ae60; }
     .songs-section.two-col{ display:flex; align-items:baseline; gap:12px; margin-top:40px; }
-    .songs-section.two-col .seclabel-col{ width:70px; flex-shrink:0; }
+    .songs-section.two-col .seclabel-col{ width:80px; flex-shrink:0; }
     .songs-section.two-col .seclabel-col .songs-seclabel{ margin-bottom:0; }
     .songs-section.two-col .lyrics-col{ flex:1; min-width:0; }
     .songs-section.two-col.first-section{ margin-top:60px; }
