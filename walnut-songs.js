@@ -119,8 +119,9 @@ function ensureSongsStyle(){
     .songs-az button.disabled{ opacity:.3; pointer-events:none; }
     .songs-section-hd{ font-size:11px; font-weight:800; color:#d47ab0; margin:12px 2px 5px; letter-spacing:.06em; }
     .songs-item{ background:#fff; border-radius:12px; padding:10px 12px; margin-bottom:6px; box-shadow:0 2px 6px rgba(0,0,0,.06); cursor:pointer; }
-    .songs-item .t{ font-size:12px; font-weight:500; color:#8ba0b3; }
-    .songs-item .t .th{ font-weight:700; color:#345f80; font-size:15px; }
+    .songs-item .t{ font-size:13px; font-weight:500; color:#4a9fd4; }
+    .songs-item .t .th{ font-weight:500; color:#4a9fd4; font-size:13px; }
+    .songs-item .t .en-sub{ font-weight:400; color:#9bb; font-size:11px; }
     .songs-item .a{ font-size:11px; color:#9bb; margin-top:1px; }
     .songs-item .badge{ margin-left:4px; }
     .songs-empty{ text-align:center; color:#c99; font-size:13px; margin-top:24px; }
@@ -353,29 +354,31 @@ function songsPostRender(){
 function songMatches(s,q){
   return [s.titleEn,s.titleTh,s.artistEn,s.artistTh].some(v=>(v||'').toLowerCase().includes(q));
 }
+function songTitleHtml(s){
+  return s.titleTh
+    ? `<span class="en-sub">${s.titleEn}</span> <span class="th">(${s.titleTh})</span>`
+    : s.titleEn;
+}
 function songItemHtml(s){
   const badge = songHasNote(s.id) ? '<span class="badge">📝</span>' : '';
-  const titleTh = s.titleTh ? ` <span class="th">(${s.titleTh})</span>` : '';
   const artistTh = s.artistTh ? ` <span class="th">(${s.artistTh})</span>` : '';
   return `<div class="songs-item" onclick="songOpen('${s.id}')">
-    <div class="t">${s.artistIcon||'🎵'} ${s.titleEn}${titleTh}${badge}</div>
+    <div class="t">${s.artistIcon||'🎵'} ${songTitleHtml(s)}${badge}</div>
     <div class="a">${s.artistEn}${artistTh}</div>
   </div>`;
 }
 function songTitleOnlyItemHtml(s){
   const badge = songHasNote(s.id) ? '<span class="badge">📝</span>' : '';
-  const titleTh = s.titleTh ? ` <span class="th">(${s.titleTh})</span>` : '';
   return `<div class="songs-item" onclick="songOpen('${s.id}')">
-    <div class="t">${s.titleEn}${titleTh}${badge}</div>
+    <div class="t">${songTitleHtml(s)}${badge}</div>
   </div>`;
 }
 function songCheckItemHtml(s, sl){
   const inSetlist = sl.songIds.includes(s.id);
-  const titleTh = s.titleTh ? ` <span class="th">(${s.titleTh})</span>` : '';
   return `<div class="songs-item songs-check-item" onclick="songToggleSongInSetlist('${s.id}')">
     <input type="checkbox" ${inSetlist?'checked':''} onclick="event.stopPropagation();songToggleSongInSetlist('${s.id}')">
     <div style="flex:1">
-      <div class="t">${s.artistIcon||'🎵'} ${s.titleEn}${titleTh}</div>
+      <div class="t">${s.artistIcon||'🎵'} ${songTitleHtml(s)}</div>
       <div class="a">${s.artistEn}</div>
     </div>
   </div>`;
