@@ -258,6 +258,7 @@ function ensureSongsStyle(){
     .songs-section.two-col .lyrics-col{ flex:1; min-width:0; }
     .songs-section.two-col.first-section{ margin-top:60px; }
     .songs-line{ color:#333; }
+    .blank-ruled .songs-line{ border-bottom:1px solid #e6dcc8; min-height:1.6em; }
     .songs-line-sub{ display:flex; flex-direction:column; align-items:flex-start; line-height:1.25 !important; margin:3px 0; }
     .songs-line-sub .sub-caption{ font-size:0.6em; color:#9ab; line-height:1.2; }
     .songs-line-sub .main-text{ font-size:1em; line-height:1.3; }
@@ -792,8 +793,6 @@ function songOpenViewNote(id){
 }
 function songOpenNotePage(entryId){
   songOpen('note:'+entryId);
-  songEnterEdit();
-  songSelectTool('text');
 }
 function songGoBack(){
   if(songState.mode==='edit' && !songConfirmDiscardIfChanged()) return;
@@ -814,8 +813,9 @@ function songRenderLyricLine(l){
 function renderSongLyricsHtml(song){
   const secHtml = song.sections.map((sec,idx)=>{
     const firstClass = idx===0 ? ' first-section' : '';
+    const blankClass = sec.type==='blank' ? ' blank-ruled' : '';
     return `
-    <div class="songs-section two-col${firstClass}">
+    <div class="songs-section two-col${firstClass}${blankClass}">
       <div class="seclabel-col"><div class="songs-seclabel ${songSectionLabelClass(sec)}">${songSectionLabel(sec)}</div></div>
       <div class="lyrics-col">${sec.lines.map(songRenderLyricLine).join('')}</div>
     </div>`;
