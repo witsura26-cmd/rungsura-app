@@ -196,11 +196,11 @@ function ensureSongsStyle(){
     .songs-section{ margin-top:30px; margin-bottom:8px; }
     .songs-seclabel{ font-size:7pt; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:#aaa; margin-bottom:10px; }
     .songs-seclabel.chorus{ color:#c0392b; } .songs-seclabel.bridge{ color:#2980b9; } .songs-seclabel.rap{ color:#8e44ad; } .songs-seclabel.instrumental,.songs-seclabel.intro,.songs-seclabel.outro,.songs-seclabel.interlude{ color:#27ae60; }
-    .songs-single.song-experiment .songs-section.two-col{ display:flex; align-items:baseline; gap:12px; margin-top:50px; }
-    .songs-single.song-experiment .songs-section.two-col .seclabel-col{ width:70px; flex-shrink:0; }
-    .songs-single.song-experiment .songs-section.two-col .seclabel-col .songs-seclabel{ margin-bottom:0; }
-    .songs-single.song-experiment .songs-section.two-col .lyrics-col{ flex:1; min-width:0; }
-    .songs-single.song-experiment .songs-section.two-col.first-section{ margin-top:70px; }
+    .songs-section.two-col{ display:flex; align-items:baseline; gap:12px; margin-top:50px; }
+    .songs-section.two-col .seclabel-col{ width:70px; flex-shrink:0; }
+    .songs-section.two-col .seclabel-col .songs-seclabel{ margin-bottom:0; }
+    .songs-section.two-col .lyrics-col{ flex:1; min-width:0; }
+    .songs-section.two-col.first-section{ margin-top:70px; }
     .songs-line{ color:#333; }
     .songs-line-sub{ display:flex; flex-direction:column; align-items:flex-start; line-height:1.25 !important; margin:3px 0; }
     .songs-line-sub .sub-caption{ font-size:0.6em; color:#9ab; line-height:1.2; }
@@ -314,7 +314,7 @@ function renderSetlistRow(){
   ];
   return `<div class="songs-setlist-row">${chips.join('')}</div>`;
 }
-let songLyricsFontSize = 16; // always starts at 16pt fresh — not persisted across sessions
+let songLyricsFontSize = 14; // always resets to 14pt on every fresh open — not persisted
 function songSetLyricsZoom(delta){
   songLyricsFontSize = Math.max(9, Math.min(28, songLyricsFontSize+delta));
   songRefreshLyricsFontSize();
@@ -548,6 +548,7 @@ function songOpen(id){
   songState.currentId=id;
   songState.view='detail';
   songState.mode='clean';
+  songLyricsFontSize = 14;
   songsRerender();
   songResetScroll();
 }
@@ -572,30 +573,22 @@ function songRenderLyricLine(l){
   return `<div class="songs-line">${l||'&nbsp;'}</div>`;
 }
 function renderSongLyricsHtml(song){
-  const isExperiment = song.id === '1901-phoenix';
   const secHtml = song.sections.map((sec,idx)=>{
-    if(isExperiment){
-      const firstClass = idx===0 ? ' first-section' : '';
-      return `
-      <div class="songs-section two-col${firstClass}">
-        <div class="seclabel-col"><div class="songs-seclabel ${songSectionLabelClass(sec)}">${songSectionLabel(sec)}</div></div>
-        <div class="lyrics-col">${sec.lines.map(songRenderLyricLine).join('')}</div>
-      </div>`;
-    }
+    const firstClass = idx===0 ? ' first-section' : '';
     return `
-    <div class="songs-section">
-      <div class="songs-seclabel ${songSectionLabelClass(sec)}">${songSectionLabel(sec)}</div>
-      ${sec.lines.map(songRenderLyricLine).join('')}
+    <div class="songs-section two-col${firstClass}">
+      <div class="seclabel-col"><div class="songs-seclabel ${songSectionLabelClass(sec)}">${songSectionLabel(sec)}</div></div>
+      <div class="lyrics-col">${sec.lines.map(songRenderLyricLine).join('')}</div>
     </div>`;
   }).join('');
 
-  const trailingBlank = isExperiment ? `<div class="songs-section"><div class="songs-line">&nbsp;</div><div class="songs-line">&nbsp;</div></div>` : '';
+  const trailingBlank = `<div class="songs-section"><div class="songs-line">&nbsp;</div><div class="songs-line">&nbsp;</div></div>`;
 
   const titleTh = song.titleTh ? ` (${song.titleTh})` : '';
   return `
     <h2>${song.titleEn}${titleTh}</h2>
     <div class="artist">${song.artistIcon||''} ${song.artistEn}</div>
-    <div class="songs-single${isExperiment ? ' song-experiment' : ''}">${secHtml}${trailingBlank}</div>
+    <div class="songs-single">${secHtml}${trailingBlank}</div>
     <style id="songs-lyrics-fontsize-style">#songs-detail-page .songs-line{font-size:${songLyricsFontSize}pt;line-height:1.9;}</style>
   `;
 }
