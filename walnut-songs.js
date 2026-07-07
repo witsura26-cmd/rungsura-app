@@ -166,6 +166,7 @@ function ensureSongsStyle(){
     .songs-setlist-bar{ display:flex; align-items:center; gap:8px; margin-bottom:10px; }
     .songs-setlist-bar .name{ font-size:15px; font-weight:800; color:#345f80; flex:1; }
     .songs-setlist-bar button{ border:none; background:#fff; padding:6px 11px; border-radius:9px; font-size:11px; color:#666; box-shadow:0 2px 6px rgba(0,0,0,.06); cursor:pointer; }
+    .songs-setlist-bar button.songs-done-btn{ padding:10px 20px; font-size:14px; font-weight:700; color:#333; }
     .songs-setlist-bar button.danger{ color:#c0392b; }
     .songs-check-item{ display:flex; align-items:center; gap:6px; padding:8px 8px; }
     .songs-check-item .t{ align-items:center; }
@@ -175,7 +176,7 @@ function ensureSongsStyle(){
     .songs-manage-sort-toggle button.active{ background:#f0f0f0; color:#333; font-weight:700; border-color:#ccc; }
     .songs-manage-artist-hd{ font-size:10px; font-weight:700; color:#999; margin:8px 2px 3px; text-transform:uppercase; letter-spacing:.03em; }
 
-    .songs-manage-cols{ display:flex; gap:10px; align-items:flex-start; }
+    .songs-manage-cols{ display:flex; gap:24px; align-items:flex-start; }
     .songs-manage-col{ flex:1; min-width:0; }
     .songs-manage-col-hd{ font-size:11px; font-weight:800; color:#d47ab0; margin:2px 2px 6px; letter-spacing:.04em; }
     .songs-manage-col-body{ max-height:60vh; overflow-y:auto; }
@@ -185,9 +186,9 @@ function ensureSongsStyle(){
     .songs-order-arrows{ display:flex; flex-direction:column; gap:2px; flex-shrink:0; }
     .songs-order-arrows button{ border:none; background:#f2f7fb; color:#4a9fd4; width:18px; height:15px; font-size:8px; border-radius:5px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
     .songs-order-arrows button:disabled{ opacity:.25; pointer-events:none; }
-    .songs-order-title{ flex:1; min-width:0; cursor:pointer; display:flex; align-items:baseline; flex-wrap:wrap; }
-    .songs-order-title .title-text{ font-size:12px; font-weight:500; color:#6badd9; }
-    .songs-order-title .order-artist{ font-weight:400; color:#b9c6ce; font-size:10px; }
+    .songs-order-title{ flex:1; min-width:0; cursor:pointer; display:flex; align-items:baseline; flex-wrap:wrap; gap:6px; }
+    .songs-order-title .title-text{ font-size:13px; font-weight:500; color:#6badd9; }
+    .songs-order-title .order-artist{ font-weight:400; color:#b9c6ce; font-size:10px; margin-left:2px; }
     .songs-order-remove{ flex-shrink:0; color:#ff6b6b; font-size:13px; cursor:pointer; padding:4px; }
     .songs-order-open{ flex-shrink:0; font-size:15px; cursor:pointer; padding:4px; }
     .songs-note-num{ flex-shrink:0; font-size:12px; color:#b89b5e; font-weight:700; min-width:16px; }
@@ -564,7 +565,7 @@ function songSetlistEntryHtml(entry, index, total){
   const hasThai = !!s.titleTh;
   const title = hasThai ? s.titleTh : s.titleEn;
   const artist = SONG_ARTIST_TH_PRIMARY.has(s.artistEn) ? (s.artistTh || s.artistEn) : s.artistEn;
-  const artistSuffix = hasThai ? ` <span class="order-artist">(${songEscapeHtml(artist)})</span>` : '';
+  const artistSuffix = ` <span class="order-artist">(${songEscapeHtml(artist)})</span>`;
   return `<div class="songs-order-item">
     ${arrows}
     <span class="songs-note-num">${num}.</span>
@@ -601,7 +602,7 @@ function renderSongsHome(){
     return `${header}
       <div class="songs-setlist-bar">
         <div class="name">✎ Pick songs for "${sl.name}"</div>
-        <button onclick="songToggleSetlistManage()">✓ Done</button>
+        <button class="songs-done-btn" onclick="songToggleSetlistManage()">✓ Done</button>
       </div>
       <div class="songs-manage-cols">
         <div class="songs-manage-col">
@@ -610,6 +611,7 @@ function renderSongsHome(){
           <button class="songs-add-note-btn" onclick="songAddNoteEntryToSetlist()">＋ Add blank note</button>
         </div>
         <div class="songs-manage-col">
+          <div class="songs-manage-col-hd" style="visibility:hidden">.</div>
           <input id="songs-setlist-search" placeholder="Search songs..." value="${songState.setlistManageQuery||''}" oninput="songOnSetlistManageSearch(this.value)">
           <div class="songs-manage-sort-toggle">
             <button class="${songState.setlistManageSort==='artist'?'active':''}" onclick="songSetSetlistManageSort('artist')">By Artist</button>
