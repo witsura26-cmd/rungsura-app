@@ -196,11 +196,11 @@ function ensureSongsStyle(){
     .songs-section{ margin-top:30px; margin-bottom:8px; }
     .songs-seclabel{ font-size:7pt; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:#aaa; margin-bottom:10px; }
     .songs-seclabel.chorus{ color:#c0392b; } .songs-seclabel.bridge{ color:#2980b9; } .songs-seclabel.rap{ color:#8e44ad; } .songs-seclabel.instrumental,.songs-seclabel.intro,.songs-seclabel.outro,.songs-seclabel.interlude{ color:#27ae60; }
-    .songs-single.song-experiment .songs-section.two-col{ display:flex; align-items:baseline; gap:12px; }
+    .songs-single.song-experiment .songs-section.two-col{ display:flex; align-items:baseline; gap:12px; margin-top:70px; }
     .songs-single.song-experiment .songs-section.two-col .seclabel-col{ width:70px; flex-shrink:0; }
     .songs-single.song-experiment .songs-section.two-col .seclabel-col .songs-seclabel{ margin-bottom:0; }
     .songs-single.song-experiment .songs-section.two-col .lyrics-col{ flex:1; min-width:0; }
-    .songs-single.song-experiment .songs-section.two-col.first-section{ margin-top:70px; }
+    .songs-single.song-experiment .songs-section.two-col.first-section{ margin-top:50px; }
     .songs-line{ color:#333; }
     .songs-line-sub{ display:flex; flex-direction:column; align-items:flex-start; line-height:1.25 !important; margin:3px 0; }
     .songs-line-sub .sub-caption{ font-size:0.6em; color:#9ab; line-height:1.2; }
