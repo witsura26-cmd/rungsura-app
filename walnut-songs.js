@@ -362,7 +362,7 @@ function songTitleHtml(s){
     : s.titleEn;
 }
 function songItemHtml(s){
-  const badge = songHasNote(s.id) ? `<span class="badge" onclick="event.stopPropagation();songOpen('${s.id}')">📝</span>` : '';
+  const badge = songHasNote(s.id) ? `<span class="badge" onclick="event.stopPropagation();songOpenViewNote('${s.id}')">📝</span>` : '';
   const artistTh = s.artistTh ? ` <span class="th">(${s.artistTh})</span>` : '';
   return `<div class="songs-item" onclick="songOpen('${s.id}')">
     <div class="songs-item-body">
@@ -373,7 +373,7 @@ function songItemHtml(s){
   </div>`;
 }
 function songTitleOnlyItemHtml(s){
-  const badge = songHasNote(s.id) ? `<span class="badge" onclick="event.stopPropagation();songOpen('${s.id}')">📝</span>` : '';
+  const badge = songHasNote(s.id) ? `<span class="badge" onclick="event.stopPropagation();songOpenViewNote('${s.id}')">📝</span>` : '';
   return `<div class="songs-item" onclick="songOpen('${s.id}')">
     <div class="songs-item-body">
       <div class="t">${songTitleHtml(s)}</div>
@@ -543,6 +543,10 @@ function songOpen(id){
   songState.mode='clean';
   songsRerender();
   songResetScroll();
+}
+function songOpenViewNote(id){
+  songOpen(id);
+  songEnterView();
 }
 function songGoBack(){
   if(songState.mode==='edit' && !songConfirmDiscardIfChanged()) return;
