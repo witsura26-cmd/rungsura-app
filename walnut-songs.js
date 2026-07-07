@@ -200,7 +200,7 @@ function ensureSongsStyle(){
     .songs-single.song-experiment .songs-section.two-col .seclabel-col{ width:70px; flex-shrink:0; }
     .songs-single.song-experiment .songs-section.two-col .seclabel-col .songs-seclabel{ margin-bottom:0; }
     .songs-single.song-experiment .songs-section.two-col .lyrics-col{ flex:1; min-width:0; }
-    .songs-single.song-experiment .songs-section.two-col.first-section{ margin-top:50px; }
+    .songs-single.song-experiment .songs-section.two-col.first-section{ margin-top:70px; }
     .songs-line{ color:#333; }
     .songs-line-sub{ display:flex; flex-direction:column; align-items:flex-start; line-height:1.25 !important; margin:3px 0; }
     .songs-line-sub .sub-caption{ font-size:0.6em; color:#9ab; line-height:1.2; }
