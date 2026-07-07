@@ -112,16 +112,17 @@ function ensureSongsStyle(){
     .songs-home-header{ text-align:center; padding:14px 8px 10px; background:linear-gradient(150deg,#daeeff 0%,#eef7ff 45%,#fce8f4 100%); border-radius:16px; margin-bottom:12px; }
     .songs-home-header h2{ font-size:20px; font-weight:900; background:linear-gradient(135deg,#4a9fd4,#7ec0ee,#d47ab0); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; margin:0; }
     .songs-home-header .sub{ font-size:12px; color:#7aaac8; font-weight:700; margin-top:2px; }
+    .songs-sticky-top{ position:sticky; top:0; z-index:20; background:#f9fafb; padding-bottom:6px; }
     .songs-search-row{ display:flex; gap:8px; align-items:stretch; margin-bottom:10px; }
     #songs-search{ flex:1; min-width:0; width:auto; padding:10px 14px; border-radius:12px; border:1px solid #cfe6f5; font-size:14px; margin-bottom:0; }
     .songs-seg{ display:flex; flex-shrink:0; background:#fff; border-radius:10px; padding:3px; box-shadow:0 2px 6px rgba(0,0,0,.05); margin-bottom:0; }
-    .songs-seg button{ border:none; background:transparent; padding:7px 8px; border-radius:8px; font-size:11px; color:#888; cursor:pointer; white-space:nowrap; }
+    .songs-seg button{ border:none; background:transparent; padding:7px 18px; border-radius:8px; font-size:11px; color:#888; cursor:pointer; white-space:nowrap; }
     .songs-seg button.active{ background:#7ec0ee; color:#fff; font-weight:700; }
     .songs-az{ display:flex; flex-direction:column; gap:4px; margin-bottom:10px; }
     .songs-az-row{ display:flex; gap:4px; justify-content:center; }
     .songs-az button{ border:none; background:#fff; color:#4a9fd4; font-size:11px; font-weight:700; width:24px; height:24px; border-radius:6px; cursor:pointer; box-shadow:0 1px 3px rgba(0,0,0,.06); }
     .songs-az button.disabled{ opacity:.3; pointer-events:none; }
-    .songs-section-hd{ font-size:11px; font-weight:800; color:#d47ab0; margin:12px 2px 5px; letter-spacing:.06em; }
+    .songs-section-hd{ font-size:16pt; font-weight:800; color:#d47ab0; margin:12px 2px 5px; letter-spacing:.06em; }
     .songs-item{ display:flex; align-items:center; gap:8px; background:#fff; border-radius:12px; padding:10px 12px; margin-bottom:6px; box-shadow:0 2px 6px rgba(0,0,0,.06); cursor:pointer; }
     .songs-item-body{ flex:1; min-width:0; }
     .songs-item .t{ display:flex; align-items:baseline; font-size:13px; font-weight:500; color:#4a9fd4; }
@@ -481,15 +482,18 @@ function renderSongsHome(){
     }
   }
 
-  return `${header}
-    <div class="songs-search-row">
-      <input id="songs-search" placeholder="Search by song title or artist..." value="${songState.searchQuery||''}" oninput="songOnSearch(this.value)">
-      <div class="songs-seg">
-        <button class="${songState.sortMode==='title'?'active':''}" onclick="songSetSort('title')">By Title</button>
-        <button class="${songState.sortMode==='artist'?'active':''}" onclick="songSetSort('artist')">By Artist</button>
+  return `
+    <div class="songs-sticky-top">
+      ${header}
+      <div class="songs-search-row">
+        <input id="songs-search" placeholder="Search by song title or artist..." value="${songState.searchQuery||''}" oninput="songOnSearch(this.value)">
+        <div class="songs-seg">
+          <button class="${songState.sortMode==='title'?'active':''}" onclick="songSetSort('title')">By Title</button>
+          <button class="${songState.sortMode==='artist'?'active':''}" onclick="songSetSort('artist')">By Artist</button>
+        </div>
       </div>
+      ${q ? '' : `<div class="songs-az">${azHtml}</div>`}
     </div>
-    ${q ? '' : `<div class="songs-az">${azHtml}</div>`}
     <div>${listHtml}</div>
   `;
 }
