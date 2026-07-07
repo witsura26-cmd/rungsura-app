@@ -122,7 +122,8 @@ function ensureSongsStyle(){
     .songs-item-body{ flex:1; min-width:0; }
     .songs-item .t{ display:flex; align-items:baseline; font-size:13px; font-weight:500; color:#4a9fd4; }
     .songs-item .t .icon{ display:inline-block; min-width:20px; margin-right:10px; text-align:center; }
-    .songs-item .t .th{ font-weight:500; color:#4a9fd4; font-size:13px; }
+    .songs-item .t .bullet{ display:inline-block; min-width:20px; margin-right:10px; text-align:center; color:#4a9fd4; font-weight:700; }
+    .songs-item .t .th{ font-weight:500; color:#4a9fd4; font-size:13px; margin-left:5px; }
     .songs-item .t .en-sub{ font-weight:400; color:#9bb; font-size:11px; }
     .songs-item .a{ font-size:11px; color:#9bb; margin-top:1px; margin-left:30px; }
     .songs-item .a .th{ font-weight:400; font-size:11px; }
@@ -359,7 +360,7 @@ function songMatches(s,q){
 }
 function songTitleHtml(s){
   return s.titleTh
-    ? `<span class="en-sub">${s.titleEn}</span> <span class="th">(${s.titleTh})</span>`
+    ? `<span class="en-sub">${s.titleEn}</span><span class="th">(${s.titleTh})</span>`
     : s.titleEn;
 }
 function songItemHtml(s){
@@ -377,7 +378,7 @@ function songTitleOnlyItemHtml(s){
   const badge = songHasNote(s.id) ? `<span class="badge" onclick="event.stopPropagation();songOpenViewNote('${s.id}')">📝</span>` : '';
   return `<div class="songs-item" onclick="songOpen('${s.id}')">
     <div class="songs-item-body">
-      <div class="t">${songTitleHtml(s)}</div>
+      <div class="t"><span class="bullet">•</span><span class="title-text">${songTitleHtml(s)}</span></div>
     </div>
     ${badge}
   </div>`;
