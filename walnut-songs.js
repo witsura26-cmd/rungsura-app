@@ -259,6 +259,9 @@ function ensureSongsStyle(){
     .songs-section.two-col.first-section{ margin-top:60px; }
     .songs-line{ color:#333; }
     .blank-ruled .songs-line{ border-bottom:1px solid #e6dcc8; min-height:1.6em; }
+    .songs-note-page{ background:#fff8f0; border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.14); margin-top:10px; padding:14px 20px; min-height:60vh; box-sizing:border-box; }
+    .songs-note-page-body{ outline:none; font-size:17px; line-height:38px; color:#333; min-height:38px; background-image:repeating-linear-gradient(to bottom, transparent 0, transparent 37px, #e6dcc8 37px, #e6dcc8 38px); }
+    .songs-note-done-btn{ position:fixed; right:20px; bottom:90px; width:52px; height:52px; border-radius:50%; background:#6bcb77; color:#fff; font-size:20px; font-weight:700; border:none; box-shadow:0 4px 12px rgba(0,0,0,.2); cursor:pointer; z-index:50; }
     .songs-line-sub{ display:flex; flex-direction:column; align-items:flex-start; line-height:1.25 !important; margin:3px 0; }
     .songs-line-sub .sub-caption{ font-size:0.6em; color:#9ab; line-height:1.2; }
     .songs-line-sub .main-text{ font-size:1em; line-height:1.3; }
@@ -310,6 +313,10 @@ function songLoadData(id){
   try{ const d=JSON.parse(raw); return {strokes:d.strokes||[],notes:d.notes||[],stickers:d.stickers||[]}; }
   catch(e){ return {strokes:[],notes:[],stickers:[]}; }
 }
+function songNoteBodyKey(entryId){ return 'walnut_note_body_'+entryId; }
+function songLoadNoteBody(entryId){ return localStorage.getItem(songNoteBodyKey(entryId)) || ''; }
+function songSaveNoteBody(entryId, text){ localStorage.setItem(songNoteBodyKey(entryId), text); }
+function songOnNoteBodyInput(entryId, el){ songSaveNoteBody(entryId, el.innerText); }
 function songById(id){
   if(typeof id === 'string' && id.startsWith('note:')){
     const entryId = id.slice(5);
@@ -850,9 +857,40 @@ function songPrevInSetlist(){
   if(i<=0) return;
   songOpen(ids[i-1]);
 }
+function renderNotePageDetail(song){
+  const entryId = song.id.slice(5);
+  const activeSl = songState.activeSetlistId ? songCurrentSetlist() : null;
+  const slSongIds = activeSl ? songSetlistSongIds(activeSl) : [];
+  const slIndex = activeSl ? slSongIds.indexOf(song.id) : -1;
+  const setlistNav = (activeSl && slIndex>=0) ? `
+    <div class="songs-setlist-nav">
+      <button ${slIndex===0?'disabled':''} onclick="songPrevInSetlist()">◀ Prev</button>
+      <span class="pos">${slIndex+1} / ${slSongIds.length} · ${activeSl.name}</span>
+      <button ${slIndex===slSongIds.length-1?'disabled':''} onclick="songNextInSetlist()">Next ▶</button>
+    </div>` : '';
+  const bodyText = songLoadNoteBody(entryId);
+  return `
+    <div class="songs-detail-header">
+      <div class="songs-topbar">
+        <button class="songs-back" onclick="songGoBack()">← Back</button>
+        <div class="songs-title-block">
+          <div class="t">${song.titleEn}</div>
+          <div class="a">${song.artistEn}</div>
+        </div>
+        <div class="songs-topbar-actions"></div>
+      </div>
+      ${setlistNav}
+    </div>
+    <div class="songs-note-page">
+      <div class="songs-note-page-body" contenteditable="true" id="songs-note-body-editable" oninput="songOnNoteBodyInput('${entryId}', this)">${songEscapeHtml(bodyText)}</div>
+    </div>
+    <button class="songs-note-done-btn" onclick="document.getElementById('songs-note-body-editable').blur()">✓</button>
+  `;
+}
 function renderSongDetail(){
   const song = songById(songState.currentId);
   if(!song){ songState.view='home'; return renderSongsHome(); }
+  if(song.id.startsWith('note:')) return renderNotePageDetail(song);
   const displayTitle = song.titleTh || song.titleEn;
   const displayArtist = SONG_ARTIST_TH_PRIMARY.has(song.artistEn) ? (song.artistTh || song.artistEn) : song.artistEn;
 
