@@ -130,6 +130,9 @@ function ensureSongsStyle(){
     .songs-az button{ border:none; background:#fff; color:#4a9fd4; font-size:11px; font-weight:700; width:24px; height:24px; border-radius:6px; cursor:pointer; box-shadow:0 1px 3px rgba(0,0,0,.06); }
     .songs-az button.disabled{ opacity:.3; pointer-events:none; }
     .songs-section-hd{ font-size:12pt; font-weight:800; color:#d47ab0; margin:12px 2px 5px; letter-spacing:.06em; }
+    .songs-az-group{ display:grid; grid-template-columns:26px 1fr; column-gap:8px; row-gap:6px; margin-bottom:22px; }
+    .songs-az-letter{ grid-column:1; align-self:start; color:#d47ab0; font-weight:800; font-size:12pt; padding-top:2px; }
+    .songs-az-content{ grid-column:2; min-width:0; }
     .songs-item{ display:flex; align-items:center; gap:8px; background:#fff; border-radius:12px; padding:10px 12px; margin-bottom:6px; box-shadow:0 2px 6px rgba(0,0,0,.06); cursor:pointer; }
     .songs-item-body{ flex:1; min-width:0; }
     .songs-item .t{ display:flex; align-items:baseline; font-size:13px; font-weight:500; color:#4a9fd4; }
@@ -142,8 +145,7 @@ function ensureSongsStyle(){
     .songs-item .badge{ flex-shrink:0; font-size:22px; line-height:1; padding:2px; }
     .songs-empty{ text-align:center; color:#c99; font-size:13px; margin-top:24px; }
 
-    .songs-artist-group{ margin-bottom:4px; }
-    .songs-artist-clean-hd{ display:flex; align-items:baseline; gap:6px; font-size:10px; font-weight:700; color:#999; text-transform:uppercase; letter-spacing:.03em; margin:10px 2px 4px; }
+    .songs-artist-clean-hd{ display:flex; align-items:baseline; gap:6px; font-size:10px; font-weight:700; color:#999; text-transform:uppercase; letter-spacing:.03em; margin:2px 0; }
     .songs-artist-clean-hd .th{ font-weight:400; color:#bbb; font-size:10px; text-transform:none; }
 
     .songs-setlist-row{ display:flex; gap:6px; overflow-x:auto; padding-bottom:4px; margin-bottom:10px; }
@@ -165,13 +167,23 @@ function ensureSongsStyle(){
     .songs-manage-col{ flex:1; min-width:0; }
     .songs-manage-col-hd{ font-size:11px; font-weight:800; color:#d47ab0; margin:2px 2px 6px; letter-spacing:.04em; }
     .songs-manage-col-body{ max-height:60vh; overflow-y:auto; }
-    .songs-order-item{ display:flex; align-items:center; gap:6px; padding:8px 8px; }
+    .songs-manage-notebook{ background:repeating-linear-gradient(to bottom, #fffdf3 0px, #fffdf3 27px, #e6dcc0 28px); border:1px solid #ddd0a8; border-radius:8px; padding:6px 8px; max-height:60vh; overflow-y:auto; }
+    .songs-order-item{ display:flex; align-items:center; gap:6px; padding:6px 4px; }
     .songs-order-arrows{ display:flex; flex-direction:column; gap:2px; flex-shrink:0; }
     .songs-order-arrows button{ border:none; background:#f2f7fb; color:#4a9fd4; width:20px; height:18px; font-size:9px; border-radius:5px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
     .songs-order-arrows button:disabled{ opacity:.25; pointer-events:none; }
     .songs-order-title{ flex:1; min-width:0; cursor:pointer; }
-    .songs-order-title .t{ font-size:12px; }
+    .songs-order-title .t{ display:flex; align-items:baseline; font-size:12px; font-weight:500; color:#4a9fd4; }
+    .songs-order-title .t .icon{ display:inline-block; min-width:18px; margin-right:8px; text-align:center; }
+    .songs-order-title .t .th{ font-weight:500; color:#4a9fd4; font-size:12px; margin-left:4px; }
+    .songs-order-title .t .en-sub{ font-weight:400; color:#9bb; font-size:10px; }
     .songs-order-remove{ flex-shrink:0; color:#ff6b6b; font-size:13px; cursor:pointer; padding:4px; }
+    .songs-note-num{ flex-shrink:0; font-size:12px; color:#b89b5e; font-weight:700; min-width:16px; }
+    .songs-note-entry-input{ flex:1; min-width:0; border:none; background:transparent; font-size:12px; color:#5a4a2a; outline:none; padding:2px 0; }
+    .songs-note-entry-input::placeholder{ color:#c9b98a; }
+    .songs-add-note-btn{ width:100%; margin-top:6px; border:1px dashed #d0c4a0; background:#fffdf3; color:#a8935e; font-size:11px; padding:6px; border-radius:8px; cursor:pointer; }
+    .songs-setlist-note-view{ background:#fffdf3; border:1px solid #e6dcc0; border-radius:8px; padding:8px 10px; margin-bottom:6px; font-size:12px; color:#5a4a2a; font-style:italic; }
+    .songs-setlist-note-view .empty{ color:#c9b98a; font-style:normal; }
 
     .songs-detail-header{ position:sticky; top:0; z-index:40; background:#fff; border-radius:16px; padding:12px 12px 10px; margin-bottom:10px; box-shadow:0 6px 18px rgba(0,0,0,.09); will-change:transform; transform:translateZ(0); backface-visibility:hidden; }
     .songs-topbar{ display:flex; align-items:center; gap:8px; margin-bottom:8px; }
@@ -182,6 +194,10 @@ function ensureSongsStyle(){
     .songs-topbar-actions{ display:flex; gap:6px; flex-shrink:0; flex-wrap:wrap; }
     .songs-topbar-actions button{ border:none; padding:8px 13px; border-radius:9px; font-size:12px; color:#666; background:#f2f2f2; cursor:pointer; white-space:nowrap; }
     .songs-topbar-actions button.primary{ background:#ff8fab; color:#fff; font-weight:700; }
+    .songs-setlist-nav{ display:flex; align-items:center; justify-content:space-between; gap:6px; margin-top:8px; padding-top:8px; border-top:1px solid #f0f0f0; }
+    .songs-setlist-nav button{ border:none; background:#f2f7fb; color:#4a9fd4; font-size:11px; font-weight:700; padding:6px 10px; border-radius:8px; cursor:pointer; white-space:nowrap; }
+    .songs-setlist-nav button:disabled{ opacity:.3; pointer-events:none; }
+    .songs-setlist-nav .pos{ font-size:10px; color:#999; text-align:center; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 
     .songs-bottom-bar{ position:fixed; left:12px; right:12px; bottom:12px; z-index:45; background:#fff; border-radius:14px; padding:7px 12px; box-shadow:0 4px 16px rgba(0,0,0,.15); display:flex; align-items:center; justify-content:space-between; gap:10px; }
     .songs-bottom-spacer{ height:64px; }
@@ -282,9 +298,23 @@ function songLoadData(id){
 function songById(id){ return SONGS.find(s=>s.id===id); }
 
 /* ===================== SETLISTS ===================== */
+function songNewEntryId(){ return 'e_'+Date.now()+'_'+Math.random().toString(36).slice(2,7); }
+function songEscapeHtml(str){
+  return (str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
 function songGetSetlists(){
-  try{ return JSON.parse(localStorage.getItem(SONG_SETLIST_KEY)||'[]'); }
-  catch(e){ return []; }
+  let list;
+  try{ list = JSON.parse(localStorage.getItem(SONG_SETLIST_KEY)||'[]'); }
+  catch(e){ list = []; }
+  let migrated=false;
+  list.forEach(sl=>{
+    if(!sl.items){
+      sl.items = (sl.songIds||[]).map(id=>({id:songNewEntryId(), type:'song', songId:id}));
+      migrated=true;
+    }
+  });
+  if(migrated) songSaveSetlists(list);
+  return list;
 }
 function songSaveSetlists(list){ localStorage.setItem(SONG_SETLIST_KEY, JSON.stringify(list)); }
 function songCurrentSetlist(){ return songGetSetlists().find(s=>s.id===songState.activeSetlistId) || null; }
@@ -293,7 +323,7 @@ function songCreateSetlist(){
   if(!name || !name.trim()) return;
   const list = songGetSetlists();
   const id = 'sl_'+Date.now();
-  list.push({id, name: name.trim(), songIds: []});
+  list.push({id, name: name.trim(), items: []});
   songSaveSetlists(list);
   songState.activeSetlistId = id;
   songState.setlistManageMode = true;
@@ -330,28 +360,54 @@ function songToggleSongInSetlist(songId){
   const list = songGetSetlists();
   const sl = list.find(s=>s.id===songState.activeSetlistId);
   if(!sl) return;
-  const i = sl.songIds.indexOf(songId);
-  if(i>=0) sl.songIds.splice(i,1); else sl.songIds.push(songId);
+  const i = sl.items.findIndex(e=>e.type==='song' && e.songId===songId);
+  if(i>=0) sl.items.splice(i,1);
+  else sl.items.push({id:songNewEntryId(), type:'song', songId});
   songSaveSetlists(list);
   songsRerender();
 }
-function songMoveSongInSetlist(songId, delta){
+function songMoveEntryInSetlist(entryId, delta){
   const list = songGetSetlists();
   const sl = list.find(s=>s.id===songState.activeSetlistId);
   if(!sl) return;
-  const i = sl.songIds.indexOf(songId);
+  const i = sl.items.findIndex(e=>e.id===entryId);
   if(i<0) return;
   const j = i+delta;
-  if(j<0 || j>=sl.songIds.length) return;
-  [sl.songIds[i], sl.songIds[j]] = [sl.songIds[j], sl.songIds[i]];
+  if(j<0 || j>=sl.items.length) return;
+  [sl.items[i], sl.items[j]] = [sl.items[j], sl.items[i]];
   songSaveSetlists(list);
   songsRerender();
+}
+function songRemoveEntryFromSetlist(entryId){
+  const list = songGetSetlists();
+  const sl = list.find(s=>s.id===songState.activeSetlistId);
+  if(!sl) return;
+  sl.items = sl.items.filter(e=>e.id!==entryId);
+  songSaveSetlists(list);
+  songsRerender();
+}
+function songAddNoteEntryToSetlist(){
+  const list = songGetSetlists();
+  const sl = list.find(s=>s.id===songState.activeSetlistId);
+  if(!sl) return;
+  sl.items.push({id:songNewEntryId(), type:'note', text:''});
+  songSaveSetlists(list);
+  songsRerender();
+}
+function songUpdateNoteEntryText(entryId, text){
+  const list = songGetSetlists();
+  const sl = list.find(s=>s.id===songState.activeSetlistId);
+  if(!sl) return;
+  const e = sl.items.find(x=>x.id===entryId);
+  if(!e) return;
+  e.text = text;
+  songSaveSetlists(list);
 }
 function renderSetlistRow(){
   const setlists = songGetSetlists();
   const chips = [
     `<button class="songs-setlist-chip${!songState.activeSetlistId?' active':''}" onclick="songSelectAllSongs()">📚 All Songs</button>`,
-    ...setlists.map(sl=>`<button class="songs-setlist-chip${songState.activeSetlistId===sl.id?' active':''}" onclick="songSelectSetlist('${sl.id}')">🎧 ${sl.name} (${sl.songIds.length})</button>`),
+    ...setlists.map(sl=>`<button class="songs-setlist-chip${songState.activeSetlistId===sl.id?' active':''}" onclick="songSelectSetlist('${sl.id}')">🎧 ${sl.name} (${sl.items.filter(e=>e.type==='song').length})</button>`),
     `<button class="songs-setlist-chip new" onclick="songCreateSetlist()">＋ New Setlist</button>`
   ];
   return `<div class="songs-setlist-row">${chips.join('')}</div>`;
@@ -405,6 +461,14 @@ function songsPostRender(){
 function songMatches(s,q){
   return [s.titleEn,s.titleTh,s.artistEn,s.artistTh].some(v=>(v||'').toLowerCase().includes(q));
 }
+function songBuildAzGroupHtml(letter, rowsHtml){
+  const n = rowsHtml.length;
+  const content = rowsHtml.map(h=>`<div class="songs-az-content">${h}</div>`).join('');
+  return `<div class="songs-az-group" id="song-sec-${letter}">
+    <div class="songs-az-letter" style="grid-row:span ${n}">${letter}</div>
+    ${content}
+  </div>`;
+}
 function songTitleHtml(s, thaiFirst){
   if(!s.titleTh) return s.titleEn;
   return thaiFirst
@@ -432,7 +496,7 @@ function songTitleOnlyItemHtml(s){
   </div>`;
 }
 function songCheckItemHtml(s, sl, thaiFirst){
-  const inSetlist = sl.songIds.includes(s.id);
+  const inSetlist = sl.items.some(e=>e.type==='song' && e.songId===s.id);
   return `<div class="songs-item songs-check-item" onclick="songToggleSongInSetlist('${s.id}')">
     <input type="checkbox" ${inSetlist?'checked':''} onclick="event.stopPropagation();songToggleSongInSetlist('${s.id}')">
     <div style="flex:1; min-width:0;">
@@ -451,16 +515,29 @@ function songCheckItemsHtml(songs, sl, sortMode){
   }
   return songs.slice().sort((a,b)=>a.titleEn.localeCompare(b.titleEn)).map(s=>songCheckItemHtml(s, sl)).join('');
 }
-function songOrderedItemHtml(s, index, total){
-  return `<div class="songs-item songs-order-item">
-    <div class="songs-order-arrows">
-      <button ${index===0?'disabled':''} onclick="songMoveSongInSetlist('${s.id}',-1)">▲</button>
-      <button ${index===total-1?'disabled':''} onclick="songMoveSongInSetlist('${s.id}',1)">▼</button>
-    </div>
-    <div class="songs-order-title" onclick="songToggleSongInSetlist('${s.id}')">
+function songSetlistEntryHtml(entry, index, total){
+  const num = index+1;
+  const arrows = `<div class="songs-order-arrows">
+      <button ${index===0?'disabled':''} onclick="songMoveEntryInSetlist('${entry.id}',-1)">▲</button>
+      <button ${index===total-1?'disabled':''} onclick="songMoveEntryInSetlist('${entry.id}',1)">▼</button>
+    </div>`;
+  if(entry.type==='note'){
+    return `<div class="songs-order-item songs-note-entry">
+      ${arrows}
+      <span class="songs-note-num">${num}.</span>
+      <input class="songs-note-entry-input" placeholder="Spoken part / note..." value="${songEscapeHtml(entry.text)}" oninput="songUpdateNoteEntryText('${entry.id}', this.value)">
+      <span class="songs-order-remove" onclick="songRemoveEntryFromSetlist('${entry.id}')">✕</span>
+    </div>`;
+  }
+  const s = songById(entry.songId);
+  if(!s) return '';
+  return `<div class="songs-order-item">
+    ${arrows}
+    <span class="songs-note-num">${num}.</span>
+    <div class="songs-order-title">
       <span class="icon">${s.artistIcon||'🎵'}</span><span class="title-text">${songTitleHtml(s)}</span>
     </div>
-    <span class="songs-order-remove" onclick="event.stopPropagation();songToggleSongInSetlist('${s.id}')">✕</span>
+    <span class="songs-order-remove" onclick="songRemoveEntryFromSetlist('${entry.id}')">✕</span>
   </div>`;
 }
 
@@ -478,11 +555,11 @@ function renderSongsHome(){
     const sl = songCurrentSetlist();
     if(!sl){ songState.activeSetlistId=null; songState.setlistManageMode=false; return renderSongsHome(); }
     const mq = (songState.setlistManageQuery||'').trim().toLowerCase();
-    const already = sl.songIds.map(songById).filter(Boolean); // preserve this setlist's own order
-    const rest = SONGS.filter(s=>!sl.songIds.includes(s.id));
+    const usedSongIds = sl.items.filter(e=>e.type==='song').map(e=>e.songId);
+    const rest = SONGS.filter(s=>!usedSongIds.includes(s.id));
     const filteredRest = mq ? rest.filter(s=>songMatches(s,mq)) : rest;
-    const leftHtml = already.length
-      ? already.map((s,i)=>songOrderedItemHtml(s,i,already.length)).join('')
+    const leftHtml = sl.items.length
+      ? sl.items.map((e,i)=>songSetlistEntryHtml(e,i,sl.items.length)).join('')
       : '<div class="songs-empty">No songs yet — pick from the right</div>';
     const rightHtml = filteredRest.length
       ? songCheckItemsHtml(filteredRest, sl, songState.setlistManageSort)
@@ -494,8 +571,9 @@ function renderSongsHome(){
       </div>
       <div class="songs-manage-cols">
         <div class="songs-manage-col">
-          <div class="songs-manage-col-hd">✓ In setlist (${already.length})</div>
-          <div class="songs-manage-col-body">${leftHtml}</div>
+          <div class="songs-manage-col-hd">✓ In setlist (${usedSongIds.length})</div>
+          <div class="songs-manage-notebook">${leftHtml}</div>
+          <button class="songs-add-note-btn" onclick="songAddNoteEntryToSetlist()">＋ Add blank note</button>
         </div>
         <div class="songs-manage-col">
           <input id="songs-setlist-search" placeholder="Search songs..." value="${songState.setlistManageQuery||''}" oninput="songOnSetlistManageSearch(this.value)">
@@ -513,8 +591,13 @@ function renderSongsHome(){
   if(songState.activeSetlistId){
     const sl = songCurrentSetlist();
     if(!sl){ songState.activeSetlistId=null; return renderSongsHome(); }
-    const songs = sl.songIds.map(songById).filter(Boolean);
-    const listHtml = songs.length ? songs.map(songItemHtml).join('') : '<div class="songs-empty">No songs in this setlist yet — tap "Edit Songs" to add some</div>';
+    const listHtml = sl.items.length ? sl.items.map(entry=>{
+      if(entry.type==='note'){
+        return `<div class="songs-setlist-note-view">📝 ${entry.text ? songEscapeHtml(entry.text) : '<span class="empty">(empty note)</span>'}</div>`;
+      }
+      const s = songById(entry.songId);
+      return s ? songItemHtml(s) : '';
+    }).join('') : '<div class="songs-empty">No songs in this setlist yet — tap "Edit Songs" to add some</div>';
     return `${header}
       <div class="songs-setlist-bar">
         <div class="name">🎧 ${sl.name}</div>
@@ -546,20 +629,19 @@ function renderSongsHome(){
       listHtml = SONG_ALPHABET.filter(l=>groups[l]).map(l=>{
         const byArtist={};
         groups[l].forEach(s=>{ (byArtist[s.artistEn]=byArtist[s.artistEn]||[]).push(s); });
-        const artistBlocks = Object.keys(byArtist).sort((a,b)=>a.localeCompare(b)).map(name=>{
+        const rows=[];
+        Object.keys(byArtist).sort((a,b)=>a.localeCompare(b)).forEach(name=>{
           const songsForArtist = byArtist[name].slice().sort((a,b)=>a.titleEn.localeCompare(b.titleEn));
           const icon = songsForArtist[0].artistIcon || '🎵';
           const thaiName = songsForArtist[0].artistTh ? `<span class="th">(${songsForArtist[0].artistTh})</span>` : '';
-          return `<div class="songs-artist-group">
-            <div class="songs-artist-clean-hd"><span class="icon">${icon}</span><span>${name}</span> ${thaiName}</div>
-            ${songsForArtist.map(songTitleOnlyItemHtml).join('')}
-          </div>`;
-        }).join('');
-        return `<div class="songs-section-hd" id="song-sec-${l}">${l}</div>${artistBlocks}`;
+          rows.push(`<div class="songs-artist-clean-hd"><span class="icon">${icon}</span><span>${name}</span> ${thaiName}</div>`);
+          songsForArtist.forEach(s=>rows.push(songTitleOnlyItemHtml(s)));
+        });
+        return songBuildAzGroupHtml(l, rows);
       }).join('');
     } else {
       listHtml = SONG_ALPHABET.filter(l=>groups[l]).map(l=>
-        `<div class="songs-section-hd" id="song-sec-${l}">${l}</div>`+groups[l].map(songItemHtml).join('')
+        songBuildAzGroupHtml(l, groups[l].map(songItemHtml))
       ).join('');
     }
   }
@@ -707,12 +789,39 @@ function renderSongLyricsHtml(song){
   `;
 }
 
+function songSetlistSongIds(sl){ return sl.items.filter(e=>e.type==='song').map(e=>e.songId); }
+function songNextInSetlist(){
+  const sl = songCurrentSetlist();
+  if(!sl) return;
+  const ids = songSetlistSongIds(sl);
+  const i = ids.indexOf(songState.currentId);
+  if(i<0 || i>=ids.length-1) return;
+  songOpen(ids[i+1]);
+}
+function songPrevInSetlist(){
+  const sl = songCurrentSetlist();
+  if(!sl) return;
+  const ids = songSetlistSongIds(sl);
+  const i = ids.indexOf(songState.currentId);
+  if(i<=0) return;
+  songOpen(ids[i-1]);
+}
 function renderSongDetail(){
   const song = songById(songState.currentId);
   if(!song){ songState.view='home'; return renderSongsHome(); }
   const isThaiSong = !!song.titleTh;
   const displayTitle = isThaiSong ? song.titleTh : song.titleEn;
   const displayArtist = isThaiSong ? (song.artistTh || song.artistEn) : song.artistEn;
+
+  const activeSl = songState.activeSetlistId ? songCurrentSetlist() : null;
+  const slSongIds = activeSl ? songSetlistSongIds(activeSl) : [];
+  const slIndex = activeSl ? slSongIds.indexOf(song.id) : -1;
+  const setlistNav = (activeSl && slIndex>=0) ? `
+    <div class="songs-setlist-nav">
+      <button ${slIndex===0?'disabled':''} onclick="songPrevInSetlist()">◀ Prev</button>
+      <span class="pos">${slIndex+1} / ${slSongIds.length} · ${activeSl.name}</span>
+      <button ${slIndex===slSongIds.length-1?'disabled':''} onclick="songNextInSetlist()">Next ▶</button>
+    </div>` : '';
 
   let actionRow;
   if(songState.mode==='clean'){
@@ -742,6 +851,7 @@ function renderSongDetail(){
         </div>
         <div class="songs-topbar-actions">${headerActions}</div>
       </div>
+      ${setlistNav}
       <div class="songs-toolbar" id="songs-toolbar" style="display:${songState.mode==='edit'?'flex':'none'}">
         <button class="songs-tool" data-tool="pencil" onclick="songSelectTool('pencil')">✏️<span>Pencil</span></button>
         <button class="songs-tool" data-tool="eraser" onclick="songSelectTool('eraser')">🧽<span>Eraser</span></button>
