@@ -196,7 +196,7 @@ function ensureSongsStyle(){
     .songs-section{ margin-top:30px; margin-bottom:8px; }
     .songs-seclabel{ font-size:7pt; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:#aaa; margin-bottom:10px; }
     .songs-seclabel.chorus{ color:#c0392b; } .songs-seclabel.bridge{ color:#2980b9; } .songs-seclabel.rap{ color:#8e44ad; } .songs-seclabel.instrumental,.songs-seclabel.intro,.songs-seclabel.outro,.songs-seclabel.interlude{ color:#27ae60; }
-    .songs-single.song-experiment .songs-section.two-col{ display:flex; align-items:flex-start; gap:12px; }
+    .songs-single.song-experiment .songs-section.two-col{ display:flex; align-items:baseline; gap:12px; }
     .songs-single.song-experiment .songs-section.two-col .seclabel-col{ width:70px; flex-shrink:0; }
     .songs-single.song-experiment .songs-section.two-col .seclabel-col .songs-seclabel{ margin-bottom:0; }
     .songs-single.song-experiment .songs-section.two-col .lyrics-col{ flex:1; min-width:0; }
