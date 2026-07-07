@@ -71,7 +71,7 @@ const songState = {
   brushSize: 's', // always starts at 1px (SONG_BRUSH_SIZES.s) — not persisted
   eraserMode: 'stroke',   // stroke | pixel
   eraserSize: 'm',
-  noteBorder: true,
+  noteBorder: false,
   noteFontSize: 'm',
   noteColor: '#000000',
   selectedSticker: null,
@@ -216,11 +216,12 @@ function ensureSongsStyle(){
     .songs-note-text{ padding:4px 6px; font-size:11px; outline:none; white-space:pre-wrap; overflow-wrap:break-word; box-sizing:border-box; min-height:100%; }
     .songs-note-wrap .resize.corner{ position:absolute; right:-6px; bottom:-6px; width:15px; height:15px; background:#4d96ff; border-radius:4px; cursor:nwse-resize; display:none; }
     .songs-note-wrap .resize.corner::after{ content:''; position:absolute; right:3px; bottom:3px; width:6px; height:6px; border-right:2px solid #fff; border-bottom:2px solid #fff; }
-    .songs-page:not(.readonly) .songs-note-wrap .resize.corner{ display:block; }
+    .songs-page:not(.readonly) .songs-note-wrap.sel .resize.corner{ display:block; }
     .songs-page.readonly .songs-note-wrap .resize.corner{ display:none !important; }
     .songs-note.noborder{ background:transparent; border:none; box-shadow:none; }
-    .songs-note-wrap .del{ position:absolute; top:-14px; right:-14px; width:16px; height:16px; background:#ff6b6b; color:#fff; border-radius:50%; font-size:9px; display:flex; align-items:center; justify-content:center; cursor:pointer; }
-    .songs-note-wrap .done{ position:absolute; top:-14px; left:-14px; width:18px; height:18px; background:#6bcB77; color:#fff; border-radius:50%; font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+    .songs-note-wrap .del{ position:absolute; top:-14px; right:-14px; width:16px; height:16px; background:#ff6b6b; color:#fff; border-radius:50%; font-size:9px; display:none; align-items:center; justify-content:center; cursor:pointer; }
+    .songs-note-wrap .done{ position:absolute; top:-14px; left:-14px; width:18px; height:18px; background:#6bcB77; color:#fff; border-radius:50%; font-size:11px; font-weight:700; display:none; align-items:center; justify-content:center; cursor:pointer; }
+    .songs-note-wrap.sel .del, .songs-note-wrap.sel .done{ display:flex; }
     .songs-page:not(.readonly) .songs-sticker{ touch-action:none; }
     .songs-sticker{ position:absolute; font-size:28px; cursor:grab; user-select:none; filter:drop-shadow(0 2px 3px rgba(0,0,0,.2)); }
     .songs-sticker .del{ position:absolute; top:-5px; right:-9px; width:14px; height:14px; background:#ff6b6b; color:#fff; border-radius:50%; font-size:9px; line-height:14px; text-align:center; display:none; }
@@ -1048,6 +1049,9 @@ function songRenderNoteEl(note){
   text.innerText=note.text;
   text.addEventListener('input', ()=>{ note.text=text.innerText; });
   text.addEventListener('pointerdown', ()=>{ if(songState.mode==='edit') songActiveNote=note; });
+  text.addEventListener('focus', ()=>{ wrap.classList.add('sel'); });
+  text.addEventListener('blur', ()=>{ wrap.classList.remove('sel'); });
+  text.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); text.blur(); } });
   box.appendChild(text);
   note._el = box;
   note._textEl = text;
