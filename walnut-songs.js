@@ -109,6 +109,12 @@ function ensureSongsStyle(){
     .songs-item .badge{ margin-left:4px; }
     .songs-empty{ text-align:center; color:#c99; font-size:13px; margin-top:24px; }
 
+    .songs-artist-group{ margin-bottom:12px; border-radius:12px; overflow:hidden; box-shadow:0 2px 6px rgba(0,0,0,.06); }
+    .songs-artist-header{ display:flex; align-items:center; gap:6px; font-size:13px; font-weight:800; color:#fff; background:#4a9fd4; padding:7px 12px; }
+    .songs-artist-header .th{ font-weight:600; color:#eaf5ff; }
+    .songs-artist-group .songs-item{ border-radius:0; margin-bottom:0; box-shadow:none; border-left:3px solid #4a9fd4; border-bottom:1px solid #eef4fa; }
+    .songs-artist-group .songs-item:last-child{ border-bottom:none; }
+
     .songs-setlist-row{ display:flex; gap:6px; overflow-x:auto; padding-bottom:4px; margin-bottom:10px; }
     .songs-setlist-chip{ flex-shrink:0; border:none; background:#fff; color:#7aaac8; font-size:12px; font-weight:700; padding:7px 13px; border-radius:999px; box-shadow:0 2px 6px rgba(0,0,0,.06); cursor:pointer; white-space:nowrap; }
     .songs-setlist-chip.active{ background:#7ec0ee; color:#fff; }
@@ -337,6 +343,13 @@ function songItemHtml(s){
     <div class="a">${s.artistEn}${artistTh}</div>
   </div>`;
 }
+function songTitleOnlyItemHtml(s){
+  const badge = songHasNote(s.id) ? '<span class="badge">📝</span>' : '';
+  const titleTh = s.titleTh ? ` <span class="th">(${s.titleTh})</span>` : '';
+  return `<div class="songs-item" onclick="songOpen('${s.id}')">
+    <div class="t">${s.titleEn}${titleTh}${badge}</div>
+  </div>`;
+}
 function songCheckItemHtml(s, sl){
   const inSetlist = sl.songIds.includes(s.id);
   const titleTh = s.titleTh ? ` <span class="th">(${s.titleTh})</span>` : '';
@@ -402,9 +415,26 @@ function renderSongsHome(){
       const has=!!groups[l];
       return `<button class="${has?'':'disabled'}" ${has?`onclick="songScrollToLetter('${l}')"`:''}>${l}</button>`;
     }).join('');
-    listHtml = SONG_ALPHABET.filter(l=>groups[l]).map(l=>
-      `<div class="songs-section-hd" id="song-sec-${l}">${l}</div>`+groups[l].map(songItemHtml).join('')
-    ).join('');
+    if(songState.sortMode==='artist'){
+      listHtml = SONG_ALPHABET.filter(l=>groups[l]).map(l=>{
+        const byArtist={};
+        groups[l].forEach(s=>{ (byArtist[s.artistEn]=byArtist[s.artistEn]||[]).push(s); });
+        const artistBlocks = Object.keys(byArtist).sort((a,b)=>a.localeCompare(b)).map(name=>{
+          const songsForArtist = byArtist[name].slice().sort((a,b)=>a.titleEn.localeCompare(b.titleEn));
+          const icon = songsForArtist[0].artistIcon || '🎵';
+          const thaiName = songsForArtist[0].artistTh ? ` <span class="th">(${songsForArtist[0].artistTh})</span>` : '';
+          return `<div class="songs-artist-group">
+            <div class="songs-artist-header">${icon} ${name}${thaiName}</div>
+            ${songsForArtist.map(songTitleOnlyItemHtml).join('')}
+          </div>`;
+        }).join('');
+        return `<div class="songs-section-hd" id="song-sec-${l}">${l}</div>${artistBlocks}`;
+      }).join('');
+    } else {
+      listHtml = SONG_ALPHABET.filter(l=>groups[l]).map(l=>
+        `<div class="songs-section-hd" id="song-sec-${l}">${l}</div>`+groups[l].map(songItemHtml).join('')
+      ).join('');
+    }
   }
 
   return `${header}
