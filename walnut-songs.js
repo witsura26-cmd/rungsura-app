@@ -221,7 +221,7 @@ function ensureSongsStyle(){
     .songs-page:not(.readonly) .songs-note-wrap.sel .resize.corner{ display:block; }
     .songs-page.readonly .songs-note-wrap .resize.corner{ display:none !important; }
     .songs-note.noborder{ background:transparent; border:none; box-shadow:none; }
-    .songs-note-wrap .del{ position:absolute; top:-14px; right:-14px; width:16px; height:16px; background:#ff6b6b; color:#fff; border-radius:50%; font-size:9px; display:none; align-items:center; justify-content:center; cursor:pointer; }
+    .songs-note-wrap .del{ position:absolute; top:-16px; right:-16px; width:20px; height:20px; background:#ff6b6b; color:#fff; border-radius:50%; font-size:11px; display:none; align-items:center; justify-content:center; cursor:pointer; }
     .songs-note-wrap .done{ position:absolute; top:-14px; left:-14px; width:18px; height:18px; background:#6bcB77; color:#fff; border-radius:50%; font-size:11px; font-weight:700; display:none; align-items:center; justify-content:center; cursor:pointer; }
     .songs-note-wrap.sel .del, .songs-note-wrap.sel .done{ display:flex; }
     .songs-page:not(.readonly) .songs-sticker{ touch-action:none; }
@@ -1064,12 +1064,14 @@ function songRenderNoteEl(note, autoFocus){
   note._textEl = text;
 
   const del=document.createElement('div');
-  del.className='del'; del.textContent='✕';
+  del.className='del'; del.textContent='🗑️';
+  del.addEventListener('pointerdown', (ev)=>{ ev.preventDefault(); ev.stopPropagation(); });
   del.onclick=(ev)=>{ ev.stopPropagation(); songState.notes=songState.notes.filter(n=>n!==note); if(songActiveNote===note) songActiveNote=null; wrap.remove(); };
   wrap.appendChild(del);
 
   const done=document.createElement('div');
   done.className='done'; done.textContent='✓';
+  done.addEventListener('pointerdown', (ev)=>{ ev.preventDefault(); ev.stopPropagation(); });
   done.onclick=(ev)=>{ ev.stopPropagation(); text.blur(); };
   wrap.appendChild(done);
 
