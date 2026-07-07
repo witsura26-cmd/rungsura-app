@@ -584,10 +584,11 @@ function renderSongLyricsHtml(song){
 
   const trailingBlank = `<div class="songs-section"><div class="songs-line">&nbsp;</div><div class="songs-line">&nbsp;</div></div>`;
 
-  const titleTh = song.titleTh ? ` (${song.titleTh})` : '';
+  const displayTitle = song.titleTh || song.titleEn;
+  const displayArtist = song.artistTh || song.artistEn;
   return `
-    <h2>${song.titleEn}${titleTh}</h2>
-    <div class="artist">${song.artistIcon||''} ${song.artistEn}</div>
+    <h2>${displayTitle}</h2>
+    <div class="artist">${song.artistIcon||''} ${displayArtist}</div>
     <div class="songs-single">${secHtml}${trailingBlank}</div>
     <style id="songs-lyrics-fontsize-style">#songs-detail-page .songs-line{font-size:${songLyricsFontSize}pt;line-height:1.9;}</style>
   `;
@@ -596,8 +597,8 @@ function renderSongLyricsHtml(song){
 function renderSongDetail(){
   const song = songById(songState.currentId);
   if(!song){ songState.view='home'; return renderSongsHome(); }
-  const titleTh = song.titleTh ? ` (${song.titleTh})` : '';
-  const artistTh = song.artistTh ? ` (${song.artistTh})` : '';
+  const displayTitle = song.titleTh || song.titleEn;
+  const displayArtist = song.artistTh || song.artistEn;
 
   let actionRow;
   if(songState.mode==='clean'){
@@ -622,8 +623,8 @@ function renderSongDetail(){
       <div class="songs-topbar">
         <button class="songs-back" onclick="songGoBack()">← Back</button>
         <div class="songs-title-block">
-          <div class="t">${song.titleEn}${titleTh}</div>
-          <div class="a">${song.artistEn}${artistTh}</div>
+          <div class="t">${displayTitle}</div>
+          <div class="a">${displayArtist}</div>
         </div>
         <div class="songs-topbar-actions">${headerActions}</div>
       </div>
