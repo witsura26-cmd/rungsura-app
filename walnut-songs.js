@@ -260,8 +260,8 @@ function ensureSongsStyle(){
     .songs-line{ color:#333; }
     .blank-ruled .songs-line{ border-bottom:1px solid #e6dcc8; min-height:1.6em; }
     .songs-note-page-title{ text-align:center; font-size:20pt; font-weight:700; color:#d47ab0; margin:14px 0 10px; }
-    .songs-note-page{ background:#fff8f0; border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.14); margin-top:10px; padding:14px 20px; min-height:60vh; box-sizing:border-box; }
-    .songs-note-page-body{ outline:none; font-size:17px; line-height:38px; color:#333; min-height:38px; background-image:repeating-linear-gradient(to bottom, transparent 0, transparent 37px, #e6dcc8 37px, #e6dcc8 38px); }
+    .songs-note-page{ background:#fff8f0; border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.14); margin-top:10px; padding:14px 20px; box-sizing:border-box; }
+    .songs-note-page-body{ outline:none; font-size:17px; line-height:38px; color:#333; min-height:380px; background-image:repeating-linear-gradient(to bottom, transparent 0, transparent 37px, #e6dcc8 37px, #e6dcc8 38px); }
     .songs-note-done-btn{ position:fixed; right:20px; bottom:90px; width:52px; height:52px; border-radius:50%; background:#6bcb77; color:#fff; font-size:20px; font-weight:700; border:none; box-shadow:0 4px 12px rgba(0,0,0,.2); cursor:pointer; z-index:50; }
     .songs-line-sub{ display:flex; flex-direction:column; align-items:flex-start; line-height:1.25 !important; margin:3px 0; }
     .songs-line-sub .sub-caption{ font-size:0.6em; color:#9ab; line-height:1.2; }
