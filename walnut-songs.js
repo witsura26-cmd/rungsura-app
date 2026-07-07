@@ -584,8 +584,9 @@ function renderSongLyricsHtml(song){
 
   const trailingBlank = `<div class="songs-section"><div class="songs-line">&nbsp;</div><div class="songs-line">&nbsp;</div></div>`;
 
-  const displayTitle = song.titleTh || song.titleEn;
-  const displayArtist = song.artistTh || song.artistEn;
+  const isThaiSong = !!song.titleTh;
+  const displayTitle = isThaiSong ? song.titleTh : song.titleEn;
+  const displayArtist = isThaiSong ? (song.artistTh || song.artistEn) : song.artistEn;
   return `
     <h2>${displayTitle}</h2>
     <div class="artist">${song.artistIcon||''} ${displayArtist}</div>
@@ -597,8 +598,9 @@ function renderSongLyricsHtml(song){
 function renderSongDetail(){
   const song = songById(songState.currentId);
   if(!song){ songState.view='home'; return renderSongsHome(); }
-  const displayTitle = song.titleTh || song.titleEn;
-  const displayArtist = song.artistTh || song.artistEn;
+  const isThaiSong = !!song.titleTh;
+  const displayTitle = isThaiSong ? song.titleTh : song.titleEn;
+  const displayArtist = isThaiSong ? (song.artistTh || song.artistEn) : song.artistEn;
 
   let actionRow;
   if(songState.mode==='clean'){
