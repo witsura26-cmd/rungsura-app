@@ -120,10 +120,11 @@ function ensureSongsStyle(){
     .songs-section-hd{ font-size:11px; font-weight:800; color:#d47ab0; margin:12px 2px 5px; letter-spacing:.06em; }
     .songs-item{ display:flex; align-items:center; gap:8px; background:#fff; border-radius:12px; padding:10px 12px; margin-bottom:6px; box-shadow:0 2px 6px rgba(0,0,0,.06); cursor:pointer; }
     .songs-item-body{ flex:1; min-width:0; }
-    .songs-item .t{ font-size:13px; font-weight:500; color:#4a9fd4; }
+    .songs-item .t{ display:flex; align-items:baseline; font-size:13px; font-weight:500; color:#4a9fd4; }
+    .songs-item .t .icon{ display:inline-block; min-width:20px; margin-right:10px; text-align:center; }
     .songs-item .t .th{ font-weight:500; color:#4a9fd4; font-size:13px; }
     .songs-item .t .en-sub{ font-weight:400; color:#9bb; font-size:11px; }
-    .songs-item .a{ font-size:11px; color:#9bb; margin-top:1px; }
+    .songs-item .a{ font-size:11px; color:#9bb; margin-top:1px; margin-left:30px; }
     .songs-item .a .th{ font-weight:400; font-size:11px; }
     .songs-item .badge{ flex-shrink:0; font-size:22px; line-height:1; padding:2px; }
     .songs-empty{ text-align:center; color:#c99; font-size:13px; margin-top:24px; }
@@ -366,7 +367,7 @@ function songItemHtml(s){
   const artistTh = s.artistTh ? ` <span class="th">(${s.artistTh})</span>` : '';
   return `<div class="songs-item" onclick="songOpen('${s.id}')">
     <div class="songs-item-body">
-      <div class="t">${s.artistIcon||'🎵'} ${songTitleHtml(s)}</div>
+      <div class="t"><span class="icon">${s.artistIcon||'🎵'}</span><span class="title-text">${songTitleHtml(s)}</span></div>
       <div class="a">${s.artistEn}${artistTh}</div>
     </div>
     ${badge}
@@ -386,7 +387,7 @@ function songCheckItemHtml(s, sl){
   return `<div class="songs-item songs-check-item" onclick="songToggleSongInSetlist('${s.id}')">
     <input type="checkbox" ${inSetlist?'checked':''} onclick="event.stopPropagation();songToggleSongInSetlist('${s.id}')">
     <div style="flex:1">
-      <div class="t">${s.artistIcon||'🎵'} ${songTitleHtml(s)}</div>
+      <div class="t"><span class="icon">${s.artistIcon||'🎵'}</span><span class="title-text">${songTitleHtml(s)}</span></div>
       <div class="a">${s.artistEn}</div>
     </div>
   </div>`;
