@@ -259,6 +259,7 @@ function ensureSongsStyle(){
     .songs-section.two-col.first-section{ margin-top:60px; }
     .songs-line{ color:#333; }
     .blank-ruled .songs-line{ border-bottom:1px solid #e6dcc8; min-height:1.6em; }
+    .songs-note-page-title{ text-align:center; font-size:20pt; font-weight:700; color:#d47ab0; margin:14px 0 10px; }
     .songs-note-page{ background:#fff8f0; border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.14); margin-top:10px; padding:14px 20px; min-height:60vh; box-sizing:border-box; }
     .songs-note-page-body{ outline:none; font-size:17px; line-height:38px; color:#333; min-height:38px; background-image:repeating-linear-gradient(to bottom, transparent 0, transparent 37px, #e6dcc8 37px, #e6dcc8 38px); }
     .songs-note-done-btn{ position:fixed; right:20px; bottom:90px; width:52px; height:52px; border-radius:50%; background:#6bcb77; color:#fff; font-size:20px; font-weight:700; border:none; box-shadow:0 4px 12px rgba(0,0,0,.2); cursor:pointer; z-index:50; }
@@ -868,23 +869,99 @@ function renderNotePageDetail(song){
       <span class="pos">${slIndex+1} / ${slSongIds.length} · ${activeSl.name}</span>
       <button ${slIndex===slSongIds.length-1?'disabled':''} onclick="songNextInSetlist()">Next ▶</button>
     </div>` : '';
-  const bodyText = songLoadNoteBody(entryId);
+
+  const saved = songHasNote(song.id);
+  let headerActions;
+  if(songState.mode==='edit'){
+    headerActions = `<button onclick="songCancelEdit()">✖️ Cancel</button><button class="primary" onclick="songSaveEdit()">💾 Save</button>`;
+  } else if(songState.mode==='view'){
+    headerActions = `<button onclick="songSetMode('clean')">✕ Close drawings</button><button class="primary" onclick="songEnterEdit()">✏️ Edit drawings</button>`;
+  } else {
+    headerActions = saved
+      ? `<button onclick="songEnterView()">📝 View drawings</button><button class="primary" onclick="songEnterEdit()">✏️ Edit</button>`
+      : `<button class="primary" onclick="songEnterEdit()">✏️ Edit</button>`;
+  }
+
+  const dotBtn = (px)=>`<span class="linebar" style="height:${px}px"></span>`;
+
+  if(songState.mode==='clean'){
+    const bodyText = songLoadNoteBody(entryId);
+    return `
+      <div class="songs-detail-header">
+        <div class="songs-topbar">
+          <button class="songs-back" onclick="songGoBack()">← Back</button>
+          <div class="songs-title-block"><div class="t">${song.titleEn}</div></div>
+          <div class="songs-topbar-actions">${headerActions}</div>
+        </div>
+        ${setlistNav}
+      </div>
+      <h2 class="songs-note-page-title">${song.titleEn}</h2>
+      <div class="songs-note-page">
+        <div class="songs-note-page-body" contenteditable="true" id="songs-note-body-editable" oninput="songOnNoteBodyInput('${entryId}', this)">${songEscapeHtml(bodyText)}</div>
+      </div>
+      <button class="songs-note-done-btn" onclick="document.getElementById('songs-note-body-editable').blur()">✓</button>
+    `;
+  }
+
   return `
     <div class="songs-detail-header">
       <div class="songs-topbar">
         <button class="songs-back" onclick="songGoBack()">← Back</button>
-        <div class="songs-title-block">
-          <div class="t">${song.titleEn}</div>
-          <div class="a">${song.artistEn}</div>
-        </div>
-        <div class="songs-topbar-actions"></div>
+        <div class="songs-title-block"><div class="t">${song.titleEn}</div></div>
+        <div class="songs-topbar-actions">${headerActions}</div>
       </div>
       ${setlistNav}
+      <div class="songs-toolbar" id="songs-toolbar" style="display:${songState.mode==='edit'?'flex':'none'}">
+        <button class="songs-tool" data-tool="pencil" onclick="songSelectTool('pencil')">✏️<span>Pencil</span></button>
+        <button class="songs-tool" data-tool="eraser" onclick="songSelectTool('eraser')">🧽<span>Eraser</span></button>
+        <button class="songs-tool" data-tool="text" onclick="songSelectTool('text')">💬<span>Note</span></button>
+        <button class="songs-tool" data-tool="sticker" onclick="songSelectTool('sticker')">⭐<span>Sticker</span></button>
+        <button class="songs-tool" onclick="songUndo()">↩️<span>Undo</span></button>
+      </div>
+      <div class="songs-subpanel" id="songs-pencilpanel">
+        <div class="songs-swatches" id="songs-swatches"></div>
+        <div class="grp">
+          <span class="grp-label">Size</span>
+          <button class="songs-size-btn" data-size="xs" onclick="songSetBrushSize('xs')">${dotBtn(3)}</button>
+          <button class="songs-size-btn" data-size="s" onclick="songSetBrushSize('s')">${dotBtn(6)}</button>
+          <button class="songs-size-btn" data-size="m" onclick="songSetBrushSize('m')">${dotBtn(11)}</button>
+          <button class="songs-size-btn" data-size="l" onclick="songSetBrushSize('l')">${dotBtn(18)}</button>
+        </div>
+      </div>
+      <div class="songs-subpanel" id="songs-eraserpanel">
+        <div class="grp">
+          <button class="songs-mode-btn" data-mode="stroke" onclick="songSetEraserMode('stroke')">🧽 Erase Line</button>
+          <button class="songs-mode-btn" data-mode="pixel" onclick="songSetEraserMode('pixel')">🩹 Erase Point</button>
+        </div>
+        <div class="grp">
+          <span class="grp-label">Size</span>
+          <button class="songs-size-btn" data-esize="s" onclick="songSetEraserSize('s')">${dotBtn(4)}</button>
+          <button class="songs-size-btn" data-esize="m" onclick="songSetEraserSize('m')">${dotBtn(8)}</button>
+          <button class="songs-size-btn" data-esize="l" onclick="songSetEraserSize('l')">${dotBtn(16)}</button>
+        </div>
+      </div>
+      <div class="songs-subpanel" id="songs-notepanel">
+        <div class="grp">
+          <button class="songs-toggle-btn" data-border="1" onclick="songSetNoteBorder(true)">▭ Border</button>
+          <button class="songs-toggle-btn" data-border="0" onclick="songSetNoteBorder(false)">⬚ No Border</button>
+        </div>
+        <div class="grp">
+          <span class="grp-label">Size</span>
+          <button class="songs-mode-btn" data-nfs="s" onclick="songSetNoteFontSize('s')">A⁻</button>
+          <button class="songs-mode-btn" data-nfs="m" onclick="songSetNoteFontSize('m')">A</button>
+          <button class="songs-mode-btn" data-nfs="l" onclick="songSetNoteFontSize('l')">A⁺</button>
+        </div>
+        <div class="songs-swatches" id="songs-note-swatches"></div>
+      </div>
+      <div class="songs-subpanel" id="songs-stickerpanel"></div>
     </div>
-    <div class="songs-note-page">
-      <div class="songs-note-page-body" contenteditable="true" id="songs-note-body-editable" oninput="songOnNoteBodyInput('${entryId}', this)">${songEscapeHtml(bodyText)}</div>
+    <div class="songs-page ${songState.mode==='edit'?'':'readonly'}" id="songs-detail-page">
+      <div class="songs-lyrics" id="songs-lyrics-layer">${renderSongLyricsHtml(song)}</div>
+      <div class="songs-overlay" id="songs-overlay" style="display:block">
+        <canvas class="songs-canvas" id="songs-canvas"></canvas>
+        <div class="songs-eraser-cursor" id="songs-eraser-cursor"></div>
+      </div>
     </div>
-    <button class="songs-note-done-btn" onclick="document.getElementById('songs-note-body-editable').blur()">✓</button>
   `;
 }
 function renderSongDetail(){
