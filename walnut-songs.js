@@ -836,6 +836,9 @@ function songRefreshNoteEl(note){
   textEl.style.color=note.color||'#333333';
 }
 function songSelectTool(tool){
+  if(document.activeElement && document.activeElement.classList && document.activeElement.classList.contains('songs-note-text')){
+    document.activeElement.blur();
+  }
   songState.currentTool=tool;
   songHideEraserCursor();
   document.querySelectorAll('.songs-tool').forEach(b=>b.classList.remove('active'));
@@ -850,6 +853,7 @@ function songSelectTool(tool){
 
 /* ===================== CANVAS / DOM SETUP ===================== */
 let songDrawing=false, songCurrentStroke=null;
+let songLastNoteBlurAt=0;
 
 function songSetupDetailDom(){
   songBuildSwatches();
@@ -931,6 +935,7 @@ function songAttachCanvasEvents(canvas){
     pageWrap.addEventListener('click',(e)=>{
       if(songState.mode!=='edit') return;
       if(songState.currentTool!=='text' && songState.currentTool!=='sticker') return;
+      if(Date.now()-songLastNoteBlurAt<300) return;
       const overlay=document.getElementById('songs-overlay');
       if(e.target!==canvas && e.target!==pageWrap && e.target!==overlay) return;
       const rect=pageWrap.getBoundingClientRect();
@@ -1052,7 +1057,7 @@ function songRenderNoteEl(note, autoFocus){
   text.addEventListener('input', ()=>{ note.text=text.innerText; });
   text.addEventListener('pointerdown', ()=>{ if(songState.mode==='edit') songActiveNote=note; });
   text.addEventListener('focus', ()=>{ wrap.classList.add('sel'); });
-  text.addEventListener('blur', ()=>{ wrap.classList.remove('sel'); });
+  text.addEventListener('blur', ()=>{ wrap.classList.remove('sel'); songLastNoteBlurAt=Date.now(); });
   text.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); text.blur(); } });
   box.appendChild(text);
   note._el = box;
