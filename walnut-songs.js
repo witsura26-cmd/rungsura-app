@@ -89,7 +89,7 @@ const SONG_NOTE_FONT_SIZES = { s: 11, m: 14, l: 18 };
 const SONG_STICKER_MIN = 16, SONG_STICKER_MAX = 80, SONG_STICKER_DEFAULT = 34;
 const SONG_TYPE_LABEL = {
   'verse': '▸ Verse', 'chorus': '★ Chorus', 'bridge': '◆ Bridge', 'pre-chorus': '◇ Pre-Chorus',
-  'instrumental': '♪ Instrumental', 'intro': '♪ Intro', 'outro': '♪ Outro', 'interlude': '♪ Interlude',
+  'instrumental': '♪ Instru', 'intro': '♪ Intro', 'outro': '♪ Outro', 'interlude': '♪ Interlude',
   'rap': '🎤 Rap'
 };
 const SONG_ALPHABET = ['0-9', ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')];
