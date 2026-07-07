@@ -169,6 +169,8 @@ function ensureSongsStyle(){
     .songs-setlist-bar button.danger{ color:#c0392b; }
     .songs-check-item{ display:flex; align-items:center; gap:6px; padding:8px 8px; }
     .songs-check-item input{ width:18px; height:18px; flex-shrink:0; }
+    .songs-check-item .t{ font-size:11pt; }
+    .songs-check-item .check-artist{ font-size:8pt; color:#bbb; }
     .songs-manage-sort-toggle{ display:flex; gap:6px; margin:6px 0 8px; }
     .songs-manage-sort-toggle button{ flex:1; border:1px solid #e5e5e5; background:#fff; color:#888; font-size:11px; padding:5px 6px; border-radius:8px; cursor:pointer; }
     .songs-manage-sort-toggle button.active{ background:#f0f0f0; color:#333; font-weight:700; border-color:#ccc; }
@@ -504,12 +506,12 @@ function songTitleHtml(s, thaiFirst){
     ? `<span class="th">${s.titleTh}</span> <span class="en-sub">(${s.titleEn})</span>`
     : `<span class="en-sub">${s.titleEn}</span><span class="th">(${s.titleTh})</span>`;
 }
-function songItemHtml(s){
+function songItemHtml(s, thaiFirst){
   const badge = songHasNote(s.id) ? `<span class="badge" onclick="event.stopPropagation();songOpenViewNote('${s.id}')">📝</span>` : '';
   const artistTh = s.artistTh ? ` <span class="th">(${s.artistTh})</span>` : '';
   return `<div class="songs-item" onclick="songOpen('${s.id}')">
     <div class="songs-item-body">
-      <div class="t"><span class="icon">${s.artistIcon||'🎵'}</span><span class="title-text">${songTitleHtml(s)}</span></div>
+      <div class="t"><span class="icon">${s.artistIcon||'🎵'}</span><span class="title-text">${songTitleHtml(s, thaiFirst)}</span></div>
       <div class="a">${s.artistEn}${artistTh}</div>
     </div>
     ${badge}
@@ -526,10 +528,12 @@ function songTitleOnlyItemHtml(s){
 }
 function songCheckItemHtml(s, sl, thaiFirst){
   const inSetlist = sl.items.some(e=>e.type==='song' && e.songId===s.id);
+  const title = (thaiFirst && s.titleTh) ? s.titleTh : s.titleEn;
+  const artist = SONG_ARTIST_TH_PRIMARY.has(s.artistEn) ? (s.artistTh || s.artistEn) : s.artistEn;
   return `<div class="songs-item songs-check-item" onclick="songToggleSongInSetlist('${s.id}')">
     <input type="checkbox" ${inSetlist?'checked':''} onclick="event.stopPropagation();songToggleSongInSetlist('${s.id}')">
     <div style="flex:1; min-width:0;">
-      <div class="t"><span class="icon">${s.artistIcon||'🎵'}</span><span class="title-text">${songTitleHtml(s, thaiFirst)}</span></div>
+      <div class="t"><span class="icon">${s.artistIcon||'🎵'}</span><span class="title-text">${songEscapeHtml(title)}</span> <span class="check-artist">(${songEscapeHtml(artist)})</span></div>
     </div>
   </div>`;
 }
@@ -626,7 +630,7 @@ function renderSongsHome(){
         return `<div class="songs-setlist-note-view" onclick="songOpenNotePage('${entry.id}')">📝 ${entry.text ? songEscapeHtml(entry.text) : '<span class="empty">(empty note)</span>'}</div>`;
       }
       const s = songById(entry.songId);
-      return s ? songItemHtml(s) : '';
+      return s ? songItemHtml(s, true) : '';
     }).join('') : '<div class="songs-empty">No songs in this setlist yet — tap "Edit Songs" to add some</div>';
     return `${header}
       <div class="songs-setlist-bar">
