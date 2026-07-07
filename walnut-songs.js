@@ -178,9 +178,10 @@ function ensureSongsStyle(){
 
     .songs-manage-cols{ display:flex; gap:24px; align-items:flex-start; }
     .songs-manage-col{ flex:1; min-width:0; }
-    .songs-manage-col-hd{ font-size:11px; font-weight:800; color:#d47ab0; margin:2px 2px 6px; letter-spacing:.04em; }
+    .songs-manage-col-hd{ font-size:11px; line-height:14px; height:14px; font-weight:800; color:#d47ab0; margin:2px 2px 6px; letter-spacing:.04em; box-sizing:content-box; }
     .songs-manage-col-body{ max-height:60vh; overflow-y:auto; }
     .songs-manage-notebook{ background:#fffdf3; border:1px solid #ddd0a8; border-radius:8px; padding:4px 8px; max-height:60vh; overflow-y:auto; }
+    .songs-manage-col #songs-setlist-search{ margin-top:0; }
     .songs-order-item{ display:flex; align-items:center; gap:6px; padding:5px 4px; border-bottom:1px solid #ece2c4; }
     .songs-order-item:last-child{ border-bottom:none; }
     .songs-order-arrows{ display:flex; flex-direction:column; gap:2px; flex-shrink:0; }
