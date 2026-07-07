@@ -193,8 +193,8 @@ function ensureSongsStyle(){
     .songs-lyrics h2{ text-align:center; font-size:16pt; font-weight:700; color:#d47ab0; margin:0 0 2px; }
     .songs-lyrics .artist{ text-align:center; font-size:9pt; color:#999; margin-bottom:20px; }
     .songs-single{ width:100%; box-sizing:border-box; }
-    .songs-section{ margin-top:8px; margin-bottom:8px; }
-    .songs-seclabel{ font-size:7pt; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:#aaa; margin-bottom:1px; }
+    .songs-section{ margin-top:30px; margin-bottom:8px; }
+    .songs-seclabel{ font-size:7pt; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:#aaa; margin-bottom:10px; }
     .songs-seclabel.chorus{ color:#c0392b; } .songs-seclabel.bridge{ color:#2980b9; } .songs-seclabel.rap{ color:#8e44ad; } .songs-seclabel.instrumental,.songs-seclabel.intro,.songs-seclabel.outro,.songs-seclabel.interlude{ color:#27ae60; }
     .songs-line{ color:#333; }
     .songs-line-sub{ display:flex; flex-direction:column; align-items:flex-start; line-height:1.25 !important; margin:3px 0; }
