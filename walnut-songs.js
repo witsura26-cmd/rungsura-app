@@ -128,8 +128,7 @@ function ensureSongsStyle(){
     .songs-empty{ text-align:center; color:#c99; font-size:13px; margin-top:24px; }
 
     .songs-artist-group{ margin-bottom:12px; border-radius:12px; overflow:hidden; box-shadow:0 2px 6px rgba(0,0,0,.06); }
-    .songs-artist-header{ display:flex; flex-direction:column; gap:2px; font-size:13px; font-weight:800; color:#fff; background:#4a9fd4; padding:7px 12px; }
-    .songs-artist-header .main-line{ display:flex; align-items:center; gap:6px; }
+    .songs-artist-header{ display:flex; align-items:baseline; gap:6px; font-size:13px; font-weight:800; color:#fff; background:#4a9fd4; padding:7px 12px; }
     .songs-artist-header .th{ font-weight:400; color:#eaf5ff; font-size:11px; }
     .songs-artist-group .songs-item{ border-radius:0; margin-bottom:0; box-shadow:none; border-left:3px solid #4a9fd4; border-bottom:1px solid #eef4fa; }
     .songs-artist-group .songs-item:last-child{ border-bottom:none; }
@@ -446,9 +445,9 @@ function renderSongsHome(){
         const artistBlocks = Object.keys(byArtist).sort((a,b)=>a.localeCompare(b)).map(name=>{
           const songsForArtist = byArtist[name].slice().sort((a,b)=>a.titleEn.localeCompare(b.titleEn));
           const icon = songsForArtist[0].artistIcon || '🎵';
-          const thaiName = songsForArtist[0].artistTh ? `<div class="th">(${songsForArtist[0].artistTh})</div>` : '';
+          const thaiName = songsForArtist[0].artistTh ? `<span class="th">(${songsForArtist[0].artistTh})</span>` : '';
           return `<div class="songs-artist-group">
-            <div class="songs-artist-header"><div class="main-line">${icon} ${name}</div>${thaiName}</div>
+            <div class="songs-artist-header"><span class="icon">${icon}</span><span>${name}</span> ${thaiName}</div>
             ${songsForArtist.map(songTitleOnlyItemHtml).join('')}
           </div>`;
         }).join('');
