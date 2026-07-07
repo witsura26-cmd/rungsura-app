@@ -504,7 +504,17 @@ function songOnSearch(v){ songState.searchQuery=v; const listArea=document.getEl
   if(input){ input.focus(); input.selectionStart=input.selectionEnd=input.value.length; }
 }
 function songSetSort(m){ songState.sortMode=m; songsRerender(); }
-function songScrollToLetter(l){ const el=document.getElementById('song-sec-'+l); if(el) el.scrollIntoView({behavior:'smooth',block:'start'}); }
+function songScrollToLetter(l){
+  const el=document.getElementById('song-sec-'+l);
+  if(!el) return;
+  const container=songGetScrollContainer();
+  const stickyTop=document.querySelector('.songs-sticky-top');
+  const stickyHeight=stickyTop?stickyTop.offsetHeight:0;
+  const containerRect=container.getBoundingClientRect();
+  const elRect=el.getBoundingClientRect();
+  const target=elRect.top-containerRect.top-stickyHeight+container.scrollTop;
+  container.scrollTo({top:target, behavior:'smooth'});
+}
 
 /* ===================== AUTO-SCROLL (teleprompter) ===================== */
 function songGetScrollContainer(){
