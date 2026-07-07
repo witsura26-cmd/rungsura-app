@@ -122,7 +122,7 @@ function ensureSongsStyle(){
     .songs-az-row{ display:flex; gap:4px; justify-content:center; }
     .songs-az button{ border:none; background:#fff; color:#4a9fd4; font-size:11px; font-weight:700; width:24px; height:24px; border-radius:6px; cursor:pointer; box-shadow:0 1px 3px rgba(0,0,0,.06); }
     .songs-az button.disabled{ opacity:.3; pointer-events:none; }
-    .songs-section-hd{ font-size:16pt; font-weight:800; color:#d47ab0; margin:12px 2px 5px; letter-spacing:.06em; }
+    .songs-section-hd{ font-size:13pt; font-weight:800; color:#d47ab0; margin:12px 2px 5px; letter-spacing:.06em; }
     .songs-item{ display:flex; align-items:center; gap:8px; background:#fff; border-radius:12px; padding:10px 12px; margin-bottom:6px; box-shadow:0 2px 6px rgba(0,0,0,.06); cursor:pointer; }
     .songs-item-body{ flex:1; min-width:0; }
     .songs-item .t{ display:flex; align-items:baseline; font-size:13px; font-weight:500; color:#4a9fd4; }
