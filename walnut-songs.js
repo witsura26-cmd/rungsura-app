@@ -66,6 +66,7 @@ const songState = {
   sortMode: 'title',      // title | artist
   activeSetlistId: null,  // null = browse all songs
   setlistManageMode: false,
+  setlistManageQuery: '',
   strokes: [], notes: [], stickers: [],
   snapshot: null,
   currentTool: 'pencil',
@@ -115,6 +116,7 @@ function ensureSongsStyle(){
     .songs-sticky-top{ position:sticky; top:0; z-index:20; background:#f9fafb; padding-bottom:6px; }
     .songs-search-row{ display:flex; gap:8px; align-items:stretch; margin-bottom:10px; }
     #songs-search{ flex:1; min-width:0; width:auto; padding:10px 14px; border-radius:12px; border:1px solid #cfe6f5; font-size:14px; margin-bottom:0; }
+    #songs-setlist-search{ width:100%; box-sizing:border-box; padding:10px 14px; border-radius:12px; border:1px solid #cfe6f5; font-size:14px; margin:8px 0 10px; }
     .songs-seg{ display:flex; flex-shrink:0; background:#fff; border-radius:10px; padding:3px; box-shadow:0 2px 6px rgba(0,0,0,.05); margin-bottom:0; }
     .songs-seg button{ border:none; background:transparent; padding:7px 18px; border-radius:8px; font-size:11px; color:#888; cursor:pointer; white-space:nowrap; }
     .songs-seg button.active{ background:#7ec0ee; color:#fff; font-weight:700; }
@@ -291,6 +293,7 @@ function songSelectAllSongs(){
 }
 function songToggleSetlistManage(){
   songState.setlistManageMode = !songState.setlistManageMode;
+  songState.setlistManageQuery = '';
   songsRerender();
 }
 function songDeleteSetlist(id){
@@ -418,13 +421,23 @@ function renderSongsHome(){
   if(songState.activeSetlistId && songState.setlistManageMode){
     const sl = songCurrentSetlist();
     if(!sl){ songState.activeSetlistId=null; songState.setlistManageMode=false; return renderSongsHome(); }
-    const items = SONGS.slice().sort((a,b)=>a.titleEn.localeCompare(b.titleEn)).map(s=>songCheckItemHtml(s, sl)).join('');
+    const mq = (songState.setlistManageQuery||'').trim().toLowerCase();
+    const already = SONGS.filter(s=>sl.songIds.includes(s.id)).sort((a,b)=>a.titleEn.localeCompare(b.titleEn));
+    const rest = SONGS.filter(s=>!sl.songIds.includes(s.id));
+    const filteredRest = (mq ? rest.filter(s=>songMatches(s,mq)) : rest).sort((a,b)=>a.titleEn.localeCompare(b.titleEn));
+    const alreadyHtml = already.length
+      ? `<div class="songs-section-hd">✓ In this setlist (${already.length})</div>${already.map(s=>songCheckItemHtml(s, sl)).join('')}`
+      : '';
+    const restHtml = filteredRest.length
+      ? `<div class="songs-section-hd">${mq ? 'Search results' : 'All songs'}</div>${filteredRest.map(s=>songCheckItemHtml(s, sl)).join('')}`
+      : (mq ? '<div class="songs-empty">No matching songs found</div>' : '');
     return `${header}
       <div class="songs-setlist-bar">
         <div class="name">✎ Pick songs for "${sl.name}"</div>
         <button onclick="songToggleSetlistManage()">✓ Done</button>
       </div>
-      <div>${items}</div>`;
+      <input id="songs-setlist-search" placeholder="Search songs to add..." value="${songState.setlistManageQuery||''}" oninput="songOnSetlistManageSearch(this.value)">
+      <div>${alreadyHtml}${restHtml}</div>`;
   }
 
   // ── Viewing one setlist ──
@@ -501,6 +514,13 @@ function songOnSearch(v){ songState.searchQuery=v; const listArea=document.getEl
   const root=document.getElementById('songs-root');
   root.innerHTML = renderSongsHome();
   const input=document.getElementById('songs-search');
+  if(input){ input.focus(); input.selectionStart=input.selectionEnd=input.value.length; }
+}
+function songOnSetlistManageSearch(v){
+  songState.setlistManageQuery=v;
+  const root=document.getElementById('songs-root');
+  root.innerHTML = renderSongsHome();
+  const input=document.getElementById('songs-setlist-search');
   if(input){ input.focus(); input.selectionStart=input.selectionEnd=input.value.length; }
 }
 function songSetSort(m){ songState.sortMode=m; songsRerender(); }
