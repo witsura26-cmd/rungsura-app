@@ -168,6 +168,7 @@ function ensureSongsStyle(){
     .songs-setlist-bar button{ border:none; background:#fff; padding:6px 11px; border-radius:9px; font-size:11px; color:#666; box-shadow:0 2px 6px rgba(0,0,0,.06); cursor:pointer; }
     .songs-setlist-bar button.danger{ color:#c0392b; }
     .songs-check-item{ display:flex; align-items:center; gap:6px; padding:8px 8px; }
+    .songs-check-item .t{ align-items:center; }
     .songs-check-item input{ width:18px; height:18px; flex-shrink:0; }
     .songs-manage-sort-toggle{ display:flex; gap:6px; margin:6px 0 8px; }
     .songs-manage-sort-toggle button{ flex:1; border:1px solid #e5e5e5; background:#fff; color:#888; font-size:11px; padding:5px 6px; border-radius:8px; cursor:pointer; }
@@ -184,10 +185,9 @@ function ensureSongsStyle(){
     .songs-order-arrows{ display:flex; flex-direction:column; gap:2px; flex-shrink:0; }
     .songs-order-arrows button{ border:none; background:#f2f7fb; color:#4a9fd4; width:18px; height:15px; font-size:8px; border-radius:5px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
     .songs-order-arrows button:disabled{ opacity:.25; pointer-events:none; }
-    .songs-order-title{ flex:1; min-width:0; cursor:pointer; }
-    .songs-order-title .t{ display:flex; align-items:baseline; font-size:12pt; font-weight:500; color:#6badd9; }
-    .songs-order-title .t .th{ font-weight:500; color:#6badd9; font-size:12pt; margin-left:4px; }
-    .songs-order-title .t .en-sub{ font-weight:400; color:#9bb; font-size:10pt; }
+    .songs-order-title{ flex:1; min-width:0; cursor:pointer; display:flex; align-items:baseline; flex-wrap:wrap; }
+    .songs-order-title .title-text{ font-size:12px; font-weight:500; color:#6badd9; }
+    .songs-order-title .order-artist{ font-weight:400; color:#b9c6ce; font-size:10px; }
     .songs-order-remove{ flex-shrink:0; color:#ff6b6b; font-size:13px; cursor:pointer; padding:4px; }
     .songs-order-open{ flex-shrink:0; font-size:15px; cursor:pointer; padding:4px; }
     .songs-note-num{ flex-shrink:0; font-size:12px; color:#b89b5e; font-weight:700; min-width:16px; }
@@ -561,11 +561,15 @@ function songSetlistEntryHtml(entry, index, total){
   }
   const s = songById(entry.songId);
   if(!s) return '';
+  const hasThai = !!s.titleTh;
+  const title = hasThai ? s.titleTh : s.titleEn;
+  const artist = SONG_ARTIST_TH_PRIMARY.has(s.artistEn) ? (s.artistTh || s.artistEn) : s.artistEn;
+  const artistSuffix = hasThai ? ` <span class="order-artist">(${songEscapeHtml(artist)})</span>` : '';
   return `<div class="songs-order-item">
     ${arrows}
     <span class="songs-note-num">${num}.</span>
     <div class="songs-order-title">
-      <span class="title-text">${songTitleHtml(s, true)}</span>
+      <span class="title-text">${songEscapeHtml(title)}</span>${artistSuffix}
     </div>
     <span class="songs-order-remove" onclick="songRemoveEntryFromSetlist('${entry.id}')">✕</span>
   </div>`;
