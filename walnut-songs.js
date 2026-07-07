@@ -1005,7 +1005,7 @@ function songAddNote(x,y,text){
   const note={x,y,text, border:songState.noteBorder, fontSize:SONG_NOTE_FONT_SIZES[songState.noteFontSize], color:songState.noteColor};
   songState.notes.push(note);
   songActiveNote = note;
-  songRenderNoteEl(note);
+  songRenderNoteEl(note, true);
 }
 function songNoteBackground(note){
   if(note.border===false) return '';
@@ -1024,7 +1024,7 @@ function songCenterTextInline(text){
   text.style.setProperty('height','100%','important');
   text.style.setProperty('box-sizing','border-box','important');
 }
-function songRenderNoteEl(note){
+function songRenderNoteEl(note, autoFocus){
   const overlay=document.getElementById('songs-overlay');
   if(!overlay) return;
   // wrap = position/drag/resize (overflow:visible, so del/resize handle
@@ -1071,7 +1071,7 @@ function songRenderNoteEl(note){
   songMakeNoteResizable(wrap, note);
   songMakeDraggable(wrap, note);
   overlay.appendChild(wrap);
-  if(songState.mode==='edit') text.focus();
+  if(songState.mode==='edit' && autoFocus) text.focus();
 }
 function songMakeNoteResizable(wrap, note){
   const rh=document.createElement('div');
@@ -1154,7 +1154,7 @@ function songRenderOverlayEls(){
   const overlay=document.getElementById('songs-overlay');
   if(!overlay) return;
   overlay.querySelectorAll('.songs-note-wrap, .songs-sticker').forEach(el=>el.remove());
-  songState.notes.forEach(songRenderNoteEl);
+  songState.notes.forEach(note=>songRenderNoteEl(note));
   songState.stickers.forEach(songRenderStickerEl);
   songRedraw();
 }
