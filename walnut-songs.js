@@ -71,6 +71,7 @@ const songState = {
   activeSetlistId: null,  // null = browse all songs
   setlistManageMode: false,
   setlistManageQuery: '',
+  setlistManageSort: 'artist', // artist | title
   strokes: [], notes: [], stickers: [],
   snapshot: null,
   currentTool: 'pencil',
@@ -155,8 +156,12 @@ function ensureSongsStyle(){
     .songs-setlist-bar .name{ font-size:15px; font-weight:800; color:#345f80; flex:1; }
     .songs-setlist-bar button{ border:none; background:#fff; padding:6px 11px; border-radius:9px; font-size:11px; color:#666; box-shadow:0 2px 6px rgba(0,0,0,.06); cursor:pointer; }
     .songs-setlist-bar button.danger{ color:#c0392b; }
-    .songs-check-item{ display:flex; align-items:center; gap:8px; }
+    .songs-check-item{ display:flex; align-items:center; gap:6px; padding:8px 8px; }
     .songs-check-item input{ width:18px; height:18px; flex-shrink:0; }
+    .songs-manage-sort-toggle{ display:flex; gap:6px; margin:6px 0 8px; }
+    .songs-manage-sort-toggle button{ flex:1; border:1px solid #e5e5e5; background:#fff; color:#888; font-size:11px; padding:5px 6px; border-radius:8px; cursor:pointer; }
+    .songs-manage-sort-toggle button.active{ background:#f0f0f0; color:#333; font-weight:700; border-color:#ccc; }
+    .songs-manage-artist-hd{ font-size:10px; font-weight:700; color:#999; margin:8px 2px 3px; text-transform:uppercase; letter-spacing:.03em; }
 
     .songs-manage-cols{ display:flex; gap:10px; align-items:flex-start; }
     .songs-manage-col{ flex:1; min-width:0; }
@@ -310,8 +315,10 @@ function songSelectAllSongs(){
 function songToggleSetlistManage(){
   songState.setlistManageMode = !songState.setlistManageMode;
   songState.setlistManageQuery = '';
+  songState.setlistManageSort = 'artist';
   songsRerender();
 }
+function songSetSetlistManageSort(m){ songState.setlistManageSort=m; songsRerender(); }
 function songDeleteSetlist(id){
   const list = songGetSetlists();
   const sl = list.find(s=>s.id===id);
@@ -429,11 +436,21 @@ function songCheckItemHtml(s, sl){
   const inSetlist = sl.songIds.includes(s.id);
   return `<div class="songs-item songs-check-item" onclick="songToggleSongInSetlist('${s.id}')">
     <input type="checkbox" ${inSetlist?'checked':''} onclick="event.stopPropagation();songToggleSongInSetlist('${s.id}')">
-    <div style="flex:1">
+    <div style="flex:1; min-width:0;">
       <div class="t"><span class="icon">${s.artistIcon||'🎵'}</span><span class="title-text">${songTitleHtml(s)}</span></div>
-      <div class="a">${s.artistEn}</div>
     </div>
   </div>`;
+}
+function songCheckItemsHtml(songs, sl, sortMode){
+  if(sortMode==='artist'){
+    const byArtist={};
+    songs.forEach(s=>{ (byArtist[s.artistEn]=byArtist[s.artistEn]||[]).push(s); });
+    return Object.keys(byArtist).sort((a,b)=>a.localeCompare(b)).map(name=>{
+      const group=byArtist[name].slice().sort((a,b)=>a.titleEn.localeCompare(b.titleEn));
+      return `<div class="songs-manage-artist-hd">${name}</div>${group.map(s=>songCheckItemHtml(s, sl)).join('')}`;
+    }).join('');
+  }
+  return songs.slice().sort((a,b)=>a.titleEn.localeCompare(b.titleEn)).map(s=>songCheckItemHtml(s, sl)).join('');
 }
 function songOrderedItemHtml(s, index, total){
   return `<div class="songs-item songs-order-item">
@@ -464,12 +481,12 @@ function renderSongsHome(){
     const mq = (songState.setlistManageQuery||'').trim().toLowerCase();
     const already = sl.songIds.map(songById).filter(Boolean); // preserve this setlist's own order
     const rest = SONGS.filter(s=>!sl.songIds.includes(s.id));
-    const filteredRest = (mq ? rest.filter(s=>songMatches(s,mq)) : rest).sort((a,b)=>a.titleEn.localeCompare(b.titleEn));
+    const filteredRest = mq ? rest.filter(s=>songMatches(s,mq)) : rest;
     const leftHtml = already.length
       ? already.map((s,i)=>songOrderedItemHtml(s,i,already.length)).join('')
       : '<div class="songs-empty">No songs yet — pick from the right</div>';
     const rightHtml = filteredRest.length
-      ? filteredRest.map(s=>songCheckItemHtml(s, sl)).join('')
+      ? songCheckItemsHtml(filteredRest, sl, songState.setlistManageSort)
       : (mq ? '<div class="songs-empty">No matching songs found</div>' : '<div class="songs-empty">All songs added</div>');
     return `${header}
       <div class="songs-setlist-bar">
@@ -483,6 +500,10 @@ function renderSongsHome(){
         </div>
         <div class="songs-manage-col">
           <input id="songs-setlist-search" placeholder="Search songs..." value="${songState.setlistManageQuery||''}" oninput="songOnSetlistManageSearch(this.value)">
+          <div class="songs-manage-sort-toggle">
+            <button class="${songState.setlistManageSort==='artist'?'active':''}" onclick="songSetSetlistManageSort('artist')">By Artist</button>
+            <button class="${songState.setlistManageSort==='title'?'active':''}" onclick="songSetSetlistManageSort('title')">By Title</button>
+          </div>
           <div class="songs-manage-col-hd">${mq ? 'Search results' : 'All songs'}</div>
           <div class="songs-manage-col-body">${rightHtml}</div>
         </div>
