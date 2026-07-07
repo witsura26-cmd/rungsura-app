@@ -1286,6 +1286,7 @@ function songRedraw(){
 function songAttachCanvasEvents(canvas){
   if(canvas.dataset.songBound) return;
   canvas.dataset.songBound='1';
+  canvas.addEventListener('contextmenu',(e)=>{ e.preventDefault(); });
   canvas.addEventListener('pointerdown',(e)=>{
     if(songState.mode!=='edit') return;
     songUpdateEraserCursor(e, canvas);
@@ -1308,6 +1309,7 @@ function songAttachCanvasEvents(canvas){
   });
   canvas.addEventListener('pointerleave', songHideEraserCursor);
   window.addEventListener('pointerup', ()=>{ songDrawing=false; songCurrentStroke=null; });
+  window.addEventListener('pointercancel', ()=>{ songDrawing=false; songCurrentStroke=null; });
 
   const pageWrap=songGetPageWrap();
   if(pageWrap && !pageWrap.dataset.songClickBound){
