@@ -158,6 +158,18 @@ function ensureSongsStyle(){
     .songs-check-item{ display:flex; align-items:center; gap:8px; }
     .songs-check-item input{ width:18px; height:18px; flex-shrink:0; }
 
+    .songs-manage-cols{ display:flex; gap:10px; align-items:flex-start; }
+    .songs-manage-col{ flex:1; min-width:0; }
+    .songs-manage-col-hd{ font-size:11px; font-weight:800; color:#d47ab0; margin:2px 2px 6px; letter-spacing:.04em; }
+    .songs-manage-col-body{ max-height:60vh; overflow-y:auto; }
+    .songs-order-item{ display:flex; align-items:center; gap:6px; padding:8px 8px; }
+    .songs-order-arrows{ display:flex; flex-direction:column; gap:2px; flex-shrink:0; }
+    .songs-order-arrows button{ border:none; background:#f2f7fb; color:#4a9fd4; width:20px; height:18px; font-size:9px; border-radius:5px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+    .songs-order-arrows button:disabled{ opacity:.25; pointer-events:none; }
+    .songs-order-title{ flex:1; min-width:0; cursor:pointer; }
+    .songs-order-title .t{ font-size:12px; }
+    .songs-order-remove{ flex-shrink:0; color:#ff6b6b; font-size:13px; cursor:pointer; padding:4px; }
+
     .songs-detail-header{ position:sticky; top:0; z-index:40; background:#fff; border-radius:16px; padding:12px 12px 10px; margin-bottom:10px; box-shadow:0 6px 18px rgba(0,0,0,.09); will-change:transform; transform:translateZ(0); backface-visibility:hidden; }
     .songs-topbar{ display:flex; align-items:center; gap:8px; margin-bottom:8px; }
     .songs-back{ border:none; background:#fdf1f5; padding:7px 11px; border-radius:9px; font-size:12px; color:#d47ab0; cursor:pointer; flex-shrink:0; }
@@ -318,6 +330,18 @@ function songToggleSongInSetlist(songId){
   songSaveSetlists(list);
   songsRerender();
 }
+function songMoveSongInSetlist(songId, delta){
+  const list = songGetSetlists();
+  const sl = list.find(s=>s.id===songState.activeSetlistId);
+  if(!sl) return;
+  const i = sl.songIds.indexOf(songId);
+  if(i<0) return;
+  const j = i+delta;
+  if(j<0 || j>=sl.songIds.length) return;
+  [sl.songIds[i], sl.songIds[j]] = [sl.songIds[j], sl.songIds[i]];
+  songSaveSetlists(list);
+  songsRerender();
+}
 function renderSetlistRow(){
   const setlists = songGetSetlists();
   const chips = [
@@ -411,6 +435,18 @@ function songCheckItemHtml(s, sl){
     </div>
   </div>`;
 }
+function songOrderedItemHtml(s, index, total){
+  return `<div class="songs-item songs-order-item">
+    <div class="songs-order-arrows">
+      <button ${index===0?'disabled':''} onclick="songMoveSongInSetlist('${s.id}',-1)">▲</button>
+      <button ${index===total-1?'disabled':''} onclick="songMoveSongInSetlist('${s.id}',1)">▼</button>
+    </div>
+    <div class="songs-order-title" onclick="songToggleSongInSetlist('${s.id}')">
+      <span class="icon">${s.artistIcon||'🎵'}</span><span class="title-text">${songTitleHtml(s)}</span>
+    </div>
+    <span class="songs-order-remove" onclick="event.stopPropagation();songToggleSongInSetlist('${s.id}')">✕</span>
+  </div>`;
+}
 
 function renderSongsHome(){
   const header = `
@@ -426,22 +462,31 @@ function renderSongsHome(){
     const sl = songCurrentSetlist();
     if(!sl){ songState.activeSetlistId=null; songState.setlistManageMode=false; return renderSongsHome(); }
     const mq = (songState.setlistManageQuery||'').trim().toLowerCase();
-    const already = SONGS.filter(s=>sl.songIds.includes(s.id)).sort((a,b)=>a.titleEn.localeCompare(b.titleEn));
+    const already = sl.songIds.map(songById).filter(Boolean); // preserve this setlist's own order
     const rest = SONGS.filter(s=>!sl.songIds.includes(s.id));
     const filteredRest = (mq ? rest.filter(s=>songMatches(s,mq)) : rest).sort((a,b)=>a.titleEn.localeCompare(b.titleEn));
-    const alreadyHtml = already.length
-      ? `<div class="songs-section-hd">✓ In this setlist (${already.length})</div>${already.map(s=>songCheckItemHtml(s, sl)).join('')}`
-      : '';
-    const restHtml = filteredRest.length
-      ? `<div class="songs-section-hd">${mq ? 'Search results' : 'All songs'}</div>${filteredRest.map(s=>songCheckItemHtml(s, sl)).join('')}`
-      : (mq ? '<div class="songs-empty">No matching songs found</div>' : '');
+    const leftHtml = already.length
+      ? already.map((s,i)=>songOrderedItemHtml(s,i,already.length)).join('')
+      : '<div class="songs-empty">No songs yet — pick from the right</div>';
+    const rightHtml = filteredRest.length
+      ? filteredRest.map(s=>songCheckItemHtml(s, sl)).join('')
+      : (mq ? '<div class="songs-empty">No matching songs found</div>' : '<div class="songs-empty">All songs added</div>');
     return `${header}
       <div class="songs-setlist-bar">
         <div class="name">✎ Pick songs for "${sl.name}"</div>
         <button onclick="songToggleSetlistManage()">✓ Done</button>
       </div>
-      <input id="songs-setlist-search" placeholder="Search songs to add..." value="${songState.setlistManageQuery||''}" oninput="songOnSetlistManageSearch(this.value)">
-      <div>${alreadyHtml}${restHtml}</div>`;
+      <div class="songs-manage-cols">
+        <div class="songs-manage-col">
+          <div class="songs-manage-col-hd">✓ In setlist (${already.length})</div>
+          <div class="songs-manage-col-body">${leftHtml}</div>
+        </div>
+        <div class="songs-manage-col">
+          <input id="songs-setlist-search" placeholder="Search songs..." value="${songState.setlistManageQuery||''}" oninput="songOnSetlistManageSearch(this.value)">
+          <div class="songs-manage-col-hd">${mq ? 'Search results' : 'All songs'}</div>
+          <div class="songs-manage-col-body">${rightHtml}</div>
+        </div>
+      </div>`;
   }
 
   // ── Viewing one setlist ──
