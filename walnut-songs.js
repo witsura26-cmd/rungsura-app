@@ -316,7 +316,7 @@ function songById(id){
       if(e){
         return {
           id, titleEn: e.text || 'Note', titleTh:'', artistEn: sl.name, artistTh:'', artistIcon:'📝',
-          sections:[{type:'verse', num:null, repeat:false, lines:['']}]
+          sections:[{type:'blank', num:null, repeat:false, lines:Array(10).fill('')}]
         };
       }
     }
@@ -453,6 +453,7 @@ function songRefreshLyricsFontSize(){
   if(songState.view==='detail' && songState.mode!=='clean') songResizeCanvas();
 }
 function songSectionLabel(sec){
+  if(sec.type==='blank') return '';
   let base = SONG_TYPE_LABEL[sec.type] || ('▸ '+sec.type);
   if(sec.type==='verse' && sec.num) base = '▸ Verse '+sec.num;
   if(sec.type==='rap' && sec.num) base = '🎤 Rap '+sec.num;
@@ -774,6 +775,9 @@ function songOpen(id){
   songLyricsFontSize = 14;
   songsRerender();
   songResetScroll();
+  if(songState.activeSetlistId && songHasNote(id)){
+    songEnterView();
+  }
 }
 function songOpenViewNote(id){
   songOpen(id);
@@ -782,6 +786,7 @@ function songOpenViewNote(id){
 function songOpenNotePage(entryId){
   songOpen('note:'+entryId);
   songEnterEdit();
+  songSelectTool('text');
 }
 function songGoBack(){
   if(songState.mode==='edit' && !songConfirmDiscardIfChanged()) return;
