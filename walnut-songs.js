@@ -67,7 +67,7 @@ const songState = {
   currentId: null,
   mode: 'clean',          // clean | view | edit
   searchQuery: '',
-  sortMode: 'title',      // title | artist
+  sortMode: 'artist',      // title | artist
   activeSetlistId: null,  // null = browse all songs
   setlistManageMode: false,
   setlistManageQuery: '',
@@ -129,7 +129,7 @@ function ensureSongsStyle(){
     .songs-az-row{ display:flex; gap:4px; justify-content:center; }
     .songs-az button{ border:none; background:#fff; color:#4a9fd4; font-size:11px; font-weight:700; width:24px; height:24px; border-radius:6px; cursor:pointer; box-shadow:0 1px 3px rgba(0,0,0,.06); }
     .songs-az button.disabled{ opacity:.3; pointer-events:none; }
-    .songs-section-hd{ font-size:13pt; font-weight:800; color:#d47ab0; margin:12px 2px 5px; letter-spacing:.06em; }
+    .songs-section-hd{ font-size:12pt; font-weight:800; color:#d47ab0; margin:12px 2px 5px; letter-spacing:.06em; }
     .songs-item{ display:flex; align-items:center; gap:8px; background:#fff; border-radius:12px; padding:10px 12px; margin-bottom:6px; box-shadow:0 2px 6px rgba(0,0,0,.06); cursor:pointer; }
     .songs-item-body{ flex:1; min-width:0; }
     .songs-item .t{ display:flex; align-items:baseline; font-size:13px; font-weight:500; color:#4a9fd4; }
@@ -142,11 +142,9 @@ function ensureSongsStyle(){
     .songs-item .badge{ flex-shrink:0; font-size:22px; line-height:1; padding:2px; }
     .songs-empty{ text-align:center; color:#c99; font-size:13px; margin-top:24px; }
 
-    .songs-artist-group{ margin-bottom:12px; border-radius:12px; overflow:hidden; box-shadow:0 2px 6px rgba(0,0,0,.06); }
-    .songs-artist-header{ display:flex; align-items:baseline; gap:6px; font-size:13px; font-weight:800; color:#fff; background:#4a9fd4; padding:7px 12px; }
-    .songs-artist-header .th{ font-weight:400; color:#eaf5ff; font-size:11px; }
-    .songs-artist-group .songs-item{ border-radius:0; margin-bottom:0; box-shadow:none; border-left:3px solid #4a9fd4; border-bottom:1px solid #eef4fa; }
-    .songs-artist-group .songs-item:last-child{ border-bottom:none; }
+    .songs-artist-group{ margin-bottom:4px; }
+    .songs-artist-clean-hd{ display:flex; align-items:baseline; gap:6px; font-size:10px; font-weight:700; color:#999; text-transform:uppercase; letter-spacing:.03em; margin:10px 2px 4px; }
+    .songs-artist-clean-hd .th{ font-weight:400; color:#bbb; font-size:10px; text-transform:none; }
 
     .songs-setlist-row{ display:flex; gap:6px; overflow-x:auto; padding-bottom:4px; margin-bottom:10px; }
     .songs-setlist-chip{ flex-shrink:0; border:none; background:#fff; color:#7aaac8; font-size:12px; font-weight:700; padding:7px 13px; border-radius:999px; box-shadow:0 2px 6px rgba(0,0,0,.06); cursor:pointer; white-space:nowrap; }
@@ -407,10 +405,11 @@ function songsPostRender(){
 function songMatches(s,q){
   return [s.titleEn,s.titleTh,s.artistEn,s.artistTh].some(v=>(v||'').toLowerCase().includes(q));
 }
-function songTitleHtml(s){
-  return s.titleTh
-    ? `<span class="en-sub">${s.titleEn}</span><span class="th">(${s.titleTh})</span>`
-    : s.titleEn;
+function songTitleHtml(s, thaiFirst){
+  if(!s.titleTh) return s.titleEn;
+  return thaiFirst
+    ? `<span class="th">${s.titleTh}</span> <span class="en-sub">(${s.titleEn})</span>`
+    : `<span class="en-sub">${s.titleEn}</span><span class="th">(${s.titleTh})</span>`;
 }
 function songItemHtml(s){
   const badge = songHasNote(s.id) ? `<span class="badge" onclick="event.stopPropagation();songOpenViewNote('${s.id}')">📝</span>` : '';
@@ -427,17 +426,17 @@ function songTitleOnlyItemHtml(s){
   const badge = songHasNote(s.id) ? `<span class="badge" onclick="event.stopPropagation();songOpenViewNote('${s.id}')">📝</span>` : '';
   return `<div class="songs-item" onclick="songOpen('${s.id}')">
     <div class="songs-item-body">
-      <div class="t"><span class="bullet">•</span><span class="title-text">${songTitleHtml(s)}</span></div>
+      <div class="t"><span class="bullet">•</span><span class="title-text">${songTitleHtml(s, true)}</span></div>
     </div>
     ${badge}
   </div>`;
 }
-function songCheckItemHtml(s, sl){
+function songCheckItemHtml(s, sl, thaiFirst){
   const inSetlist = sl.songIds.includes(s.id);
   return `<div class="songs-item songs-check-item" onclick="songToggleSongInSetlist('${s.id}')">
     <input type="checkbox" ${inSetlist?'checked':''} onclick="event.stopPropagation();songToggleSongInSetlist('${s.id}')">
     <div style="flex:1; min-width:0;">
-      <div class="t"><span class="icon">${s.artistIcon||'🎵'}</span><span class="title-text">${songTitleHtml(s)}</span></div>
+      <div class="t"><span class="icon">${s.artistIcon||'🎵'}</span><span class="title-text">${songTitleHtml(s, thaiFirst)}</span></div>
     </div>
   </div>`;
 }
@@ -447,7 +446,7 @@ function songCheckItemsHtml(songs, sl, sortMode){
     songs.forEach(s=>{ (byArtist[s.artistEn]=byArtist[s.artistEn]||[]).push(s); });
     return Object.keys(byArtist).sort((a,b)=>a.localeCompare(b)).map(name=>{
       const group=byArtist[name].slice().sort((a,b)=>a.titleEn.localeCompare(b.titleEn));
-      return `<div class="songs-manage-artist-hd">${name}</div>${group.map(s=>songCheckItemHtml(s, sl)).join('')}`;
+      return `<div class="songs-manage-artist-hd">${name}</div>${group.map(s=>songCheckItemHtml(s, sl, true)).join('')}`;
     }).join('');
   }
   return songs.slice().sort((a,b)=>a.titleEn.localeCompare(b.titleEn)).map(s=>songCheckItemHtml(s, sl)).join('');
@@ -552,7 +551,7 @@ function renderSongsHome(){
           const icon = songsForArtist[0].artistIcon || '🎵';
           const thaiName = songsForArtist[0].artistTh ? `<span class="th">(${songsForArtist[0].artistTh})</span>` : '';
           return `<div class="songs-artist-group">
-            <div class="songs-artist-header"><span class="icon">${icon}</span><span>${name}</span> ${thaiName}</div>
+            <div class="songs-artist-clean-hd"><span class="icon">${icon}</span><span>${name}</span> ${thaiName}</div>
             ${songsForArtist.map(songTitleOnlyItemHtml).join('')}
           </div>`;
         }).join('');
