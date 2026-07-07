@@ -260,7 +260,7 @@ function ensureSongsStyle(){
     .songs-line{ color:#333; }
     .blank-ruled .songs-line{ border-bottom:1px solid #e6dcc8; min-height:1.6em; }
     .songs-note-page-title{ text-align:center; font-size:20pt; font-weight:700; color:#d47ab0; margin:14px 0 10px; }
-    .songs-note-page{ background:#fff8f0; border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.14); margin-top:10px; padding:14px 20px; box-sizing:border-box; }
+    .songs-note-page{ background:#fff8f0; border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.14); margin-top:10px; padding:30px 20px; box-sizing:border-box; }
     .songs-note-page-body{ outline:none; font-size:17px; line-height:38px; color:#333; min-height:380px; background-image:repeating-linear-gradient(to bottom, transparent 0, transparent 37px, #e6dcc8 37px, #e6dcc8 38px); }
     .songs-note-done-btn{ position:fixed; right:20px; bottom:90px; width:52px; height:52px; border-radius:50%; background:#6bcb77; color:#fff; font-size:20px; font-weight:700; border:none; box-shadow:0 4px 12px rgba(0,0,0,.2); cursor:pointer; z-index:50; }
     .songs-line-sub{ display:flex; flex-direction:column; align-items:flex-start; line-height:1.25 !important; margin:3px 0; }
@@ -886,6 +886,9 @@ function renderNotePageDetail(song){
 
   if(songState.mode==='clean'){
     const bodyText = songLoadNoteBody(entryId);
+    const bodyLines = bodyText.split('\n');
+    while(bodyLines.length < 10) bodyLines.push('');
+    const bodyHtml = bodyLines.map(l=>songEscapeHtml(l)).join('<br>');
     return `
       <div class="songs-detail-header">
         <div class="songs-topbar">
@@ -897,7 +900,7 @@ function renderNotePageDetail(song){
       </div>
       <h2 class="songs-note-page-title">${song.titleEn}</h2>
       <div class="songs-note-page">
-        <div class="songs-note-page-body" contenteditable="true" id="songs-note-body-editable" oninput="songOnNoteBodyInput('${entryId}', this)">${songEscapeHtml(bodyText)}</div>
+        <div class="songs-note-page-body" contenteditable="true" id="songs-note-body-editable" oninput="songOnNoteBodyInput('${entryId}', this)">${bodyHtml}</div>
       </div>
       <button class="songs-note-done-btn" onclick="document.getElementById('songs-note-body-editable').blur()">✓</button>
     `;
