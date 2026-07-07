@@ -118,13 +118,14 @@ function ensureSongsStyle(){
     .songs-az button{ border:none; background:#fff; color:#4a9fd4; font-size:11px; font-weight:700; width:24px; height:24px; border-radius:6px; cursor:pointer; box-shadow:0 1px 3px rgba(0,0,0,.06); }
     .songs-az button.disabled{ opacity:.3; pointer-events:none; }
     .songs-section-hd{ font-size:11px; font-weight:800; color:#d47ab0; margin:12px 2px 5px; letter-spacing:.06em; }
-    .songs-item{ background:#fff; border-radius:12px; padding:10px 12px; margin-bottom:6px; box-shadow:0 2px 6px rgba(0,0,0,.06); cursor:pointer; }
+    .songs-item{ display:flex; align-items:center; gap:8px; background:#fff; border-radius:12px; padding:10px 12px; margin-bottom:6px; box-shadow:0 2px 6px rgba(0,0,0,.06); cursor:pointer; }
+    .songs-item-body{ flex:1; min-width:0; }
     .songs-item .t{ font-size:13px; font-weight:500; color:#4a9fd4; }
     .songs-item .t .th{ font-weight:500; color:#4a9fd4; font-size:13px; }
     .songs-item .t .en-sub{ font-weight:400; color:#9bb; font-size:11px; }
     .songs-item .a{ font-size:11px; color:#9bb; margin-top:1px; }
     .songs-item .a .th{ font-weight:400; font-size:11px; }
-    .songs-item .badge{ margin-left:4px; }
+    .songs-item .badge{ flex-shrink:0; font-size:22px; line-height:1; padding:2px; }
     .songs-empty{ text-align:center; color:#c99; font-size:13px; margin-top:24px; }
 
     .songs-artist-group{ margin-bottom:12px; border-radius:12px; overflow:hidden; box-shadow:0 2px 6px rgba(0,0,0,.06); }
@@ -361,17 +362,23 @@ function songTitleHtml(s){
     : s.titleEn;
 }
 function songItemHtml(s){
-  const badge = songHasNote(s.id) ? '<span class="badge">📝</span>' : '';
+  const badge = songHasNote(s.id) ? `<span class="badge" onclick="event.stopPropagation();songOpen('${s.id}')">📝</span>` : '';
   const artistTh = s.artistTh ? ` <span class="th">(${s.artistTh})</span>` : '';
   return `<div class="songs-item" onclick="songOpen('${s.id}')">
-    <div class="t">${s.artistIcon||'🎵'} ${songTitleHtml(s)}${badge}</div>
-    <div class="a">${s.artistEn}${artistTh}</div>
+    <div class="songs-item-body">
+      <div class="t">${s.artistIcon||'🎵'} ${songTitleHtml(s)}</div>
+      <div class="a">${s.artistEn}${artistTh}</div>
+    </div>
+    ${badge}
   </div>`;
 }
 function songTitleOnlyItemHtml(s){
-  const badge = songHasNote(s.id) ? '<span class="badge">📝</span>' : '';
+  const badge = songHasNote(s.id) ? `<span class="badge" onclick="event.stopPropagation();songOpen('${s.id}')">📝</span>` : '';
   return `<div class="songs-item" onclick="songOpen('${s.id}')">
-    <div class="t">${songTitleHtml(s)}${badge}</div>
+    <div class="songs-item-body">
+      <div class="t">${songTitleHtml(s)}</div>
+    </div>
+    ${badge}
   </div>`;
 }
 function songCheckItemHtml(s, sl){
