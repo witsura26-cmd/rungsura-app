@@ -101,6 +101,16 @@ const SONG_TYPE_LABEL = {
   'rap': '🎤 Rap'
 };
 const SONG_ALPHABET = ['0-9', ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')];
+// Artists whose real/primary name is Thai script -- only these show the Thai
+// name on the lyrics page. Everyone else (including Thai bands that brand
+// themselves in English, like 25 Hours) keeps their English name there.
+const SONG_ARTIST_TH_PRIMARY = new Set([
+  'Lamyai Haithongkham',
+  'Biw Kalyanee (R Siam)',
+  'Takkatan Chollada',
+  'Thosaphon Himmapan',
+  'Prim Linethai',
+]);
 const SONG_SCROLL_SPEED_KEY = 'walnut_song_scroll_speed';
 const SONG_SCROLL_SPEEDS = [4, 8, 12, 15, 20, 25, 30, 40, 60, 80]; // px/sec, index = level-1
 let songScrollSpeed = parseInt(localStorage.getItem(SONG_SCROLL_SPEED_KEY) || '5', 10);
@@ -123,14 +133,14 @@ function ensureSongsStyle(){
     #songs-search{ flex:1; min-width:0; width:auto; padding:10px 14px; border-radius:12px; border:1px solid #cfe6f5; font-size:14px; margin-bottom:0; }
     #songs-setlist-search{ width:100%; box-sizing:border-box; padding:10px 14px; border-radius:12px; border:1px solid #cfe6f5; font-size:14px; margin:8px 0 10px; }
     .songs-seg{ display:flex; flex-shrink:0; background:#fff; border-radius:10px; padding:3px; box-shadow:0 2px 6px rgba(0,0,0,.05); margin-bottom:0; }
-    .songs-seg button{ border:none; background:transparent; padding:7px 18px; border-radius:8px; font-size:11px; color:#888; cursor:pointer; white-space:nowrap; }
+    .songs-seg button{ border:none; background:transparent; padding:7px 20px; border-radius:8px; font-size:11px; color:#888; cursor:pointer; white-space:nowrap; }
     .songs-seg button.active{ background:#7ec0ee; color:#fff; font-weight:700; }
     .songs-az{ display:flex; flex-direction:column; gap:4px; margin-bottom:10px; }
     .songs-az-row{ display:flex; gap:4px; justify-content:center; }
     .songs-az button{ border:none; background:#fff; color:#4a9fd4; font-size:11px; font-weight:700; width:24px; height:24px; border-radius:6px; cursor:pointer; box-shadow:0 1px 3px rgba(0,0,0,.06); }
     .songs-az button.disabled{ opacity:.3; pointer-events:none; }
     .songs-section-hd{ font-size:12pt; font-weight:800; color:#d47ab0; margin:12px 2px 5px; letter-spacing:.06em; }
-    .songs-az-group{ display:grid; grid-template-columns:26px 1fr; column-gap:8px; row-gap:6px; margin-bottom:22px; }
+    .songs-az-group{ display:grid; grid-template-columns:26px 1fr; column-gap:15px; row-gap:6px; margin-bottom:22px; }
     .songs-az-letter{ grid-column:1; align-self:start; color:#d47ab0; font-weight:800; font-size:12pt; padding-top:2px; }
     .songs-az-content{ grid-column:2; min-width:0; }
     .songs-item{ display:flex; align-items:center; gap:8px; background:#fff; border-radius:12px; padding:10px 12px; margin-bottom:6px; box-shadow:0 2px 6px rgba(0,0,0,.06); cursor:pointer; }
@@ -167,8 +177,9 @@ function ensureSongsStyle(){
     .songs-manage-col{ flex:1; min-width:0; }
     .songs-manage-col-hd{ font-size:11px; font-weight:800; color:#d47ab0; margin:2px 2px 6px; letter-spacing:.04em; }
     .songs-manage-col-body{ max-height:60vh; overflow-y:auto; }
-    .songs-manage-notebook{ background:repeating-linear-gradient(to bottom, #fffdf3 0px, #fffdf3 27px, #e6dcc0 28px); border:1px solid #ddd0a8; border-radius:8px; padding:6px 8px; max-height:60vh; overflow-y:auto; }
-    .songs-order-item{ display:flex; align-items:center; gap:6px; padding:6px 4px; }
+    .songs-manage-notebook{ background:#fffdf3; border:1px solid #ddd0a8; border-radius:8px; padding:4px 8px; max-height:60vh; overflow-y:auto; }
+    .songs-order-item{ display:flex; align-items:center; gap:8px; padding:9px 4px; border-bottom:1px solid #ece2c4; }
+    .songs-order-item:last-child{ border-bottom:none; }
     .songs-order-arrows{ display:flex; flex-direction:column; gap:2px; flex-shrink:0; }
     .songs-order-arrows button{ border:none; background:#f2f7fb; color:#4a9fd4; width:20px; height:18px; font-size:9px; border-radius:5px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
     .songs-order-arrows button:disabled{ opacity:.25; pointer-events:none; }
@@ -178,11 +189,12 @@ function ensureSongsStyle(){
     .songs-order-title .t .th{ font-weight:500; color:#4a9fd4; font-size:12px; margin-left:4px; }
     .songs-order-title .t .en-sub{ font-weight:400; color:#9bb; font-size:10px; }
     .songs-order-remove{ flex-shrink:0; color:#ff6b6b; font-size:13px; cursor:pointer; padding:4px; }
+    .songs-order-open{ flex-shrink:0; font-size:15px; cursor:pointer; padding:4px; }
     .songs-note-num{ flex-shrink:0; font-size:12px; color:#b89b5e; font-weight:700; min-width:16px; }
     .songs-note-entry-input{ flex:1; min-width:0; border:none; background:transparent; font-size:12px; color:#5a4a2a; outline:none; padding:2px 0; }
     .songs-note-entry-input::placeholder{ color:#c9b98a; }
     .songs-add-note-btn{ width:100%; margin-top:6px; border:1px dashed #d0c4a0; background:#fffdf3; color:#a8935e; font-size:11px; padding:6px; border-radius:8px; cursor:pointer; }
-    .songs-setlist-note-view{ background:#fffdf3; border:1px solid #e6dcc0; border-radius:8px; padding:8px 10px; margin-bottom:6px; font-size:12px; color:#5a4a2a; font-style:italic; }
+    .songs-setlist-note-view{ background:#fffdf3; border:1px solid #e6dcc0; border-radius:8px; padding:8px 10px; margin-bottom:6px; font-size:12px; color:#5a4a2a; font-style:italic; cursor:pointer; }
     .songs-setlist-note-view .empty{ color:#c9b98a; font-style:normal; }
 
     .songs-detail-header{ position:sticky; top:0; z-index:40; background:#fff; border-radius:16px; padding:12px 12px 10px; margin-bottom:10px; box-shadow:0 6px 18px rgba(0,0,0,.09); will-change:transform; transform:translateZ(0); backface-visibility:hidden; }
@@ -295,7 +307,23 @@ function songLoadData(id){
   try{ const d=JSON.parse(raw); return {strokes:d.strokes||[],notes:d.notes||[],stickers:d.stickers||[]}; }
   catch(e){ return {strokes:[],notes:[],stickers:[]}; }
 }
-function songById(id){ return SONGS.find(s=>s.id===id); }
+function songById(id){
+  if(typeof id === 'string' && id.startsWith('note:')){
+    const entryId = id.slice(5);
+    const lists = songGetSetlists();
+    for(const sl of lists){
+      const e = sl.items.find(x=>x.id===entryId && x.type==='note');
+      if(e){
+        return {
+          id, titleEn:'Note', titleTh:'', artistEn: sl.name, artistTh:'', artistIcon:'📝',
+          sections:[{type:'verse', num:null, repeat:false, lines:[e.text || '(tap the pencil below to start writing)']}]
+        };
+      }
+    }
+    return null;
+  }
+  return SONGS.find(s=>s.id===id);
+}
 
 /* ===================== SETLISTS ===================== */
 function songNewEntryId(){ return 'e_'+Date.now()+'_'+Math.random().toString(36).slice(2,7); }
@@ -526,6 +554,7 @@ function songSetlistEntryHtml(entry, index, total){
       ${arrows}
       <span class="songs-note-num">${num}.</span>
       <input class="songs-note-entry-input" placeholder="Spoken part / note..." value="${songEscapeHtml(entry.text)}" oninput="songUpdateNoteEntryText('${entry.id}', this.value)">
+      <span class="songs-order-open" onclick="songOpenViewNote('note:${entry.id}')">📝</span>
       <span class="songs-order-remove" onclick="songRemoveEntryFromSetlist('${entry.id}')">✕</span>
     </div>`;
   }
@@ -535,7 +564,7 @@ function songSetlistEntryHtml(entry, index, total){
     ${arrows}
     <span class="songs-note-num">${num}.</span>
     <div class="songs-order-title">
-      <span class="icon">${s.artistIcon||'🎵'}</span><span class="title-text">${songTitleHtml(s)}</span>
+      <span class="icon">${s.artistIcon||'🎵'}</span><span class="title-text">${songTitleHtml(s, true)}</span>
     </div>
     <span class="songs-order-remove" onclick="songRemoveEntryFromSetlist('${entry.id}')">✕</span>
   </div>`;
@@ -593,7 +622,7 @@ function renderSongsHome(){
     if(!sl){ songState.activeSetlistId=null; return renderSongsHome(); }
     const listHtml = sl.items.length ? sl.items.map(entry=>{
       if(entry.type==='note'){
-        return `<div class="songs-setlist-note-view">📝 ${entry.text ? songEscapeHtml(entry.text) : '<span class="empty">(empty note)</span>'}</div>`;
+        return `<div class="songs-setlist-note-view" onclick="songOpenViewNote('note:${entry.id}')">📝 ${entry.text ? songEscapeHtml(entry.text) : '<span class="empty">(empty note)</span>'}</div>`;
       }
       const s = songById(entry.songId);
       return s ? songItemHtml(s) : '';
@@ -652,8 +681,8 @@ function renderSongsHome(){
       <div class="songs-search-row">
         <input id="songs-search" placeholder="Search by song title or artist..." value="${songState.searchQuery||''}" oninput="songOnSearch(this.value)">
         <div class="songs-seg">
-          <button class="${songState.sortMode==='title'?'active':''}" onclick="songSetSort('title')">By Title</button>
           <button class="${songState.sortMode==='artist'?'active':''}" onclick="songSetSort('artist')">By Artist</button>
+          <button class="${songState.sortMode==='title'?'active':''}" onclick="songSetSort('title')">By Title</button>
         </div>
       </div>
       ${q ? '' : `<div class="songs-az">${azHtml}</div>`}
@@ -778,9 +807,8 @@ function renderSongLyricsHtml(song){
 
   const trailingBlank = `<div class="songs-section"><div class="songs-line">&nbsp;</div><div class="songs-line">&nbsp;</div></div>`;
 
-  const isThaiSong = !!song.titleTh;
-  const displayTitle = isThaiSong ? song.titleTh : song.titleEn;
-  const displayArtist = isThaiSong ? (song.artistTh || song.artistEn) : song.artistEn;
+  const displayTitle = song.titleTh || song.titleEn;
+  const displayArtist = SONG_ARTIST_TH_PRIMARY.has(song.artistEn) ? (song.artistTh || song.artistEn) : song.artistEn;
   return `
     <h2>${displayTitle}</h2>
     <div class="artist">${song.artistIcon||''} ${displayArtist}</div>
@@ -789,7 +817,7 @@ function renderSongLyricsHtml(song){
   `;
 }
 
-function songSetlistSongIds(sl){ return sl.items.filter(e=>e.type==='song').map(e=>e.songId); }
+function songSetlistSongIds(sl){ return sl.items.map(e=>e.type==='song' ? e.songId : ('note:'+e.id)); }
 function songNextInSetlist(){
   const sl = songCurrentSetlist();
   if(!sl) return;
@@ -809,9 +837,8 @@ function songPrevInSetlist(){
 function renderSongDetail(){
   const song = songById(songState.currentId);
   if(!song){ songState.view='home'; return renderSongsHome(); }
-  const isThaiSong = !!song.titleTh;
-  const displayTitle = isThaiSong ? song.titleTh : song.titleEn;
-  const displayArtist = isThaiSong ? (song.artistTh || song.artistEn) : song.artistEn;
+  const displayTitle = song.titleTh || song.titleEn;
+  const displayArtist = SONG_ARTIST_TH_PRIMARY.has(song.artistEn) ? (song.artistTh || song.artistEn) : song.artistEn;
 
   const activeSl = songState.activeSetlistId ? songCurrentSetlist() : null;
   const slSongIds = activeSl ? songSetlistSongIds(activeSl) : [];
