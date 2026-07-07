@@ -504,12 +504,12 @@ function songTitleHtml(s, thaiFirst){
     ? `<span class="th">${s.titleTh}</span> <span class="en-sub">(${s.titleEn})</span>`
     : `<span class="en-sub">${s.titleEn}</span><span class="th">(${s.titleTh})</span>`;
 }
-function songItemHtml(s){
+function songItemHtml(s, thaiFirst){
   const badge = songHasNote(s.id) ? `<span class="badge" onclick="event.stopPropagation();songOpenViewNote('${s.id}')">📝</span>` : '';
   const artistTh = s.artistTh ? ` <span class="th">(${s.artistTh})</span>` : '';
   return `<div class="songs-item" onclick="songOpen('${s.id}')">
     <div class="songs-item-body">
-      <div class="t"><span class="icon">${s.artistIcon||'🎵'}</span><span class="title-text">${songTitleHtml(s)}</span></div>
+      <div class="t"><span class="icon">${s.artistIcon||'🎵'}</span><span class="title-text">${songTitleHtml(s, thaiFirst)}</span></div>
       <div class="a">${s.artistEn}${artistTh}</div>
     </div>
     ${badge}
@@ -626,7 +626,7 @@ function renderSongsHome(){
         return `<div class="songs-setlist-note-view" onclick="songOpenNotePage('${entry.id}')">📝 ${entry.text ? songEscapeHtml(entry.text) : '<span class="empty">(empty note)</span>'}</div>`;
       }
       const s = songById(entry.songId);
-      return s ? songItemHtml(s) : '';
+      return s ? songItemHtml(s, true) : '';
     }).join('') : '<div class="songs-empty">No songs in this setlist yet — tap "Edit Songs" to add some</div>';
     return `${header}
       <div class="songs-setlist-bar">
