@@ -159,6 +159,7 @@ function ensureSongsStyle(){
     .songs-item .t .th{ font-weight:500; color:#4a9fd4; font-size:13px; }
     .songs-item .t .en-sub{ font-weight:400; color:#9bb; font-size:11px; }
     .songs-item .a{ font-size:11px; color:#9bb; margin-top:1px; margin-left:30px; }
+    .ver-tag{ color:#e53e3e; }
     .songs-item .a .th{ font-weight:400; font-size:11px; }
     .songs-item .badge{ flex-shrink:0; font-size:22px; line-height:1; padding:2px; }
     .songs-empty{ text-align:center; color:#c99; font-size:13px; margin-top:24px; }
@@ -516,11 +517,14 @@ function songBuildAzGroupHtml(letter, rowsHtml){
     ${content}
   </div>`;
 }
+function songTitleVerBadge(titleEn){
+  return (titleEn||'').replace(/\s*(\([^)]*[Vv]er\.\))$/, ' <span class="ver-tag">$1</span>');
+}
 function songTitleHtml(s, thaiFirst){
-  if(!s.titleTh) return s.titleEn;
+  if(!s.titleTh) return songTitleVerBadge(s.titleEn);
   return thaiFirst
     ? `<span class="th">${s.titleTh}</span> <span class="en-sub">(${s.titleEn})</span>`
-    : `<span class="en-sub">${s.titleEn}</span> <span class="th">(${s.titleTh})</span>`;
+    : `<span class="en-sub">${songTitleVerBadge(s.titleEn)}</span> <span class="th">(${s.titleTh})</span>`;
 }
 function songItemHtml(s, thaiFirst){
   const badge = songHasNote(s.id) ? `<span class="badge" onclick="event.stopPropagation();songOpenViewNote('${s.id}')">📝</span>` : '';
@@ -838,7 +842,7 @@ function renderSongLyricsHtml(song){
 
   const trailingBlank = `<div class="songs-section"><div class="songs-line">&nbsp;</div><div class="songs-line">&nbsp;</div></div>`;
 
-  const displayTitle = song.titleTh || song.titleEn;
+  const displayTitle = song.titleTh || songTitleVerBadge(song.titleEn);
   const displayArtist = SONG_ARTIST_TH_PRIMARY.has(song.artistEn) ? (song.artistTh || song.artistEn) : song.artistEn;
   return `
     <h2>${displayTitle}</h2>
@@ -978,7 +982,7 @@ function renderSongDetail(){
   const song = songById(songState.currentId);
   if(!song){ songState.view='home'; return renderSongsHome(); }
   if(song.id.startsWith('note:')) return renderNotePageDetail(song);
-  const displayTitle = song.titleTh || song.titleEn;
+  const displayTitle = song.titleTh || songTitleVerBadge(song.titleEn);
   const displayArtist = SONG_ARTIST_TH_PRIMARY.has(song.artistEn) ? (song.artistTh || song.artistEn) : song.artistEn;
 
   const activeSl = songState.activeSetlistId ? songCurrentSetlist() : null;
