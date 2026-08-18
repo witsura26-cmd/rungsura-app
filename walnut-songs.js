@@ -176,6 +176,12 @@ function ensureSongsStyle(){
     .le-icon-btn.le-del{ background:#fdeef0; }
     .le-lines{ width:100%; min-height:120px; padding:8px 10px; border:1px solid #ddd; border-radius:8px; font-size:13.5px; font-family:inherit; line-height:1.7; box-sizing:border-box; resize:vertical; }
     .le-add-btn{ width:100%; padding:12px; background:#eef7ff; color:#4a9fd4; border:1px dashed #4a9fd4; border-radius:10px; font-size:13.5px; font-weight:700; cursor:pointer; font-family:inherit; margin-top:4px; }
+    .le-export-box{ margin-top:22px; padding:14px; background:#fafafa; border-radius:10px; border:1px solid #e2e2e2; }
+    .le-export-hd{ font-size:13px; font-weight:700; color:#333; margin-bottom:4px; }
+    .le-export-help{ font-size:12px; color:#888; line-height:1.6; margin-bottom:10px; }
+    .le-export-box button{ background:#2a9d5c; color:#fff; border:none; border-radius:8px; padding:9px 18px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; }
+    .le-export-out{ width:100%; min-height:120px; margin-top:10px; padding:8px 10px; border:1px solid #ddd; border-radius:8px; font-size:12px; font-family:'SF Mono', Menlo, monospace; box-sizing:border-box; }
+    .le-export-status{ font-size:12.5px; margin-top:8px; color:#2a9d5c; }
     .songs-sticky-top{ position:sticky; top:0; z-index:20; background:#f9fafb; padding-bottom:6px; }
     .songs-search-row{ display:flex; gap:8px; align-items:stretch; margin-bottom:10px; }
     #songs-search{ flex:1; min-width:0; width:auto; padding:10px 14px; border-radius:12px; border:1px solid #cfe6f5; font-size:14px; margin-bottom:0; }
@@ -757,6 +763,34 @@ function leCancel(){
   songState.view = 'detail';
   songsRerender();
 }
+// Serializes whatever is already loaded in the editor (from this device's
+// own data -- custom song, override, or built-in) into the same JSON shape
+// the Add Song Tool produces, so it can be pasted into walnut-songs.js
+// without retyping/repasting the lyrics anywhere.
+function leExportJson(){
+  leSyncFromDom();
+  const draft = songState.editDraft;
+  let id = draft.id;
+  if(!id || id.indexOf('custom-') !== 0){
+    // built-in song ids stay as-is; give a fresh id only if somehow missing
+    id = id || ('custom-' + Date.now());
+  }
+  const exportObj = {
+    id,
+    titleEn: draft.titleEn || '',
+    titleTh: draft.titleTh || '',
+    artistEn: draft.artistEn || '',
+    artistTh: draft.artistTh || '',
+    artistIcon: draft.artistIcon || '🎵',
+    sections: draft.sections.map(s => ({ type: s.type, num: s.num, repeat: s.repeat, lines: s.lines }))
+  };
+  const out = document.getElementById('leExportOut');
+  out.value = '  ' + JSON.stringify(exportObj) + ',';
+  out.style.display = 'block';
+  out.select();
+  try{ document.execCommand('copy'); }catch(e){}
+  document.getElementById('leExportStatus').textContent = '✅ คัดลอกไปที่คลิปบอร์ดแล้ว! ไปวางใน walnut-songs.js ได้เลย (ถ้าคัดลอกไม่ติด ให้กดเลือกในกล่องแล้ว Cmd+C เอง)';
+}
 function renderLyricsEdit(){
   const draft = songState.editDraft;
   if(!draft){ songState.view='detail'; return renderSongDetail(); }
@@ -797,6 +831,14 @@ function renderLyricsEdit(){
       <input type="text" id="leArtist" value="${songEscapeHtml(draft.artistEn||'')}">
       <div class="le-sections">${sectionsHtml}</div>
       <button class="le-add-btn" onclick="leAddSection()">+ เพิ่มท่อน (เช่น Intro / Instrumental)</button>
+
+      <div class="le-export-box">
+        <div class="le-export-hd">📤 Export ไปวางใน walnut-songs.js (เพื่อให้ขึ้นทุกเครื่อง)</div>
+        <p class="le-export-help">ใช้ปุ่มนี้เมื่อเพลงนี้เพิ่มไว้แค่เครื่องนี้ (Quick note) แล้วอยากให้ขึ้นทุกเครื่อง — ไม่ต้องพิมพ์เนื้อเพลงใหม่ กด Export แล้วก็อปไปวางในไฟล์ได้เลย</p>
+        <button onclick="leExportJson()">📤 Export JSON</button>
+        <textarea id="leExportOut" class="le-export-out" readonly style="display:none"></textarea>
+        <div class="le-export-status" id="leExportStatus"></div>
+      </div>
     </div>
   `;
 }
