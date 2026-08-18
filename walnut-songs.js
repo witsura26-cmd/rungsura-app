@@ -142,6 +142,7 @@ function ensureSongsStyle(){
     .songs-home-header{ text-align:center; padding:14px 8px 10px; background:linear-gradient(150deg,#daeeff 0%,#eef7ff 45%,#fce8f4 100%); border-radius:16px; margin-bottom:12px; }
     .songs-home-header h2{ font-size:20px; font-weight:900; background:linear-gradient(135deg,#4a9fd4,#7ec0ee,#d47ab0); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; margin:0; }
     .songs-home-header .sub{ font-size:12px; color:#7aaac8; font-weight:700; margin-top:2px; }
+    .songs-add-tool-btn{ display:inline-block; margin-top:8px; padding:6px 14px; background:#4a9fd4; color:#fff; font-size:12px; font-weight:700; border-radius:20px; text-decoration:none; }
     .songs-sticky-top{ position:sticky; top:0; z-index:20; background:#f9fafb; padding-bottom:6px; }
     .songs-search-row{ display:flex; gap:8px; align-items:stretch; margin-bottom:10px; }
     #songs-search{ flex:1; min-width:0; width:auto; padding:10px 14px; border-radius:12px; border:1px solid #cfe6f5; font-size:14px; margin-bottom:0; }
@@ -613,6 +614,7 @@ function renderSongsHome(){
     <div class="songs-home-header">
       <h2>🎵 Walnut Song</h2>
       <div class="sub">Walnut's lyrics collection</div>
+      <a class="songs-add-tool-btn" href="/walnut-song-add.html" target="_blank" rel="noopener">➕ Add Song</a>
     </div>
     ${renderSetlistRow()}
   `;

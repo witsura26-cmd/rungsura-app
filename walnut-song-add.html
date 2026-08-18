@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Walnut Song - เครื่องมือเพิ่มเพลง</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Sarabun', -apple-system, sans-serif;
+    background: #f2f5f7;
+    margin: 0;
+    padding: 24px;
+    color: #222;
+  }
+  .wrap { max-width: 900px; margin: 0 auto; }
+  h1 { font-size: 20px; margin-bottom: 4px; }
+  .sub { color: #777; font-size: 13px; margin-bottom: 20px; }
+  .card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  }
+  .card h2 { font-size: 14px; color: #4a9fd4; margin-bottom: 12px; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+  label { display: block; font-size: 12px; color: #666; margin-bottom: 3px; }
+  input[type=text] {
+    width: 100%; padding: 8px 10px; border: 1px solid #ddd; border-radius: 6px;
+    font-size: 14px; font-family: inherit;
+  }
+  textarea {
+    width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;
+    font-size: 13px; font-family: 'SF Mono', Menlo, monospace; line-height: 1.6;
+    resize: vertical;
+  }
+  #lyricsInput { min-height: 260px; }
+  #output { min-height: 200px; background: #f8f9fa; }
+  .help {
+    background: #fffbea; border: 1px solid #f0e0a0; border-radius: 8px;
+    padding: 12px 14px; font-size: 12.5px; color: #6b5a1e; line-height: 1.8; margin-bottom: 14px;
+  }
+  .help code { background: #fff3c4; padding: 1px 5px; border-radius: 4px; }
+  button {
+    background: #4a9fd4; color: white; border: none; border-radius: 8px;
+    padding: 10px 20px; font-size: 14px; font-weight: 600; cursor: pointer;
+    font-family: inherit;
+  }
+  button:hover { background: #3d8ec2; }
+  button.secondary { background: #888; }
+  button.secondary:hover { background: #666; }
+  .btnrow { display: flex; gap: 8px; margin-top: 10px; }
+  .status { font-size: 12.5px; margin-top: 8px; color: #2a9d5c; min-height: 16px; }
+  .status.err { color: #c0392b; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🎵 Walnut Song - เครื่องมือเพิ่มเพลง</h1>
+  <p class="sub">แปะเนื้อเพลงพร้อม label แล้วกด "แปลงเป็น JSON" จะได้โค้ดพร้อมวางลงใน walnut-songs.js ทันที (ทำงานในเบราว์เซอร์ล้วนๆ ไม่ส่งข้อมูลไปไหน)</p>
+
+  <div class="card">
+    <h2>ข้อมูลเพลง</h2>
+    <div class="row">
+      <div><label>ชื่อเพลง (English)</label><input type="text" id="titleEn" placeholder="e.g. Song Title"></div>
+      <div><label>ชื่อเพลง (ไทย) - เว้นว่างได้ถ้าไม่มี</label><input type="text" id="titleTh" placeholder="เช่น ชื่อเพลงไทย"></div>
+    </div>
+    <div class="row">
+      <div><label>ศิลปิน (English)</label><input type="text" id="artistEn" placeholder="e.g. Artist Name"></div>
+      <div><label>ศิลปิน (ไทย) - เว้นว่างได้ถ้าไม่มี</label><input type="text" id="artistTh" placeholder="เช่น ชื่อศิลปินไทย"></div>
+    </div>
+    <div class="row">
+      <div><label>ไอคอน (emoji)</label><input type="text" id="icon" value="🎸"></div>
+      <div><label>ID (อังกฤษล้วน ไม่มีเว้นวรรค) - เว้นว่างให้สร้างอัตโนมัติ</label><input type="text" id="songId" placeholder="เว้นว่างได้"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>เนื้อเพลง</h2>
+    <div class="help">
+      แปะเนื้อเพลงพร้อมใส่ label นำแต่ละท่อน ใช้แบบนี้ (บรรทัดของตัวเองสำหรับ label):<br>
+      <code>[Verse 1]</code> <code>[Verse 2]</code> ... = ท่อน verse<br>
+      <code>[Pre-Chorus]</code> = ท่อนก่อน chorus<br>
+      <code>[Chorus]</code> = ท่อนฮุก<br>
+      <code>[Bridge]</code> = ท่อนเชื่อม<br>
+      <code>[Intro]</code> <code>[Outro]</code> <code>[Instrumental]</code> = ท่อนดนตรี/เปิด-ปิด<br>
+      ถ้าท่อนไหนเป็นการ "ร้องซ้ำ" ของท่อนก่อนหน้า ใส่ <code>*</code> ต่อท้าย label เช่น <code>[Chorus] *</code>
+    </div>
+    <label>วางเนื้อเพลงตรงนี้</label>
+    <textarea id="lyricsInput" placeholder="[Verse 1]
+บรรทัดที่ 1
+บรรทัดที่ 2
+
+[Chorus]
+บรรทัดฮุก 1
+บรรทัดฮุก 2
+
+[Chorus] *
+บรรทัดฮุก 1
+บรรทัดฮุก 2"></textarea>
+    <div class="btnrow">
+      <button onclick="generateJson()">แปลงเป็น JSON</button>
+      <button class="secondary" onclick="clearAll()">ล้างทั้งหมด</button>
+    </div>
+    <div class="status" id="status"></div>
+  </div>
+
+  <div class="card" id="outputCard" style="display:none">
+    <h2>ผลลัพธ์ - copy แล้วไปวางใน walnut-songs.js</h2>
+    <p style="font-size:12.5px;color:#777;margin-bottom:8px;">
+      เปิดไฟล์ <code>walnut-songs.js</code> หา <code>const SONGS = [</code> แล้ววาง object ด้านล่างนี้เป็นบรรทัดแรกถัดจากนั้น (อย่าลืม comma <code>,</code> ต่อท้าย ถ้ามีเพลงอื่นตามหลัง)
+    </p>
+    <textarea id="output" readonly></textarea>
+    <div class="btnrow">
+      <button onclick="copyOutput()">📋 คัดลอก</button>
+    </div>
+    <div class="status" id="copyStatus"></div>
+  </div>
+</div>
+
+<script>
+const TYPE_MAP = {
+  'verse': 'verse', 'pre-chorus': 'pre-chorus', 'prechorus': 'pre-chorus',
+  'chorus': 'chorus', 'bridge': 'bridge', 'intro': 'intro', 'outro': 'outro',
+  'instrumental': 'instrumental', 'interlude': 'interlude', 'rap': 'rap'
+};
+
+function slugify(titleEn, artistEn){
+  const clean = s => (s||'').toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
+  return clean(titleEn) + '-' + clean(artistEn).split('-')[0];
+}
+
+function parseLyrics(raw){
+  const lines = raw.split('\n');
+  const sections = [];
+  let current = null;
+
+  const labelRe = /^\[([a-zA-Z\- ]+?)\s*(\d+)?\]\s*(\*)?\s*$/;
+
+  for(let rawLine of lines){
+    const line = rawLine.trim();
+    if(!line){ continue; }
+    const m = line.match(labelRe);
+    if(m){
+      const rawType = m[1].toLowerCase().replace(/\s+/g,'-');
+      const type = TYPE_MAP[rawType] || rawType;
+      const num = m[2] ? parseInt(m[2],10) : null;
+      const repeat = !!m[3];
+      current = { type, num, repeat, lines: [] };
+      sections.push(current);
+    } else {
+      if(!current){
+        current = { type:'verse', num:1, repeat:false, lines: [] };
+        sections.push(current);
+      }
+      current.lines.push(rawLine);
+    }
+  }
+  return sections;
+}
+
+function generateJson(){
+  const statusEl = document.getElementById('status');
+  const titleEn = document.getElementById('titleEn').value.trim();
+  const titleTh = document.getElementById('titleTh').value.trim();
+  const artistEn = document.getElementById('artistEn').value.trim();
+  const artistTh = document.getElementById('artistTh').value.trim();
+  const icon = document.getElementById('icon').value.trim() || '🎸';
+  let songId = document.getElementById('songId').value.trim();
+  const raw = document.getElementById('lyricsInput').value;
+
+  if(!titleEn || !artistEn){
+    statusEl.className = 'status err';
+    statusEl.textContent = '⚠️ กรุณากรอกชื่อเพลง (English) และศิลปิน (English) ก่อน';
+    return;
+  }
+  if(!raw.trim()){
+    statusEl.className = 'status err';
+    statusEl.textContent = '⚠️ กรุณาวางเนื้อเพลงก่อน';
+    return;
+  }
+
+  const sections = parseLyrics(raw);
+  if(sections.length === 0 || sections.every(s=>s.lines.length===0)){
+    statusEl.className = 'status err';
+    statusEl.textContent = '⚠️ ไม่พบเนื้อเพลง ลองเช็ครูปแบบ label เช่น [Verse 1] อีกครั้ง';
+    return;
+  }
+
+  if(!songId) songId = slugify(titleTh || titleEn, artistEn);
+
+  const songObj = {
+    id: songId,
+    titleEn: titleEn,
+    titleTh: titleTh,
+    artistEn: artistEn,
+    artistTh: artistTh,
+    artistIcon: icon,
+    sections: sections.map(s => ({
+      type: s.type,
+      num: s.num,
+      repeat: s.repeat,
+      lines: s.lines
+    }))
+  };
+
+  const jsonStr = JSON.stringify(songObj);
+  document.getElementById('output').value = '  ' + jsonStr + ',';
+  document.getElementById('outputCard').style.display = 'block';
+  document.getElementById('outputCard').scrollIntoView({behavior:'smooth'});
+
+  statusEl.className = 'status';
+  statusEl.textContent = '✅ แปลงสำเร็จ! พบ ' + sections.length + ' ท่อน (section)';
+}
+
+function copyOutput(){
+  const out = document.getElementById('output');
+  out.select();
+  document.execCommand('copy');
+  const cs = document.getElementById('copyStatus');
+  cs.textContent = '✅ คัดลอกแล้ว! ไปวางใน walnut-songs.js ได้เลย';
+  setTimeout(()=>{ cs.textContent=''; }, 3000);
+}
+
+function clearAll(){
+  ['titleEn','titleTh','artistEn','artistTh','songId'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('icon').value = '🎸';
+  document.getElementById('lyricsInput').value = '';
+  document.getElementById('output').value = '';
+  document.getElementById('outputCard').style.display = 'none';
+  document.getElementById('status').textContent = '';
+}
+</script>
+</body>
+</html>

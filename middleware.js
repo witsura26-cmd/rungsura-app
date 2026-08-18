@@ -1,5 +1,5 @@
 export const config = {
-  matcher: ['/walnut-song.html', '/walnut-songs.js'],
+  matcher: ['/walnut-song.html', '/walnut-songs.js', '/walnut-song-add.html'],
 };
 
 const PASSWORD = '1111';
