@@ -98,6 +98,11 @@ const songState = {
 const SONG_STORAGE_PREFIX = 'walnut_song_note_';
 const SONG_SETLIST_KEY = 'walnut_song_setlists';
 const SONG_CUSTOM_KEY = 'walnut_song_custom_songs';
+const SONG_OVERRIDE_KEY = 'walnut_song_overrides';
+const SONG_EDIT_TYPE_OPTIONS = [
+  ['verse','Verse'], ['pre-chorus','Pre-Chorus'], ['chorus','Chorus'], ['bridge','Bridge'],
+  ['intro','Intro'], ['outro','Outro'], ['instrumental','Instrumental'], ['interlude','Interlude'], ['rap','Rap']
+];
 const SONG_COLORS = ['#e85d8a', '#4d96ff', '#6bcB77', '#ffd93d', '#9b5de5', '#3a3a3a'];
 const SONG_NOTE_COLORS = ['#000000', '#ffffff', '#e85d8a', '#4d96ff', '#6bcB77', '#ffd93d', '#9b5de5'];
 const SONG_STICKERS = ['🎵','🎶','🎤','🎧','🎸','🎹','🥁','🎷','🎺','🎻','🔔','📯','💖','💗','💓','💕','💞','💘','❤️','🧡','💛','💚','💙','💜','🤍','✨','🌟','⭐','💫','🌠','💎','😊','🥳','🎉','🌈','🦋'];
@@ -151,6 +156,25 @@ function ensureSongsStyle(){
     .qa-save-btn{ background:#4a9fd4; color:#fff; border:none; border-radius:10px; padding:11px 26px; font-size:15px; font-weight:700; cursor:pointer; font-family:inherit; }
     .qa-status{ font-size:13px; margin-top:10px; color:#2a9d5c; min-height:16px; }
     .qa-status.err{ color:#c0392b; }
+    .songs-lyrics-edit-btn{ background:#888; color:#fff; border:none; border-radius:8px; padding:6px 12px; font-size:12px; font-weight:600; cursor:pointer; font-family:inherit; margin-right:6px; }
+    .songs-lyricsedit{ padding:10px 4px 60px; }
+    .le-topbar{ display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; position:sticky; top:0; background:#fff; padding:6px 0; z-index:5; }
+    .le-topbar button{ background:#888; color:#fff; border:none; border-radius:8px; padding:8px 14px; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; }
+    .le-topbar button.primary{ background:#4a9fd4; }
+    .songs-lyricsedit label{ display:block; font-size:12px; color:#666; margin:10px 0 4px; font-weight:600; }
+    .songs-lyricsedit > input[type=text]{ width:100%; padding:8px 10px; border:1px solid #ddd; border-radius:8px; font-size:14px; font-family:inherit; box-sizing:border-box; }
+    .le-sections{ margin-top:16px; }
+    .le-section{ border:1px solid #e2e2e2; border-radius:10px; padding:10px 12px; margin-bottom:12px; }
+    .le-section-hd{ display:flex; align-items:center; gap:6px; margin-bottom:8px; flex-wrap:wrap; }
+    .le-section-hd select{ padding:5px 8px; border:1px solid #ddd; border-radius:6px; font-size:12.5px; font-family:inherit; }
+    .le-section-hd input[type=number]{ width:50px; padding:5px 6px; border:1px solid #ddd; border-radius:6px; font-size:12.5px; font-family:inherit; }
+    .le-repeat-lbl{ font-size:12px; display:flex; align-items:center; gap:3px; margin:0; }
+    .le-spacer{ flex:1; }
+    .le-icon-btn{ background:#f0f0f0; border:none; border-radius:6px; width:26px; height:26px; font-size:13px; cursor:pointer; }
+    .le-icon-btn:disabled{ opacity:0.3; cursor:default; }
+    .le-icon-btn.le-del{ background:#fdeef0; }
+    .le-lines{ width:100%; min-height:120px; padding:8px 10px; border:1px solid #ddd; border-radius:8px; font-size:13.5px; font-family:inherit; line-height:1.7; box-sizing:border-box; resize:vertical; }
+    .le-add-btn{ width:100%; padding:12px; background:#eef7ff; color:#4a9fd4; border:1px dashed #4a9fd4; border-radius:10px; font-size:13.5px; font-weight:700; cursor:pointer; font-family:inherit; margin-top:4px; }
     .songs-sticky-top{ position:sticky; top:0; z-index:20; background:#f9fafb; padding-bottom:6px; }
     .songs-search-row{ display:flex; gap:8px; align-items:stretch; margin-bottom:10px; }
     #songs-search{ flex:1; min-width:0; width:auto; padding:10px 14px; border-radius:12px; border:1px solid #cfe6f5; font-size:14px; margin-bottom:0; }
@@ -361,8 +385,34 @@ function songAddCustomSong(song){
 function songDeleteCustomSong(id){
   songSaveCustomSongs(songGetCustomSongs().filter(s=>s.id!==id));
 }
+function songGetOverrides(){
+  try{ return JSON.parse(localStorage.getItem(SONG_OVERRIDE_KEY)||'{}'); }
+  catch(e){ return {}; }
+}
+function songSaveOverrides(map){
+  localStorage.setItem(SONG_OVERRIDE_KEY, JSON.stringify(map));
+}
+// Saves edits made via the lyrics editor. Built-in (hardcoded) songs are
+// never mutated in place -- an override is stored separately and layered
+// on top when reading. Custom (Quick-Add) songs are updated directly in
+// their own list. Neither path touches SONG_STORAGE_PREFIX (Walnut's
+// saved drawings/notes), so those are never at risk from this feature.
+function songSaveEditedSong(id, updatedSong){
+  const customList = songGetCustomSongs();
+  const customIdx = customList.findIndex(s=>s.id===id);
+  if(customIdx >= 0){
+    customList[customIdx] = updatedSong;
+    songSaveCustomSongs(customList);
+  } else {
+    const overrides = songGetOverrides();
+    overrides[id] = updatedSong;
+    songSaveOverrides(overrides);
+  }
+}
 function songAllSongs(){
-  return SONGS.concat(songGetCustomSongs());
+  const overrides = songGetOverrides();
+  const base = SONGS.map(s => overrides[s.id] || s);
+  return base.concat(songGetCustomSongs());
 }
 function songById(id){
   if(typeof id === 'string' && id.startsWith('note:')){
@@ -532,6 +582,7 @@ function renderSongs(){
 }
 function songRouteView(){
   if(songState.view==='quickadd') return renderQuickAdd();
+  if(songState.view==='lyricsedit') return renderLyricsEdit();
   if(songState.view==='home') return renderSongsHome();
   return renderSongDetail();
 }
@@ -638,6 +689,115 @@ function songSetlistEntryHtml(entry, index, total){
     </div>
     <span class="songs-order-remove" onclick="songRemoveEntryFromSetlist('${entry.id}')">✕</span>
   </div>`;
+}
+
+/* ===================== LYRICS EDITOR (verse/chorus structure, per-song) ===================== */
+function songOpenLyricsEdit(){
+  const song = songById(songState.currentId);
+  if(!song) return;
+  songState.editDraft = JSON.parse(JSON.stringify(song));
+  songState.view = 'lyricsedit';
+  songsRerender();
+}
+function leSyncFromDom(){
+  const draft = songState.editDraft;
+  if(!draft) return;
+  const t = document.getElementById('leTitleEn'); if(t) draft.titleEn = t.value;
+  const tth = document.getElementById('leTitleTh'); if(tth) draft.titleTh = tth.value;
+  const a = document.getElementById('leArtist'); if(a) draft.artistEn = a.value;
+  (draft.sections||[]).forEach((sec,i)=>{
+    const ta = document.getElementById('leLines'+i);
+    if(ta) sec.lines = ta.value.split('\n');
+    const numEl = document.getElementById('leNum'+i);
+    if(numEl) sec.num = numEl.value ? parseInt(numEl.value,10) : null;
+  });
+}
+function leUpdateType(i, val){
+  leSyncFromDom();
+  songState.editDraft.sections[i].type = val;
+  songsRerender();
+}
+function leToggleRepeat(i, checked){
+  leSyncFromDom();
+  songState.editDraft.sections[i].repeat = checked;
+}
+function leRemoveSection(i){
+  leSyncFromDom();
+  songState.editDraft.sections.splice(i,1);
+  songsRerender();
+}
+function leMoveSection(i, dir){
+  leSyncFromDom();
+  const arr = songState.editDraft.sections;
+  const j = i+dir;
+  if(j<0 || j>=arr.length) return;
+  const tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp;
+  songsRerender();
+}
+function leAddSection(){
+  leSyncFromDom();
+  songState.editDraft.sections.push({type:'verse', num:null, repeat:false, lines:['']});
+  songsRerender();
+}
+function leSave(){
+  leSyncFromDom();
+  const draft = songState.editDraft;
+  if(!draft.titleEn || !draft.titleEn.trim()){
+    alert('กรุณาใส่ชื่อเพลง');
+    return;
+  }
+  songSaveEditedSong(draft.id, draft);
+  songState.editDraft = null;
+  songState.view = 'detail';
+  songsRerender();
+}
+function leCancel(){
+  songState.editDraft = null;
+  songState.view = 'detail';
+  songsRerender();
+}
+function renderLyricsEdit(){
+  const draft = songState.editDraft;
+  if(!draft){ songState.view='detail'; return renderSongDetail(); }
+
+  const typeOptsHtml = (selected) => SONG_EDIT_TYPE_OPTIONS.map(([v,l])=>
+    `<option value="${v}" ${selected===v?'selected':''}>${l}</option>`).join('');
+
+  const sectionsHtml = draft.sections.map((sec,i)=>{
+    const showNum = sec.type==='verse' || sec.type==='rap';
+    return `
+    <div class="le-section">
+      <div class="le-section-hd">
+        <b>${i+1}.</b>
+        <select onchange="leUpdateType(${i}, this.value)">${typeOptsHtml(sec.type)}</select>
+        <input type="number" id="leNum${i}" min="1" value="${sec.num||''}" placeholder="#" style="display:${showNum?'inline-block':'none'}">
+        <label class="le-repeat-lbl"><input type="checkbox" ${sec.repeat?'checked':''} onchange="leToggleRepeat(${i}, this.checked)"> ซ้ำ</label>
+        <span class="le-spacer"></span>
+        <button class="le-icon-btn" onclick="leMoveSection(${i},-1)" ${i===0?'disabled':''}>↑</button>
+        <button class="le-icon-btn" onclick="leMoveSection(${i},1)" ${i===draft.sections.length-1?'disabled':''}>↓</button>
+        <button class="le-icon-btn le-del" onclick="leRemoveSection(${i})">🗑️</button>
+      </div>
+      <textarea id="leLines${i}" class="le-lines" placeholder="หนึ่งบรรทัดเนื้อเพลงต่อหนึ่งบรรทัดในกล่องนี้">${(sec.lines||[]).join('\n')}</textarea>
+    </div>`;
+  }).join('');
+
+  return `
+    <div class="songs-lyricsedit">
+      <div class="le-topbar">
+        <button onclick="leCancel()">✖️ ยกเลิก</button>
+        <b>✏️ แก้ไขเนื้อเพลง</b>
+        <button class="primary" onclick="leSave()">💾 บันทึก</button>
+      </div>
+      <label>ชื่อเพลง (English)</label>
+      <input type="text" id="leTitleEn" value="${songEscapeHtml(draft.titleEn||'')}">
+      <label>ชื่อเพลง (ไทย)</label>
+      <input type="text" id="leTitleTh" value="${songEscapeHtml(draft.titleTh||'')}">
+      <label>ศิลปิน</label>
+      <input type="text" id="leArtist" value="${songEscapeHtml(draft.artistEn||'')}">
+      <div class="le-sections">${sectionsHtml}</div>
+      <button class="le-add-btn" onclick="leAddSection()">+ เพิ่มท่อน (เช่น Intro / Instrumental)</button>
+    </div>
+  `;
 }
 
 function renderQuickAdd(){
@@ -1115,6 +1275,9 @@ function renderSongDetail(){
     ? `<button onclick="songCancelEdit()">✖️ Cancel</button><button class="primary" onclick="songSaveEdit()">💾 Save</button>`
     : actionRow;
 
+  const lyricsEditBtn = songState.mode==='edit' ? '' :
+    `<button class="songs-lyrics-edit-btn" onclick="songOpenLyricsEdit()">📝 Edit เนื้อเพลง</button>`;
+
   const dotBtn = (px)=>`<span class="linebar" style="height:${px}px"></span>`;
 
   return `
@@ -1125,7 +1288,7 @@ function renderSongDetail(){
           <div class="t">${displayTitle}</div>
           <div class="a">${displayArtist}</div>
         </div>
-        <div class="songs-topbar-actions">${headerActions}</div>
+        <div class="songs-topbar-actions">${lyricsEditBtn}${headerActions}</div>
       </div>
       ${setlistNav}
       <div class="songs-toolbar" id="songs-toolbar" style="display:${songState.mode==='edit'?'flex':'none'}">
