@@ -145,7 +145,8 @@ function ensureSongsStyle(){
     .songs-home-header{ text-align:center; padding:14px 8px 10px; background:linear-gradient(150deg,#daeeff 0%,#eef7ff 45%,#fce8f4 100%); border-radius:16px; margin-bottom:12px; }
     .songs-home-header h2{ font-size:20px; font-weight:900; background:linear-gradient(135deg,#4a9fd4,#7ec0ee,#d47ab0); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; margin:0; }
     .songs-home-header .sub{ font-size:12px; color:#7aaac8; font-weight:700; margin-top:2px; }
-    .songs-add-tool-btn{ display:inline-block; margin-top:8px; padding:6px 14px; background:#4a9fd4; color:#fff; font-size:12px; font-weight:700; border-radius:20px; text-decoration:none; border:none; cursor:pointer; font-family:inherit; }
+    .songs-add-tool-btn{ display:inline-block; margin-top:8px; margin-right:6px; padding:6px 14px; background:#4a9fd4; color:#fff; font-size:12px; font-weight:700; border-radius:20px; text-decoration:none; border:none; cursor:pointer; font-family:inherit; }
+    .songs-quickadd-btn{ background:#bbb; font-weight:600; }
     .songs-quickadd{ padding:10px 4px; }
     .songs-quickadd h2{ font-size:18px; margin:10px 0 4px; }
     .qa-help{ font-size:12px; color:#888; background:#fffbea; border:1px solid #f0e0a0; border-radius:8px; padding:10px 12px; margin-bottom:14px; line-height:1.6; }
@@ -858,7 +859,8 @@ function renderSongsHome(){
     <div class="songs-home-header">
       <h2>🎵 Walnut Song</h2>
       <div class="sub">Walnut's lyrics collection</div>
-      <button class="songs-add-tool-btn" onclick="songState.view='quickadd'; songsRerender();">➕ Add Song</button>
+      <a class="songs-add-tool-btn" href="/walnut-song-add.html" target="_blank" rel="noopener">➕ Add Song</a>
+      <button class="songs-add-tool-btn songs-quickadd-btn" onclick="songState.view='quickadd'; songsRerender();">🩹 Quick note (this device only)</button>
     </div>
     ${renderSetlistRow()}
   `;
