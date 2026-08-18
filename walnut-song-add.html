@@ -53,6 +53,8 @@
   .btnrow { display: flex; gap: 8px; margin-top: 10px; }
   .status { font-size: 12.5px; margin-top: 8px; color: #2a9d5c; min-height: 16px; }
   .status.err { color: #c0392b; }
+  #preview { margin-top: 8px; }
+  .preview-row { font-size: 12.5px; padding: 4px 0; border-bottom: 1px solid #eee; color: #444; }
 </style>
 </head>
 <body>
@@ -79,13 +81,14 @@
   <div class="card">
     <h2>เนื้อเพลง</h2>
     <div class="help">
-      แปะเนื้อเพลงพร้อมใส่ label นำแต่ละท่อน ใช้แบบนี้ (บรรทัดของตัวเองสำหรับ label):<br>
+      แปะเนื้อเพลงพร้อมใส่ label นำแต่ละท่อน — จะขึ้นบรรทัดใหม่ต่างหาก หรือพิมพ์ต่อท้ายในบรรทัดเดียวกันก็ได้ทั้งคู่ (เช่น <code>[Verse 1]</code> หรือ <code>[Verse 1] เนื้อร้องบรรทัดแรก</code>):<br>
       <code>[Verse 1]</code> <code>[Verse 2]</code> ... = ท่อน verse<br>
       <code>[Pre-Chorus]</code> = ท่อนก่อน chorus<br>
       <code>[Chorus]</code> = ท่อนฮุก<br>
       <code>[Bridge]</code> = ท่อนเชื่อม<br>
       <code>[Intro]</code> <code>[Outro]</code> <code>[Instrumental]</code> = ท่อนดนตรี/เปิด-ปิด<br>
-      ถ้าท่อนไหนเป็นการ "ร้องซ้ำ" ของท่อนก่อนหน้า ใส่ <code>*</code> ต่อท้าย label เช่น <code>[Chorus] *</code>
+      ถ้าท่อนไหนเป็นการ "ร้องซ้ำ" ของท่อนก่อนหน้า ใส่ <code>*</code> ต่อท้าย label เช่น <code>[Chorus] *</code><br>
+      หลังกดแปลง จะมีรายการท่อนขึ้นด้านล่างให้เช็คจำนวนบรรทัด ก่อน copy ไปวางในไฟล์
     </div>
     <label>วางเนื้อเพลงตรงนี้</label>
     <textarea id="lyricsInput" placeholder="[Verse 1]
@@ -104,6 +107,7 @@
       <button class="secondary" onclick="clearAll()">ล้างทั้งหมด</button>
     </div>
     <div class="status" id="status"></div>
+    <div id="preview"></div>
   </div>
 
   <div class="card" id="outputCard" style="display:none">
@@ -136,7 +140,9 @@ function parseLyrics(raw){
   const sections = [];
   let current = null;
 
-  const labelRe = /^\[([a-zA-Z\- ]+?)\s*(\d+)?\]\s*(\*)?\s*$/;
+  // Label can be alone on its line OR followed by lyric text on the same line
+  // e.g. both "[Verse 1]" and "[Verse 1] first lyric line here" work.
+  const labelRe = /^\[([a-zA-Z\- ]+?)\s*(\d+)?\]\s*(\*)?\s*(.*)$/;
 
   for(let rawLine of lines){
     const line = rawLine.trim();
@@ -147,8 +153,10 @@ function parseLyrics(raw){
       const type = TYPE_MAP[rawType] || rawType;
       const num = m[2] ? parseInt(m[2],10) : null;
       const repeat = !!m[3];
+      const trailing = (m[4]||'').trim();
       current = { type, num, repeat, lines: [] };
       sections.push(current);
+      if(trailing) current.lines.push(trailing);
     } else {
       if(!current){
         current = { type:'verse', num:1, repeat:false, lines: [] };
@@ -158,6 +166,26 @@ function parseLyrics(raw){
     }
   }
   return sections;
+}
+
+function labelForType(type, num, repeat){
+  const NAMES = { verse:'Verse', 'pre-chorus':'Pre-Chorus', chorus:'Chorus', bridge:'Bridge',
+    intro:'Intro', outro:'Outro', instrumental:'Instrumental', interlude:'Interlude', rap:'Rap' };
+  let base = NAMES[type] || type;
+  if(num) base += ' ' + num;
+  if(repeat) base += ' *';
+  return base;
+}
+
+function renderPreview(sections){
+  const box = document.getElementById('preview');
+  if(!sections.length){ box.innerHTML=''; return; }
+  box.innerHTML = sections.map((s,i)=>{
+    const lbl = labelForType(s.type, s.num, s.repeat);
+    const n = s.lines.length;
+    const warn = n===0 ? ' <span style="color:#c0392b">⚠️ ไม่มีเนื้อร้องในท่อนนี้</span>' : '';
+    return `<div class="preview-row"><b>${i+1}. ${lbl}</b> — ${n} บรรทัด${warn}</div>`;
+  }).join('');
 }
 
 function generateJson(){
@@ -188,6 +216,9 @@ function generateJson(){
     return;
   }
 
+  renderPreview(sections);
+  const emptyCount = sections.filter(s=>s.lines.length===0).length;
+
   if(!songId) songId = slugify(titleTh || titleEn, artistEn);
 
   const songObj = {
@@ -210,8 +241,13 @@ function generateJson(){
   document.getElementById('outputCard').style.display = 'block';
   document.getElementById('outputCard').scrollIntoView({behavior:'smooth'});
 
-  statusEl.className = 'status';
-  statusEl.textContent = '✅ แปลงสำเร็จ! พบ ' + sections.length + ' ท่อน (section)';
+  if(emptyCount > 0){
+    statusEl.className = 'status err';
+    statusEl.textContent = '⚠️ แปลงเสร็จแต่มี ' + emptyCount + ' ท่อนที่ไม่มีเนื้อร้อง (ดูรายการด้านล่าง) เช็คก่อน copy';
+  } else {
+    statusEl.className = 'status';
+    statusEl.textContent = '✅ แปลงสำเร็จ! พบ ' + sections.length + ' ท่อน (section) ดูรายการด้านล่างเพื่อเช็คว่าถูกต้อง';
+  }
 }
 
 function copyOutput(){
