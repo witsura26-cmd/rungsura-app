@@ -76,7 +76,7 @@ const SONGS = [
 
 /* ===================== STATE ===================== */
 const songState = {
-  view: 'home',          // home | detail
+  view: 'home',          // home | detail | quickadd
   currentId: null,
   mode: 'clean',          // clean | view | edit
   searchQuery: '',
@@ -100,6 +100,7 @@ const songState = {
 
 const SONG_STORAGE_PREFIX = 'walnut_song_note_';
 const SONG_SETLIST_KEY = 'walnut_song_setlists';
+const SONG_CUSTOM_KEY = 'walnut_song_custom_songs';
 const SONG_COLORS = ['#e85d8a', '#4d96ff', '#6bcB77', '#ffd93d', '#9b5de5', '#3a3a3a'];
 const SONG_NOTE_COLORS = ['#000000', '#ffffff', '#e85d8a', '#4d96ff', '#6bcB77', '#ffd93d', '#9b5de5'];
 const SONG_STICKERS = ['🎵','🎶','🎤','🎧','🎸','🎹','🥁','🎷','🎺','🎻','🔔','📯','💖','💗','💓','💕','💞','💘','❤️','🧡','💛','💚','💙','💜','🤍','✨','🌟','⭐','💫','🌠','💎','😊','🥳','🎉','🌈','🦋'];
@@ -142,7 +143,17 @@ function ensureSongsStyle(){
     .songs-home-header{ text-align:center; padding:14px 8px 10px; background:linear-gradient(150deg,#daeeff 0%,#eef7ff 45%,#fce8f4 100%); border-radius:16px; margin-bottom:12px; }
     .songs-home-header h2{ font-size:20px; font-weight:900; background:linear-gradient(135deg,#4a9fd4,#7ec0ee,#d47ab0); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; margin:0; }
     .songs-home-header .sub{ font-size:12px; color:#7aaac8; font-weight:700; margin-top:2px; }
-    .songs-add-tool-btn{ display:inline-block; margin-top:8px; padding:6px 14px; background:#4a9fd4; color:#fff; font-size:12px; font-weight:700; border-radius:20px; text-decoration:none; }
+    .songs-add-tool-btn{ display:inline-block; margin-top:8px; padding:6px 14px; background:#4a9fd4; color:#fff; font-size:12px; font-weight:700; border-radius:20px; text-decoration:none; border:none; cursor:pointer; font-family:inherit; }
+    .songs-quickadd{ padding:10px 4px; }
+    .songs-quickadd h2{ font-size:18px; margin:10px 0 4px; }
+    .qa-help{ font-size:12px; color:#888; background:#fffbea; border:1px solid #f0e0a0; border-radius:8px; padding:10px 12px; margin-bottom:14px; line-height:1.6; }
+    .songs-quickadd label{ display:block; font-size:12px; color:#666; margin:10px 0 4px; font-weight:600; }
+    .songs-quickadd input[type=text]{ width:100%; padding:9px 12px; border:1px solid #ddd; border-radius:8px; font-size:14px; font-family:inherit; box-sizing:border-box; }
+    .songs-quickadd textarea{ width:100%; min-height:240px; padding:10px 12px; border:1px solid #ddd; border-radius:8px; font-size:14px; font-family:inherit; box-sizing:border-box; line-height:1.7; resize:vertical; }
+    .qa-btnrow{ margin-top:14px; }
+    .qa-save-btn{ background:#4a9fd4; color:#fff; border:none; border-radius:10px; padding:11px 26px; font-size:15px; font-weight:700; cursor:pointer; font-family:inherit; }
+    .qa-status{ font-size:13px; margin-top:10px; color:#2a9d5c; min-height:16px; }
+    .qa-status.err{ color:#c0392b; }
     .songs-sticky-top{ position:sticky; top:0; z-index:20; background:#f9fafb; padding-bottom:6px; }
     .songs-search-row{ display:flex; gap:8px; align-items:stretch; margin-bottom:10px; }
     #songs-search{ flex:1; min-width:0; width:auto; padding:10px 14px; border-radius:12px; border:1px solid #cfe6f5; font-size:14px; margin-bottom:0; }
@@ -338,6 +349,24 @@ function songNoteBodyKey(entryId){ return 'walnut_note_body_'+entryId; }
 function songLoadNoteBody(entryId){ return localStorage.getItem(songNoteBodyKey(entryId)) || ''; }
 function songSaveNoteBody(entryId, text){ localStorage.setItem(songNoteBodyKey(entryId), text); }
 function songOnNoteBodyInput(entryId, el){ songSaveNoteBody(entryId, el.innerText); }
+function songGetCustomSongs(){
+  try{ return JSON.parse(localStorage.getItem(SONG_CUSTOM_KEY)||'[]'); }
+  catch(e){ return []; }
+}
+function songSaveCustomSongs(list){
+  localStorage.setItem(SONG_CUSTOM_KEY, JSON.stringify(list));
+}
+function songAddCustomSong(song){
+  const list = songGetCustomSongs();
+  list.push(song);
+  songSaveCustomSongs(list);
+}
+function songDeleteCustomSong(id){
+  songSaveCustomSongs(songGetCustomSongs().filter(s=>s.id!==id));
+}
+function songAllSongs(){
+  return SONGS.concat(songGetCustomSongs());
+}
 function songById(id){
   if(typeof id === 'string' && id.startsWith('note:')){
     const entryId = id.slice(5);
@@ -353,7 +382,7 @@ function songById(id){
     }
     return null;
   }
-  return SONGS.find(s=>s.id===id);
+  return songAllSongs().find(s=>s.id===id);
 }
 
 /* ===================== SETLISTS ===================== */
@@ -502,12 +531,17 @@ function songSectionLabelClass(sec){
 /* ===================== ROOT RENDER ===================== */
 function renderSongs(){
   ensureSongsStyle();
-  return `<div id="songs-root">${songState.view==='home' ? renderSongsHome() : renderSongDetail()}</div>`;
+  return `<div id="songs-root">${songRouteView()}</div>`;
+}
+function songRouteView(){
+  if(songState.view==='quickadd') return renderQuickAdd();
+  if(songState.view==='home') return renderSongsHome();
+  return renderSongDetail();
 }
 function songsRerender(){
   const root=document.getElementById('songs-root');
   if(!root) return;
-  root.innerHTML = songState.view==='home' ? renderSongsHome() : renderSongDetail();
+  root.innerHTML = songRouteView();
   songsPostRender();
 }
 function initSongsTab(){ ensureSongsStyle(); songsPostRender(); }
@@ -609,12 +643,65 @@ function songSetlistEntryHtml(entry, index, total){
   </div>`;
 }
 
+function renderQuickAdd(){
+  return `
+    <div class="songs-quickadd">
+      <button class="songs-back" onclick="songState.view='home'; songsRerender();">← Back</button>
+      <h2>➕ เพิ่มเพลงใหม่</h2>
+      <div class="qa-help">บันทึกไว้ในเครื่องนี้เท่านั้น (ไม่ต้อง deploy) ขึ้นในรายการทันทีที่กดบันทึก — วางเนื้อเพลงทั้งเพลงได้เลย เว้นบรรทัดว่างคั่นเป็นท่อนๆ ตามที่เพลงมันเว้นมาอยู่แล้วก็พอ ไม่ต้องจัด verse/chorus เอง</div>
+      <label>ชื่อเพลง</label>
+      <input type="text" id="qaTitle" placeholder="ชื่อเพลง">
+      <label>ศิลปิน</label>
+      <input type="text" id="qaArtist" placeholder="ชื่อศิลปิน">
+      <label>เนื้อเพลง</label>
+      <textarea id="qaLyrics" placeholder="วางเนื้อเพลงทั้งหมดตรงนี้..."></textarea>
+      <div class="qa-btnrow">
+        <button class="qa-save-btn" onclick="songQuickAddSave()">✓ บันทึก</button>
+      </div>
+      <div class="qa-status" id="qaStatus"></div>
+    </div>
+  `;
+}
+
+function songQuickAddSave(){
+  const title = document.getElementById('qaTitle').value.trim();
+  const artist = document.getElementById('qaArtist').value.trim();
+  const raw = document.getElementById('qaLyrics').value;
+  const statusEl = document.getElementById('qaStatus');
+
+  if(!title || !artist){
+    statusEl.textContent = '⚠️ กรุณากรอกชื่อเพลงและศิลปินก่อน';
+    statusEl.className = 'qa-status err';
+    return;
+  }
+  if(!raw.trim()){
+    statusEl.textContent = '⚠️ กรุณาวางเนื้อเพลงก่อน';
+    statusEl.className = 'qa-status err';
+    return;
+  }
+
+  const blocks = raw.split(/\n\s*\n/).map(b=>b.split('\n').map(l=>l.trim()).filter(Boolean)).filter(b=>b.length);
+  const sections = blocks.length
+    ? blocks.map((lines,i)=>({type:'verse', num:i+1, repeat:false, lines}))
+    : [{type:'verse', num:1, repeat:false, lines: raw.split('\n').map(l=>l.trim()).filter(Boolean)}];
+
+  const id = 'custom-' + Date.now();
+  songAddCustomSong({
+    id, titleEn: title, titleTh: '', artistEn: artist, artistTh: '', artistIcon: '🎵',
+    sections
+  });
+
+  statusEl.textContent = '✅ บันทึกแล้ว! เพลงขึ้นในรายการแล้ว';
+  statusEl.className = 'qa-status';
+  setTimeout(()=>{ songState.view='home'; songsRerender(); }, 700);
+}
+
 function renderSongsHome(){
   const header = `
     <div class="songs-home-header">
       <h2>🎵 Walnut Song</h2>
       <div class="sub">Walnut's lyrics collection</div>
-      <a class="songs-add-tool-btn" href="/walnut-song-add.html" target="_blank" rel="noopener">➕ Add Song</a>
+      <button class="songs-add-tool-btn" onclick="songState.view='quickadd'; songsRerender();">➕ Add Song</button>
     </div>
     ${renderSetlistRow()}
   `;
@@ -625,7 +712,7 @@ function renderSongsHome(){
     if(!sl){ songState.activeSetlistId=null; songState.setlistManageMode=false; return renderSongsHome(); }
     const mq = (songState.setlistManageQuery||'').trim().toLowerCase();
     const usedSongIds = sl.items.filter(e=>e.type==='song').map(e=>e.songId);
-    const rest = SONGS.filter(s=>!usedSongIds.includes(s.id));
+    const rest = songAllSongs().filter(s=>!usedSongIds.includes(s.id));
     const filteredRest = mq ? rest.filter(s=>songMatches(s,mq)) : rest;
     const leftHtml = sl.items.length
       ? sl.items.map((e,i)=>songSetlistEntryHtml(e,i,sl.items.length)).join('')
@@ -683,11 +770,11 @@ function renderSongsHome(){
   let azHtml='', listHtml='';
 
   if(q){
-    const results = SONGS.filter(s=>songMatches(s,q)).sort((a,b)=>a[field].localeCompare(b[field]));
+    const results = songAllSongs().filter(s=>songMatches(s,q)).sort((a,b)=>a[field].localeCompare(b[field]));
     listHtml = results.length ? results.map(songItemHtml).join('') : '<div class="songs-empty">No matching songs found</div>';
   } else {
     const groups={};
-    SONGS.forEach(s=>{ const l=songLetterOf(s[field]); (groups[l]=groups[l]||[]).push(s); });
+    songAllSongs().forEach(s=>{ const l=songLetterOf(s[field]); (groups[l]=groups[l]||[]).push(s); });
     Object.values(groups).forEach(arr=>arr.sort((a,b)=>a[field].localeCompare(b[field])));
     const azButtons = SONG_ALPHABET.map(l=>{
       const has=!!groups[l];
