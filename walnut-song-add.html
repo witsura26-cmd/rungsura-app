@@ -55,6 +55,22 @@
   .status.err { color: #c0392b; }
   #preview { margin-top: 8px; }
   .preview-row { font-size: 12.5px; padding: 4px 0; border-bottom: 1px solid #eee; color: #444; }
+  .block-card {
+    border: 1px solid #e2e2e2; border-radius: 8px; padding: 10px 12px; margin-top: 10px;
+  }
+  .block-card .block-hd { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; flex-wrap: wrap; }
+  .block-card select, .block-card input[type=number] {
+    padding: 5px 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 12.5px; font-family: inherit;
+  }
+  .block-card input[type=number] { width: 55px; }
+  .block-card .block-preview {
+    font-size: 12px; color: #888; white-space: pre-wrap; max-height: 80px; overflow-y: auto;
+    background: #fafafa; border-radius: 6px; padding: 6px 8px; font-family: 'SF Mono', Menlo, monospace;
+  }
+  .block-card .chip {
+    font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 10px; background: #eef7ff; color: #4a9fd4;
+  }
+  .block-card .chip.dup { background: #fdeef0; color: #c0392b; }
 </style>
 </head>
 <body>
@@ -79,7 +95,36 @@
   </div>
 
   <div class="card">
-    <h2>เนื้อเพลง</h2>
+    <h2>โหมด 1: วางเนื้อเพลงดิบ ให้ระบบเดาท่อนให้ (แนะนำ)</h2>
+    <div class="help">
+      วางเนื้อเพลง <b>ไม่ต้องใส่ label</b> — แค่เว้นบรรทัดว่าง 1 บรรทัดคั่นระหว่างแต่ละท่อน (verse/chorus/bridge ฯลฯ) เหมือนที่เว็บเนื้อเพลงทั่วไปจัดมาให้อยู่แล้ว<br>
+      ระบบจะเดาว่าท่อนไหนเป็น chorus โดยดูจากท่อนที่ข้อความซ้ำกันเป๊ะ (เพราะ chorus มักร้องซ้ำคำเดิม) ท่อนอื่นจะเดาเป็น verse ตามลำดับ — กดปุ่มด้านล่างแล้วเช็ค/แก้ dropdown ให้ถูกอีกทีได้ก่อนสร้าง JSON
+    </div>
+    <label>วางเนื้อเพลงตรงนี้ (เว้นบรรทัดว่างคั่นแต่ละท่อน)</label>
+    <textarea id="rawInput" style="min-height:220px" placeholder="บรรทัดที่ 1 ของท่อนแรก
+บรรทัดที่ 2 ของท่อนแรก
+
+บรรทัดฮุก 1
+บรรทัดฮุก 2
+
+บรรทัดที่ 1 ของท่อนถัดไป
+บรรทัดที่ 2 ของท่อนถัดไป
+
+บรรทัดฮุก 1
+บรรทัดฮุก 2"></textarea>
+    <div class="btnrow">
+      <button onclick="autoDetect()">🔍 ตรวจจับท่อนอัตโนมัติ</button>
+      <button class="secondary" onclick="document.getElementById('rawInput').value=''">ล้าง</button>
+    </div>
+    <div class="status" id="autoStatus"></div>
+    <div id="autoBlocks"></div>
+    <div class="btnrow" id="autoConfirmRow" style="display:none">
+      <button onclick="generateFromBlocks()">✓ ยืนยัน → แปลงเป็น JSON</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>โหมด 2: พิมพ์ label เอง (สำหรับกรณีระบบเดาผิด)</h2>
     <div class="help">
       แปะเนื้อเพลงพร้อมใส่ label นำแต่ละท่อน — จะขึ้นบรรทัดใหม่ต่างหาก หรือพิมพ์ต่อท้ายในบรรทัดเดียวกันก็ได้ทั้งคู่ (เช่น <code>[Verse 1]</code> หรือ <code>[Verse 1] เนื้อร้องบรรทัดแรก</code>):<br>
       <code>[Verse 1]</code> <code>[Verse 2]</code> ... = ท่อน verse<br>
@@ -186,6 +231,119 @@ function renderPreview(sections){
     const warn = n===0 ? ' <span style="color:#c0392b">⚠️ ไม่มีเนื้อร้องในท่อนนี้</span>' : '';
     return `<div class="preview-row"><b>${i+1}. ${lbl}</b> — ${n} บรรทัด${warn}</div>`;
   }).join('');
+}
+
+const TYPE_OPTIONS = [
+  ['verse','Verse'], ['pre-chorus','Pre-Chorus'], ['chorus','Chorus'], ['bridge','Bridge'],
+  ['intro','Intro'], ['outro','Outro'], ['instrumental','Instrumental'], ['interlude','Interlude'], ['rap','Rap']
+];
+
+let autoBlocksData = [];
+
+function normalizeBlock(text){
+  return text.split('\n').map(l=>l.trim().toLowerCase()).filter(Boolean).join('|');
+}
+
+// Splits raw pasted lyrics into blocks by blank lines, then guesses a type
+// for each block purely from structural signals (position + exact-duplicate
+// detection) -- never inspects word meaning, just block equality/position.
+function autoDetect(){
+  const raw = document.getElementById('rawInput').value;
+  const statusEl = document.getElementById('autoStatus');
+  if(!raw.trim()){
+    statusEl.className = 'status err';
+    statusEl.textContent = '⚠️ กรุณาวางเนื้อเพลงก่อน';
+    return;
+  }
+
+  const rawBlocks = raw.split(/\n\s*\n/).map(b=>b.split('\n').map(l=>l.trim()).filter(l=>l.length)).filter(b=>b.length);
+  if(rawBlocks.length === 0){
+    statusEl.className = 'status err';
+    statusEl.textContent = '⚠️ ไม่พบท่อนเนื้อเพลง ลองเช็คว่ามีบรรทัดว่างคั่นแต่ละท่อนหรือยัง';
+    return;
+  }
+
+  const seen = new Map(); // normalized block text -> first-occurrence index
+  let verseCount = 0;
+  autoBlocksData = rawBlocks.map((lines, idx)=>{
+    const key = normalizeBlock(lines.join('\n'));
+    const firstIdx = seen.has(key) ? seen.get(key) : idx;
+    if(!seen.has(key)) seen.set(key, idx);
+    const isDuplicate = firstIdx !== idx;
+    let type, num = null, repeat = false;
+    if(isDuplicate){
+      type = 'chorus';
+      repeat = true;
+    } else {
+      // Heuristic: a block that repeats LATER in the song is very likely the
+      // chorus even the first time it appears, so pre-scan for later matches.
+      const laterHasDup = rawBlocks.some((b2,i2)=> i2>idx && normalizeBlock(b2.join('\n'))===key);
+      if(laterHasDup){
+        type = 'chorus';
+      } else {
+        verseCount++;
+        type = 'verse';
+        num = verseCount;
+      }
+    }
+    return { lines, type, num, repeat };
+  });
+
+  renderAutoBlocks();
+  statusEl.className = 'status';
+  statusEl.textContent = '✅ ตรวจพบ ' + autoBlocksData.length + ' ท่อน — เช็ค/แก้ dropdown ด้านล่างให้ถูกก่อนกด "ยืนยัน"';
+  document.getElementById('autoConfirmRow').style.display = 'flex';
+}
+
+function renderAutoBlocks(){
+  const box = document.getElementById('autoBlocks');
+  box.innerHTML = autoBlocksData.map((b,i)=>{
+    const opts = TYPE_OPTIONS.map(([v,l])=>`<option value="${v}" ${b.type===v?'selected':''}>${l}</option>`).join('');
+    const showNum = b.type==='verse' || b.type==='rap';
+    const dupChip = b.repeat ? '<span class="chip dup">ซ้ำท่อนก่อนหน้า</span>' : '<span class="chip">ท่อนใหม่</span>';
+    return `<div class="block-card">
+      <div class="block-hd">
+        <b>${i+1}.</b>
+        <select onchange="autoBlocksData[${i}].type=this.value; renderAutoBlocks()">${opts}</select>
+        <input type="number" min="1" value="${b.num||1}" style="display:${showNum?'inline-block':'none'}"
+          onchange="autoBlocksData[${i}].num=parseInt(this.value,10)">
+        <label style="font-size:12.5px;display:flex;align-items:center;gap:4px;">
+          <input type="checkbox" ${b.repeat?'checked':''} onchange="autoBlocksData[${i}].repeat=this.checked"> ร้องซ้ำ
+        </label>
+        ${dupChip}
+      </div>
+      <div class="block-preview">${b.lines.length} บรรทัด</div>
+    </div>`;
+  }).join('');
+}
+
+function generateFromBlocks(){
+  const titleEn = document.getElementById('titleEn').value.trim();
+  const titleTh = document.getElementById('titleTh').value.trim();
+  const artistEn = document.getElementById('artistEn').value.trim();
+  const artistTh = document.getElementById('artistTh').value.trim();
+  const icon = document.getElementById('icon').value.trim() || '🎸';
+  let songId = document.getElementById('songId').value.trim();
+  const statusEl = document.getElementById('autoStatus');
+
+  if(!titleEn || !artistEn){
+    statusEl.className = 'status err';
+    statusEl.textContent = '⚠️ กรุณากรอกชื่อเพลง (English) และศิลปิน (English) ก่อน (เลื่อนขึ้นไปด้านบนสุด)';
+    return;
+  }
+  if(!songId) songId = slugify(titleTh || titleEn, artistEn);
+
+  const songObj = {
+    id: songId, titleEn, titleTh, artistEn, artistTh, artistIcon: icon,
+    sections: autoBlocksData.map(b => ({ type: b.type, num: b.num, repeat: b.repeat, lines: b.lines }))
+  };
+
+  const jsonStr = JSON.stringify(songObj);
+  document.getElementById('output').value = '  ' + jsonStr + ',';
+  document.getElementById('outputCard').style.display = 'block';
+  document.getElementById('outputCard').scrollIntoView({behavior:'smooth'});
+  statusEl.className = 'status';
+  statusEl.textContent = '✅ สร้าง JSON แล้ว เลื่อนลงไป copy ได้เลย';
 }
 
 function generateJson(){
