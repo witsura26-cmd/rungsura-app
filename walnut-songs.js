@@ -270,11 +270,11 @@ function ensureSongsStyle(){
     .songs-title-block{ flex:1; min-width:0; }
     .songs-title-block .t{ font-size:15px; font-weight:800; color:#345f80; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .songs-title-block .a{ font-size:11px; color:#9bb; }
-    .songs-topbar-actions{ display:flex; gap:6px; flex-wrap:wrap; width:100%; justify-content:flex-end; }
+    .songs-topbar-actions{ display:flex; gap:6px; flex-shrink:0; flex-wrap:wrap; justify-content:flex-end; }
     .songs-topbar-actions button{ border:none; padding:7px 11px; border-radius:9px; font-size:11.5px; color:#666; background:#f2f2f2; cursor:pointer; white-space:nowrap; }
     .songs-topbar-actions button.primary{ background:#ff8fab; color:#fff; font-weight:700; }
     @media (max-width:420px){
-      .songs-topbar-actions{ justify-content:flex-start; }
+      .songs-topbar-actions{ width:100%; justify-content:flex-start; }
       .songs-topbar-actions button{ padding:6px 9px; font-size:11px; }
     }
     .songs-setlist-nav{ display:flex; align-items:center; justify-content:space-between; gap:6px; margin-top:8px; padding-top:8px; border-top:1px solid #f0f0f0; }
