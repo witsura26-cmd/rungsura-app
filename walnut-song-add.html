@@ -92,6 +92,12 @@
       <div><label>ไอคอน (emoji)</label><input type="text" id="icon" value="🎸"></div>
       <div><label>ID (อังกฤษล้วน ไม่มีเว้นวรรค) - เว้นว่างให้สร้างอัตโนมัติ</label><input type="text" id="songId" placeholder="เว้นว่างได้"></div>
     </div>
+    <div class="row">
+      <div style="grid-column:1/3">
+        <label>Note (โชว์ต่อท้ายชื่อเพลง) - เว้นว่างได้ถ้าไม่มี</label>
+        <input type="text" id="songNote" placeholder="เช่น feat. ชื่อนักร้อง, OST ชื่อหนัง">
+      </div>
+    </div>
   </div>
 
   <div class="card">
@@ -323,6 +329,7 @@ function generateFromBlocks(){
   const artistEn = document.getElementById('artistEn').value.trim();
   const artistTh = document.getElementById('artistTh').value.trim();
   const icon = document.getElementById('icon').value.trim() || '🎸';
+  const note = document.getElementById('songNote').value.trim();
   let songId = document.getElementById('songId').value.trim();
   const statusEl = document.getElementById('autoStatus');
 
@@ -337,6 +344,7 @@ function generateFromBlocks(){
     id: songId, titleEn, titleTh, artistEn, artistTh, artistIcon: icon,
     sections: autoBlocksData.map(b => ({ type: b.type, num: b.num, repeat: b.repeat, lines: b.lines }))
   };
+  if(note) songObj.note = note;
 
   const jsonStr = JSON.stringify(songObj);
   document.getElementById('output').value = '  ' + jsonStr + ',';
@@ -353,6 +361,7 @@ function generateJson(){
   const artistEn = document.getElementById('artistEn').value.trim();
   const artistTh = document.getElementById('artistTh').value.trim();
   const icon = document.getElementById('icon').value.trim() || '🎸';
+  const note = document.getElementById('songNote').value.trim();
   let songId = document.getElementById('songId').value.trim();
   const raw = document.getElementById('lyricsInput').value;
 
@@ -393,6 +402,7 @@ function generateJson(){
       lines: s.lines
     }))
   };
+  if(note) songObj.note = note;
 
   const jsonStr = JSON.stringify(songObj);
   document.getElementById('output').value = '  ' + jsonStr + ',';
@@ -418,7 +428,7 @@ function copyOutput(){
 }
 
 function clearAll(){
-  ['titleEn','titleTh','artistEn','artistTh','songId'].forEach(id=>document.getElementById(id).value='');
+  ['titleEn','titleTh','artistEn','artistTh','songId','songNote'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('icon').value = '🎸';
   document.getElementById('lyricsInput').value = '';
   document.getElementById('output').value = '';
