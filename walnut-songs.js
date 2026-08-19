@@ -1158,7 +1158,13 @@ function songScrollStep(ts){
   const pxPerSec = SONG_SCROLL_SPEEDS[songScrollSpeed-1];
   // accumulate in a private float — el.scrollTop itself gets rounded to whole
   // pixels by the browser, so reading it back each frame would silently drop
-  // sub-pixel increments at low speed and freeze the scroll.
+  // sub-pixel increments at low speed and freeze the scroll. But if the user
+  // manually scrolled/dragged since the last frame, the browser's actual
+  // scrollTop will have jumped well away from our tracked float position —
+  // resync to wherever they left it instead of snapping back to the old spot.
+  if(Math.abs(el.scrollTop - songScrollAccPos) > 2){
+    songScrollAccPos = el.scrollTop;
+  }
   songScrollAccPos += pxPerSec*dt;
   el.scrollTop = songScrollAccPos;
   const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight-2;
