@@ -84,6 +84,7 @@ const songState = {
   setlistManageMode: false,
   setlistManageQuery: '',
   setlistManageSort: 'artist', // artist | title
+  bottomBarCollapsed: false,
   strokes: [], notes: [], stickers: [],
   snapshot: null,
   currentTool: 'pencil',
@@ -274,8 +275,12 @@ function ensureSongsStyle(){
     .songs-setlist-nav button:disabled{ opacity:.3; pointer-events:none; }
     .songs-setlist-nav .pos{ font-size:10px; color:#999; text-align:center; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 
-    .songs-bottom-bar{ position:fixed; left:8px; right:8px; bottom:8px; z-index:45; background:#fff; border-radius:18px; padding:10px 14px; box-shadow:0 4px 20px rgba(0,0,0,.18); display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; }
+    .songs-bottom-bar{ position:fixed; left:8px; right:8px; bottom:8px; z-index:45; background:#fff; border-radius:18px; padding:6px 14px; box-shadow:0 4px 20px rgba(0,0,0,.18); }
+    .songs-bottom-bar.collapsed{ padding:4px 14px; }
+    .songs-bottom-toggle{ display:block; width:100%; border:none; background:transparent; padding:4px 0; font-size:13px; color:#bbb; cursor:pointer; }
+    .songs-bottom-content{ align-items:center; justify-content:space-between; gap:12px; padding-bottom:4px; }
     .songs-bottom-spacer{ height:96px; }
+    .songs-bottom-spacer.collapsed{ height:36px; }
     .songs-bottom-group{ display:flex; align-items:center; gap:8px; }
     .songs-bottom-bar button{ border:none; background:#f4f9ff; border-radius:12px; padding:10px 14px; font-size:19px; cursor:pointer; min-width:44px; min-height:44px; display:flex; align-items:center; justify-content:center; }
     .songs-bottom-bar .songs-scroll-step-btn{ font-size:17px; padding:10px 12px; }
@@ -322,8 +327,8 @@ function ensureSongsStyle(){
     .songs-section{ margin-top:30px; margin-bottom:8px; }
     .songs-seclabel{ font-size:7pt; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:#aaa; margin-bottom:10px; }
     .songs-seclabel.chorus{ color:#c0392b; } .songs-seclabel.bridge{ color:#2980b9; } .songs-seclabel.rap{ color:#8e44ad; } .songs-seclabel.instrumental,.songs-seclabel.intro,.songs-seclabel.outro,.songs-seclabel.interlude{ color:#27ae60; }
-    .songs-section.two-col{ display:flex; align-items:baseline; gap:12px; margin-top:40px; }
-    .songs-section.two-col .seclabel-col{ width:80px; flex-shrink:0; }
+    .songs-section.two-col{ display:flex; align-items:baseline; gap:8px; margin-top:40px; }
+    .songs-section.two-col .seclabel-col{ width:52px; flex-shrink:0; }
     .songs-section.two-col .seclabel-col .songs-seclabel{ margin-bottom:0; }
     .songs-section.two-col .lyrics-col{ flex:1; min-width:0; }
     .songs-section.two-col.first-section{ margin-top:60px; }
@@ -565,9 +570,9 @@ function renderSetlistRow(){
   ];
   return `<div class="songs-setlist-row">${chips.join('')}</div>`;
 }
-let songLyricsFontSize = 17; // always resets to 17pt on every fresh open — not persisted
+let songLyricsFontSize = 14; // always resets to 14pt on every fresh open — not persisted
 function songSetLyricsZoom(delta){
-  songLyricsFontSize = Math.max(9, Math.min(32, songLyricsFontSize+delta));
+  songLyricsFontSize = Math.max(9, Math.min(28, songLyricsFontSize+delta));
   songRefreshLyricsFontSize();
 }
 function songRefreshLyricsFontSize(){
@@ -1106,6 +1111,10 @@ function songScrollStepManual(dir){
   if(!el) return;
   el.scrollBy({ top: dir * Math.round(el.clientHeight*0.6), behavior: 'smooth' });
 }
+function songToggleBottomBar(){
+  songState.bottomBarCollapsed = !songState.bottomBarCollapsed;
+  songsRerender();
+}
 
 function songResetScroll(){
   const el=songGetScrollContainer();
@@ -1117,7 +1126,7 @@ function songOpen(id){
   songState.currentId=id;
   songState.view='detail';
   songState.mode='clean';
-  songLyricsFontSize = 17;
+  songLyricsFontSize = 14;
   songsRerender();
   songResetScroll();
   if(songState.activeSetlistId && songHasNote(id)){
@@ -1404,23 +1413,26 @@ function renderSongDetail(){
       </div>
     </div>
     <div class="songs-hint" style="display:${songState.mode==='edit'?'block':'none'}">Tap "Save" up top when you're done — you'll be asked to confirm before it overwrites the previous version</div>
-    <div class="songs-bottom-bar">
-      <div class="songs-bottom-group">
-        <span class="songs-bottom-label">Text size</span>
-        <button onclick="songSetLyricsZoom(-1)">🔍－</button>
-        <span id="songs-lyrics-fs-label">${songLyricsFontSize}pt</span>
-        <button onclick="songSetLyricsZoom(1)">🔍＋</button>
-      </div>
-      <div class="songs-bottom-group">
-        <span class="songs-bottom-label">Autoscroll</span>
-        <button class="songs-scroll-step-btn" onclick="songScrollStepManual(-1)">⬆️</button>
-        <button id="songs-scroll-btn" onclick="songToggleAutoScroll()">${songScrollRAF?'⏸':'▶️'}</button>
-        <button class="songs-scroll-step-btn" onclick="songScrollStepManual(1)">⬇️</button>
-        <input type="range" min="1" max="10" step="1" value="${songScrollSpeed}" oninput="songSetScrollSpeed(this.value)">
-        <span id="songs-scroll-speed-label">Lv.${songScrollSpeed}</span>
+    <div class="songs-bottom-bar${songState.bottomBarCollapsed?' collapsed':''}">
+      <button class="songs-bottom-toggle" onclick="songToggleBottomBar()">${songState.bottomBarCollapsed?'▲':'▼'}</button>
+      <div class="songs-bottom-content" style="display:${songState.bottomBarCollapsed?'none':'flex'}">
+        <div class="songs-bottom-group">
+          <span class="songs-bottom-label">Text size</span>
+          <button onclick="songSetLyricsZoom(-1)">🔍－</button>
+          <span id="songs-lyrics-fs-label">${songLyricsFontSize}pt</span>
+          <button onclick="songSetLyricsZoom(1)">🔍＋</button>
+        </div>
+        <div class="songs-bottom-group">
+          <span class="songs-bottom-label">Autoscroll</span>
+          <button class="songs-scroll-step-btn" onclick="songScrollStepManual(-1)">⬆️</button>
+          <button id="songs-scroll-btn" onclick="songToggleAutoScroll()">${songScrollRAF?'⏸':'▶️'}</button>
+          <button class="songs-scroll-step-btn" onclick="songScrollStepManual(1)">⬇️</button>
+          <input type="range" min="1" max="10" step="1" value="${songScrollSpeed}" oninput="songSetScrollSpeed(this.value)">
+          <span id="songs-scroll-speed-label">Lv.${songScrollSpeed}</span>
+        </div>
       </div>
     </div>
-    <div class="songs-bottom-spacer"></div>
+    <div class="songs-bottom-spacer${songState.bottomBarCollapsed?' collapsed':''}"></div>
   `;
 }
 
