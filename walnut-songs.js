@@ -277,7 +277,7 @@ function ensureSongsStyle(){
 
     .songs-bottom-bar{ position:fixed; left:8px; right:8px; bottom:8px; z-index:45; background:#fff; border-radius:18px; padding:6px 14px; box-shadow:0 4px 20px rgba(0,0,0,.18); }
     .songs-bottom-bar.collapsed{ padding:4px 14px; }
-    .songs-bottom-toggle{ display:block; width:100%; border:none; background:transparent; padding:4px 0; font-size:13px; color:#bbb; cursor:pointer; }
+    .songs-bottom-bar .songs-bottom-toggle{ display:block; width:100%; min-width:0; min-height:0; height:16px; border:none; background:transparent; padding:0; margin:0; font-size:11px; line-height:16px; color:#ccc; cursor:pointer; }
     .songs-bottom-content{ align-items:center; justify-content:space-between; gap:12px; padding-bottom:4px; }
     .songs-bottom-spacer{ height:96px; }
     .songs-bottom-spacer.collapsed{ height:36px; }
@@ -320,7 +320,7 @@ function ensureSongsStyle(){
     .songs-toggle-btn.sel{ background:#6bcB77; color:#fff; }
 
     .songs-page{ position:relative; width:100%; min-height:200px; background:#fff8f0; border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.14); overflow:hidden; }
-    .songs-lyrics{ position:relative; padding:26px 20px 26px 40px; pointer-events:none; }
+    .songs-lyrics{ position:relative; padding:26px 14px 26px 14px; pointer-events:none; }
     .songs-lyrics h2{ text-align:center; font-size:18pt; font-weight:700; color:#d47ab0; margin:0 0 2px; }
     .songs-lyrics .artist{ text-align:center; font-size:10pt; color:#999; margin-bottom:20px; }
     .songs-single{ width:100%; box-sizing:border-box; }
