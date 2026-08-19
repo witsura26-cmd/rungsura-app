@@ -280,7 +280,7 @@ function ensureSongsStyle(){
     .songs-bottom-bar{ position:fixed; left:8px; right:8px; bottom:8px; z-index:45; background:#fff; border-radius:18px; padding:6px 14px; box-shadow:0 4px 20px rgba(0,0,0,.18); }
     .songs-bottom-bar.collapsed{ padding:4px 14px; }
     .songs-bottom-bar .songs-bottom-toggle{ display:block; width:100%; min-width:0; min-height:0; height:16px; border:none; background:transparent; padding:0; margin:0; font-size:11px; line-height:16px; color:#ccc; cursor:pointer; }
-    .songs-bottom-content{ align-items:center; justify-content:space-between; gap:12px; padding-bottom:4px; }
+    .songs-bottom-content{ align-items:center; justify-content:center; flex-wrap:wrap; gap:6px 14px; padding-bottom:4px; }
     .songs-bottom-spacer{ height:96px; }
     .songs-bottom-spacer.collapsed{ height:36px; }
     .songs-bottom-group{ display:flex; align-items:center; gap:8px; }
@@ -289,7 +289,7 @@ function ensureSongsStyle(){
     .songs-bottom-bar #songs-scroll-btn{ background:#eaf3ff; font-size:20px; }
     .songs-bottom-bar #songs-lyrics-fs-label, .songs-bottom-bar #songs-scroll-speed-label{ font-size:14px; font-weight:800; color:#555; min-width:42px; text-align:center; }
     .songs-bottom-label{ font-size:12px; font-weight:700; color:#999; white-space:nowrap; }
-    .songs-bottom-bar input[type="range"]{ width:70px; height:28px; }
+    .songs-bottom-bar input[type="range"]{ width:56px; height:28px; }
     @media (min-width:600px){
       .songs-bottom-bar{ left:16px; right:16px; bottom:16px; padding:12px 20px; gap:20px; }
       .songs-bottom-bar button{ font-size:21px; padding:12px 16px; min-width:48px; min-height:48px; }
