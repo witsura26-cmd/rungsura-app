@@ -499,7 +499,12 @@ function songSaveEditedSong(id, updatedSong){
 function songAllSongs(){
   const overrides = songGetOverrides();
   const base = SONGS.map(s => overrides[s.id] || s);
-  return base.concat(songGetCustomSongs());
+  // once a Quick-Add song is exported and deployed, its id also exists in
+  // SONGS -- exclude the leftover local copy so it doesn't list twice on
+  // whichever device originally created it.
+  const builtInIds = new Set(SONGS.map(s=>s.id));
+  const custom = songGetCustomSongs().filter(s=>!builtInIds.has(s.id));
+  return base.concat(custom);
 }
 function songById(id){
   if(typeof id === 'string' && id.startsWith('note:')){
