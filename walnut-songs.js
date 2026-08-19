@@ -1675,6 +1675,8 @@ function songSelectTool(tool){
 
 /* ===================== CANVAS / DOM SETUP ===================== */
 let songDrawing=false, songCurrentStroke=null;
+let songLastDrawPos=null, songHoldTimer=null;
+const SONG_HOLD_STRAIGHTEN_MS = 450;
 let songLastNoteBlurAt=0;
 
 function songSetupDetailDom(){
@@ -1725,6 +1727,40 @@ function songRedraw(){
     ctx.stroke();
   });
 }
+// Draws just the newest segment of the in-progress stroke onto the canvas
+// as-is (no clear, no redrawing everything else) -- full songRedraw() only
+// happens once the stroke finishes. This keeps each pointermove O(1)
+// instead of O(total points ever drawn), which is what caused drawing to
+// get slower with every additional stroke.
+function songDrawSegment(canvas, from, to, stroke){
+  const ctx=canvas.getContext('2d');
+  ctx.strokeStyle=stroke.color;
+  ctx.lineWidth=(stroke.size||SONG_BRUSH_SIZES.m)*(canvas.width/620);
+  ctx.lineCap='round'; ctx.lineJoin='round';
+  ctx.beginPath();
+  ctx.moveTo(from.x*canvas.width, from.y*canvas.height);
+  ctx.lineTo(to.x*canvas.width, to.y*canvas.height);
+  ctx.stroke();
+}
+function songClearHoldTimer(){
+  if(songHoldTimer){ clearTimeout(songHoldTimer); songHoldTimer=null; }
+}
+// If the pointer pauses (without lifting) partway through a stroke, snap
+// everything drawn so far into a straight line from the stroke's start to
+// wherever it currently is -- the same "hold to straighten" gesture other
+// drawing apps use.
+function songStraightenCurrentStroke(){
+  if(!songDrawing || !songCurrentStroke || songCurrentStroke.points.length<2) return;
+  const start=songCurrentStroke.points[0];
+  const end=songCurrentStroke.points[songCurrentStroke.points.length-1];
+  songCurrentStroke.points=[start,end];
+  songLastDrawPos=end;
+  songRedraw();
+}
+function songArmHoldTimer(){
+  songClearHoldTimer();
+  songHoldTimer=setTimeout(songStraightenCurrentStroke, SONG_HOLD_STRAIGHTEN_MS);
+}
 function songAttachCanvasEvents(canvas){
   if(canvas.dataset.songBound) return;
   canvas.dataset.songBound='1';
@@ -1738,6 +1774,8 @@ function songAttachCanvasEvents(canvas){
     if(songState.currentTool==='pencil'){
       songCurrentStroke={color:songState.currentColor, size:SONG_BRUSH_SIZES[songState.brushSize], points:[pos]};
       songState.strokes.push(songCurrentStroke);
+      songLastDrawPos=pos;
+      songArmHoldTimer();
     } else if(songState.currentTool==='eraser'){
       songEraseNear(pos);
     }
@@ -1746,12 +1784,24 @@ function songAttachCanvasEvents(canvas){
     songUpdateEraserCursor(e, canvas);
     if(!songDrawing || songState.mode!=='edit') return;
     const pos=songGetPos(e,canvas);
-    if(songState.currentTool==='pencil' && songCurrentStroke){ songCurrentStroke.points.push(pos); songRedraw(); }
+    if(songState.currentTool==='pencil' && songCurrentStroke){
+      songCurrentStroke.points.push(pos);
+      if(songLastDrawPos) songDrawSegment(canvas, songLastDrawPos, pos, songCurrentStroke);
+      songLastDrawPos=pos;
+      songArmHoldTimer();
+    }
     else if(songState.currentTool==='eraser'){ songEraseNear(pos); }
   });
   canvas.addEventListener('pointerleave', songHideEraserCursor);
-  window.addEventListener('pointerup', ()=>{ songDrawing=false; songCurrentStroke=null; });
-  window.addEventListener('pointercancel', ()=>{ songDrawing=false; songCurrentStroke=null; });
+  window.addEventListener('pointerup', ()=>{
+    songClearHoldTimer();
+    if(songDrawing && songCurrentStroke) songRedraw();
+    songDrawing=false; songCurrentStroke=null; songLastDrawPos=null;
+  });
+  window.addEventListener('pointercancel', ()=>{
+    songClearHoldTimer();
+    songDrawing=false; songCurrentStroke=null; songLastDrawPos=null;
+  });
 
   const pageWrap=songGetPageWrap();
   if(pageWrap && !pageWrap.dataset.songClickBound){
