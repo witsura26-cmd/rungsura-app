@@ -634,7 +634,10 @@ function renderSetlistRow(){
   ];
   return `<div class="songs-setlist-row">${chips.join('')}</div>`;
 }
-let songLyricsFontSize = 14; // always resets to 14pt on every fresh open — not persisted
+function songDefaultLyricsFontSize(){
+  return window.innerWidth < 600 ? 12 : 14;
+}
+let songLyricsFontSize = songDefaultLyricsFontSize(); // resets on every fresh open — not persisted
 function songSetLyricsZoom(delta){
   songLyricsFontSize = Math.max(9, Math.min(28, songLyricsFontSize+delta));
   songRefreshLyricsFontSize();
@@ -1195,7 +1198,7 @@ function songOpen(id){
   songState.currentId=id;
   songState.view='detail';
   songState.mode='clean';
-  songLyricsFontSize = 14;
+  songLyricsFontSize = songDefaultLyricsFontSize();
   songsRerender();
   songResetScroll();
   if(songState.activeSetlistId && songHasNote(id)){
