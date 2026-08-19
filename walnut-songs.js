@@ -274,13 +274,22 @@ function ensureSongsStyle(){
     .songs-setlist-nav button:disabled{ opacity:.3; pointer-events:none; }
     .songs-setlist-nav .pos{ font-size:10px; color:#999; text-align:center; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 
-    .songs-bottom-bar{ position:fixed; left:12px; right:12px; bottom:12px; z-index:45; background:#fff; border-radius:14px; padding:7px 12px; box-shadow:0 4px 16px rgba(0,0,0,.15); display:flex; align-items:center; justify-content:space-between; gap:10px; }
-    .songs-bottom-spacer{ height:64px; }
-    .songs-bottom-group{ display:flex; align-items:center; gap:6px; }
-    .songs-bottom-bar button{ border:none; background:#f4f9ff; border-radius:8px; padding:5px 9px; font-size:13px; cursor:pointer; }
-    .songs-bottom-bar #songs-lyrics-fs-label, .songs-bottom-bar #songs-scroll-speed-label{ font-size:11px; font-weight:700; color:#666; min-width:30px; text-align:center; }
-    .songs-bottom-label{ font-size:10px; color:#999; white-space:nowrap; }
-    .songs-bottom-bar input[type="range"]{ width:60px; }
+    .songs-bottom-bar{ position:fixed; left:8px; right:8px; bottom:8px; z-index:45; background:#fff; border-radius:18px; padding:10px 14px; box-shadow:0 4px 20px rgba(0,0,0,.18); display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; }
+    .songs-bottom-spacer{ height:96px; }
+    .songs-bottom-group{ display:flex; align-items:center; gap:8px; }
+    .songs-bottom-bar button{ border:none; background:#f4f9ff; border-radius:12px; padding:10px 14px; font-size:19px; cursor:pointer; min-width:44px; min-height:44px; display:flex; align-items:center; justify-content:center; }
+    .songs-bottom-bar .songs-scroll-step-btn{ font-size:17px; padding:10px 12px; }
+    .songs-bottom-bar #songs-scroll-btn{ background:#eaf3ff; font-size:20px; }
+    .songs-bottom-bar #songs-lyrics-fs-label, .songs-bottom-bar #songs-scroll-speed-label{ font-size:14px; font-weight:800; color:#555; min-width:42px; text-align:center; }
+    .songs-bottom-label{ font-size:12px; font-weight:700; color:#999; white-space:nowrap; }
+    .songs-bottom-bar input[type="range"]{ width:70px; height:28px; }
+    @media (min-width:600px){
+      .songs-bottom-bar{ left:16px; right:16px; bottom:16px; padding:12px 20px; gap:20px; }
+      .songs-bottom-bar button{ font-size:21px; padding:12px 16px; min-width:48px; min-height:48px; }
+      .songs-bottom-bar #songs-lyrics-fs-label, .songs-bottom-bar #songs-scroll-speed-label{ font-size:15px; }
+      .songs-bottom-label{ font-size:13px; }
+      .songs-bottom-bar input[type="range"]{ width:100px; }
+    }
 
     .songs-toolbar{ display:flex; gap:6px; flex-wrap:wrap; justify-content:center; background:#fdf7fa; padding:7px 8px; border-radius:14px; margin-bottom:6px; }
     .songs-tool{ border:none; background:#fff; border-radius:10px; padding:6px 10px; font-size:16px; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:1px; min-width:46px; }
@@ -556,9 +565,9 @@ function renderSetlistRow(){
   ];
   return `<div class="songs-setlist-row">${chips.join('')}</div>`;
 }
-let songLyricsFontSize = 14; // always resets to 14pt on every fresh open — not persisted
+let songLyricsFontSize = 17; // always resets to 17pt on every fresh open — not persisted
 function songSetLyricsZoom(delta){
-  songLyricsFontSize = Math.max(9, Math.min(28, songLyricsFontSize+delta));
+  songLyricsFontSize = Math.max(9, Math.min(32, songLyricsFontSize+delta));
   songRefreshLyricsFontSize();
 }
 function songRefreshLyricsFontSize(){
@@ -1091,6 +1100,12 @@ function songSetScrollSpeed(v){
   const label=document.getElementById('songs-scroll-speed-label');
   if(label) label.textContent='Lv.'+songScrollSpeed;
 }
+function songScrollStepManual(dir){
+  songStopAutoScroll();
+  const el = songGetScrollContainer();
+  if(!el) return;
+  el.scrollBy({ top: dir * Math.round(el.clientHeight*0.6), behavior: 'smooth' });
+}
 
 function songResetScroll(){
   const el=songGetScrollContainer();
@@ -1102,7 +1117,7 @@ function songOpen(id){
   songState.currentId=id;
   songState.view='detail';
   songState.mode='clean';
-  songLyricsFontSize = 14;
+  songLyricsFontSize = 17;
   songsRerender();
   songResetScroll();
   if(songState.activeSetlistId && songHasNote(id)){
@@ -1398,7 +1413,9 @@ function renderSongDetail(){
       </div>
       <div class="songs-bottom-group">
         <span class="songs-bottom-label">Autoscroll</span>
+        <button class="songs-scroll-step-btn" onclick="songScrollStepManual(-1)">⬆️</button>
         <button id="songs-scroll-btn" onclick="songToggleAutoScroll()">${songScrollRAF?'⏸':'▶️'}</button>
+        <button class="songs-scroll-step-btn" onclick="songScrollStepManual(1)">⬇️</button>
         <input type="range" min="1" max="10" step="1" value="${songScrollSpeed}" oninput="songSetScrollSpeed(this.value)">
         <span id="songs-scroll-speed-label">Lv.${songScrollSpeed}</span>
       </div>
