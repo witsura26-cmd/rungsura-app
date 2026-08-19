@@ -150,6 +150,8 @@ function ensureSongsStyle(){
     .songs-home-header .sub{ font-size:12px; color:#7aaac8; font-weight:700; margin-top:2px; }
     .songs-add-tool-btn{ display:inline-block; margin-top:8px; margin-right:6px; padding:6px 14px; background:#4a9fd4; color:#fff; font-size:12px; font-weight:700; border-radius:20px; text-decoration:none; border:none; cursor:pointer; font-family:inherit; }
     .songs-quickadd-btn{ background:#bbb; font-weight:600; }
+    .songs-backup-btn{ background:#2a9d5c; }
+    .songs-restore-btn{ background:#e08e2e; cursor:pointer; }
     .songs-quickadd{ padding:10px 4px; }
     .songs-quickadd h2{ font-size:18px; margin:10px 0 4px; }
     .qa-help{ font-size:12px; color:#888; background:#fffbea; border:1px solid #f0e0a0; border-radius:8px; padding:10px 12px; margin-bottom:14px; line-height:1.6; }
@@ -392,6 +394,68 @@ function songLoadData(id){
 function songNoteBodyKey(entryId){ return 'walnut_note_body_'+entryId; }
 function songLoadNoteBody(entryId){ return localStorage.getItem(songNoteBodyKey(entryId)) || ''; }
 function songSaveNoteBody(entryId, text){ localStorage.setItem(songNoteBodyKey(entryId), text); }
+
+/* ===================== NOTE BACKUP / RESTORE =====================
+   Walnut's drawn notes/stickers live ONLY in this device's localStorage
+   (walnut_song_note_* and walnut_note_body_*) with no server-side copy.
+   iOS Safari can silently clear that storage after ~7 days without a
+   direct visit (ITP). These let that data be saved to a file and
+   restored, independent of the browser's own storage lifetime. */
+function songBackupKeys(){
+  const keys = [];
+  for(let i=0;i<localStorage.length;i++){
+    const k = localStorage.key(i);
+    if(k && (k.indexOf(SONG_STORAGE_PREFIX)===0 || k.indexOf('walnut_note_body_')===0)){
+      keys.push(k);
+    }
+  }
+  return keys;
+}
+function songExportBackup(){
+  const keys = songBackupKeys();
+  if(keys.length===0){
+    alert('ยังไม่มีโน้ตที่บันทึกไว้ในเครื่องนี้เลย ไม่มีอะไรให้ backup');
+    return;
+  }
+  const data = {};
+  keys.forEach(k => { data[k] = localStorage.getItem(k); });
+  const payload = { type:'walnut-song-note-backup', exportedAt: new Date().toISOString(), data };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const dateStr = new Date().toISOString().slice(0,10);
+  a.href = url;
+  a.download = `walnut-song-backup-${dateStr}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  alert(`บันทึกไฟล์ backup แล้ว (${keys.length} รายการ) — เก็บไฟล์นี้ไว้ใน Files app หรือส่งอีเมลตัวเองไว้ให้ปลอดภัยนะครับ`);
+}
+function songImportBackup(inputEl){
+  const file = inputEl.files && inputEl.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e){
+    let payload;
+    try{ payload = JSON.parse(e.target.result); }
+    catch(err){ alert('ไฟล์นี้เปิดไม่ได้ ไม่ใช่ไฟล์ backup ที่ถูกต้อง'); inputEl.value=''; return; }
+    if(!payload || payload.type !== 'walnut-song-note-backup' || !payload.data){
+      alert('ไฟล์นี้ไม่ใช่ไฟล์ backup ของ Walnut Song');
+      inputEl.value='';
+      return;
+    }
+    const keys = Object.keys(payload.data);
+    const when = payload.exportedAt ? new Date(payload.exportedAt).toLocaleString('th-TH') : 'ไม่ทราบวันที่';
+    const ok = confirm(`พบโน้ต ${keys.length} รายการ (บันทึกไว้เมื่อ ${when})\n\nกู้คืนกลับเข้าเครื่องนี้เลยมั้ย? (จะทับของเดิมที่ id ตรงกัน ของเพลงอื่นที่ไม่ได้อยู่ในไฟล์นี้จะไม่ถูกแตะ)`);
+    if(!ok){ inputEl.value=''; return; }
+    keys.forEach(k => { localStorage.setItem(k, payload.data[k]); });
+    inputEl.value='';
+    alert('กู้คืนโน้ตเรียบร้อยแล้ว!');
+    songsRerender();
+  };
+  reader.readAsText(file);
+}
 function songOnNoteBodyInput(entryId, el){ songSaveNoteBody(entryId, el.innerText); }
 function songGetCustomSongs(){
   try{ return JSON.parse(localStorage.getItem(SONG_CUSTOM_KEY)||'[]'); }
@@ -919,6 +983,11 @@ function renderSongsHome(){
       <div class="sub">Walnut's lyrics collection</div>
       <a class="songs-add-tool-btn" href="/walnut-song-add.html" target="_blank" rel="noopener">➕ Add Song</a>
       <button class="songs-add-tool-btn songs-quickadd-btn" onclick="songState.view='quickadd'; songsRerender();">🩹 Quick note (this device only)</button>
+      <button class="songs-add-tool-btn songs-backup-btn" onclick="songExportBackup()">💾 Backup โน้ต</button>
+      <label class="songs-add-tool-btn songs-restore-btn">
+        📥 กู้คืนโน้ต
+        <input type="file" accept="application/json" style="display:none" onchange="songImportBackup(this)">
+      </label>
     </div>
     ${renderSetlistRow()}
   `;
