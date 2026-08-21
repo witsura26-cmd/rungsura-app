@@ -188,6 +188,9 @@ function ensureSongsStyle(){
     .le-section-hd select{ padding:5px 8px; border:1px solid #ddd; border-radius:6px; font-size:12.5px; font-family:inherit; }
     .le-section-hd input[type=number]{ width:50px; padding:5px 6px; border:1px solid #ddd; border-radius:6px; font-size:12.5px; font-family:inherit; }
     .le-repeat-lbl{ font-size:12px; display:flex; align-items:center; gap:3px; margin:0; }
+    .le-pos-wrap{ font-size:12px; font-weight:700; color:#888; display:flex; align-items:center; gap:2px; }
+    .le-pos-input{ width:34px; padding:4px 3px; border:1px solid #ddd; border-radius:6px; font-size:12.5px; font-family:inherit; text-align:center; }
+    .le-pos-help{ font-size:11.5px; color:#999; margin:4px 0 10px; line-height:1.5; }
     .le-spacer{ flex:1; }
     .le-icon-btn{ background:#f0f0f0; border:none; border-radius:6px; width:26px; height:26px; font-size:13px; cursor:pointer; }
     .le-icon-btn:disabled{ opacity:0.3; cursor:default; }
@@ -822,6 +825,7 @@ function leSyncFromDom(){
   const t = document.getElementById('leTitleEn'); if(t) draft.titleEn = t.value;
   const tth = document.getElementById('leTitleTh'); if(tth) draft.titleTh = tth.value;
   const a = document.getElementById('leArtist'); if(a) draft.artistEn = a.value;
+  const n = document.getElementById('leNote'); if(n) draft.note = n.value;
   (draft.sections||[]).forEach((sec,i)=>{
     const ta = document.getElementById('leLines'+i);
     if(ta) sec.lines = ta.value.split('\n');
@@ -849,6 +853,20 @@ function leMoveSection(i, dir){
   const j = i+dir;
   if(j<0 || j>=arr.length) return;
   const tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp;
+  songsRerender();
+}
+// Jumps a section straight to a typed-in position instead of clicking ↑/↓
+// repeatedly -- e.g. adding an Intro at the end then typing "1" here moves
+// it to the top in one step.
+function leSetPosition(i, newPosStr){
+  leSyncFromDom();
+  const arr = songState.editDraft.sections;
+  let newPos = parseInt(newPosStr,10);
+  if(isNaN(newPos)){ songsRerender(); return; }
+  newPos = Math.max(1, Math.min(arr.length, newPos)) - 1;
+  if(newPos === i){ songsRerender(); return; }
+  const [item] = arr.splice(i,1);
+  arr.splice(newPos,0,item);
   songsRerender();
 }
 function leAddSection(){
@@ -894,6 +912,7 @@ function leExportJson(){
     artistIcon: draft.artistIcon || '🎵',
     sections: draft.sections.map(s => ({ type: s.type, num: s.num, repeat: s.repeat, lines: s.lines }))
   };
+  if(draft.note) exportObj.note = draft.note;
   const out = document.getElementById('leExportOut');
   out.value = '  ' + JSON.stringify(exportObj) + ',';
   out.style.display = 'block';
@@ -913,7 +932,7 @@ function renderLyricsEdit(){
     return `
     <div class="le-section">
       <div class="le-section-hd">
-        <b>${i+1}.</b>
+        <span class="le-pos-wrap">#<input type="number" class="le-pos-input" min="1" max="${draft.sections.length}" value="${i+1}" onchange="leSetPosition(${i}, this.value)"></span>
         <select onchange="leUpdateType(${i}, this.value)">${typeOptsHtml(sec.type)}</select>
         <input type="number" id="leNum${i}" min="1" value="${sec.num||''}" placeholder="#" style="display:${showNum?'inline-block':'none'}">
         <label class="le-repeat-lbl"><input type="checkbox" ${sec.repeat?'checked':''} onchange="leToggleRepeat(${i}, this.checked)"> ซ้ำ</label>
@@ -939,6 +958,9 @@ function renderLyricsEdit(){
       <input type="text" id="leTitleTh" value="${songEscapeHtml(draft.titleTh||'')}">
       <label>ศิลปิน</label>
       <input type="text" id="leArtist" value="${songEscapeHtml(draft.artistEn||'')}">
+      <label>Note (โชว์ต่อท้ายชื่อเพลง เช่น feat. / OST) - เว้นว่างได้</label>
+      <input type="text" id="leNote" value="${songEscapeHtml(draft.note||'')}" placeholder="เช่น feat. ชื่อนักร้อง, OST ชื่อหนัง">
+      <div class="le-pos-help">💡 พิมพ์เลขในช่อง # เพื่อย้ายท่อนไปตำแหน่งนั้นทันที (เช่นเพิ่ม Intro แล้วอยากย้ายไปบนสุด พิมพ์ 1)</div>
       <div class="le-sections">${sectionsHtml}</div>
       <button class="le-add-btn" onclick="leAddSection()">+ เพิ่มท่อน (เช่น Intro / Instrumental)</button>
 
